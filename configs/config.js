@@ -23,7 +23,7 @@ const config = {
     historyApiFallback: true,
     open: true,
     watchContentBase: true,
-    openPage: 'web/preview.html',
+    openPage: 'index.html',
     watchOptions: {
       ignored: /node_modules/,
       aggregateTimeout: 300,

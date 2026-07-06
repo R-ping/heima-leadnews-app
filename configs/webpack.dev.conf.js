@@ -12,8 +12,8 @@ const ip = "127.0.0.1"
 /**
  * Webpack Plugins
  */
-const HtmlWebpackPlugin = require('html-webpack-plugin-for-multihtml');
-const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+// const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin');
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
 const portfinder = require('portfinder')
 
@@ -58,11 +58,10 @@ const generateHtmlWebpackPlugin = (entry) => {
   entrys = entrys.filter(entry => entry !== 'vendor' );
   const htmlPlugin = entrys.map(name => {
     return new HtmlWebpackPlugin({
-      multihtmlCache: true,
       filename: name + '.html',
       template: helper.rootNode(`web/index.html`),
       isDevServer: true,
-      chunksSortMode: 'dependency',
+      chunksSortMode: 'auto',
       inject: true,
       devScripts: config.dev.htmlOptions.devScripts,
       chunks: ['vendor', name]
@@ -98,7 +97,6 @@ const devWebpackConfig = webpackMerge(commonConfig[0], {
    */
   plugins: [
 
-    new VueLoaderPlugin(), // 👈 添加这一行
 
     /**
      * Plugin: webpack.DefinePlugin
@@ -119,17 +117,7 @@ const devWebpackConfig = webpackMerge(commonConfig[0], {
      *
      * See: https://github.com/ampedandwired/html-webpack-plugin
      */
-    ...generateHtmlWebpackPlugin(commonConfig[0].entry),
-    /*
-     * Plugin: ScriptExtHtmlWebpackPlugin
-     * Description: Enhances html-webpack-plugin functionality
-     * with different deployment options for your scripts including:
-     *
-     * See: https://github.com/numical/script-ext-html-webpack-plugin
-     */
-    new ScriptExtHtmlWebpackPlugin({
-      defaultAttribute: 'defer'
-    })
+    ...generateHtmlWebpackPlugin(commonConfig[0].entry)
   ],
   /**
    * Webpack Development Server configuration

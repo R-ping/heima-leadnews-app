@@ -1,3 +1,4 @@
+const path = require('path')
 const utils = require('./utils')
 // const config = require('./config')
 // const isProduction = process.env.NODE_ENV === 'production'
@@ -28,7 +29,7 @@ const utils = require('./utils')
 const buildConfig = require('./config') // 👈 使用 buildConfig 命名避免冲突
 module.exports = (options) => {
   const config = {
-    cacheDirectory: true,
+    cacheDirectory: path.resolve(__dirname, '../node_modules/.cache/vue-loader'),
     cssSourceMap: options && options.sourceMap,
     cacheIdentifier: JSON.stringify({
       vue: require('vue/package.json').version,
