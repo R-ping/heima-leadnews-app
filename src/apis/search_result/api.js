@@ -1,14 +1,11 @@
-function Api(){
-    this.vue;
-}
-Api.prototype = {
-    setVue : function(vue){
-        this.vue = vue;
-    },
+import conf from '@/common/conf'
+import request from '@/common/request'
+
+var api = {
     // 加载
     article_search: function(parms){
-        let url = this.vue.$config.urls.get('article_search')
-        return this.vue.$request.postByEquipmentId(url,{
+        let url = conf.urls.get('article_search')
+        return request.postByEquipmentId(url,{
             search_words:parms.keyword,
             page_num:parms.pageNum,
             tag:parms.tag,
@@ -17,4 +14,4 @@ Api.prototype = {
     }
 }
 
-export default new Api()
+export default api

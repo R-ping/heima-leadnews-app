@@ -10,14 +10,14 @@
                  :style="{ width: tabStyles.width +'px', height: tabStyles.height +'px', backgroundColor: currentPage == index ? tabStyles.activeBgColor : tabStyles.bgColor }"
                  :accessible="true"
                  :aria-label="`${v.title?v.title:'标签'+index}`">
-                <text class="icon" :style="{color:getFillColor(index)}">{{v.icon}}</text>
+                <span class="icon" :style="{color:getFillColor(index)}">{{v.icon}}</span>
 
-                <text
+                <span 
                         v-if="!titleUseSlot"
                         :style="{ fontSize: tabStyles.fontSize+'px', fontWeight: (currentPage == index && tabStyles.isActiveTitleBold)? 'bold' : 'normal', color: currentPage == index ? tabStyles.activeTitleColor : tabStyles.titleColor, paddingLeft:tabStyles.textPaddingLeft+'px', paddingRight:tabStyles.textPaddingRight+'px'}"
-                        class="tab-text">{{v.title}}</text>
+                        class="tab-text">{{v.title}}</span>
                 <div class="desc-tag" v-if="v.badge && !titleUseSlot">
-                    <text class="desc-text">{{v.badge}}</text>
+                    <span class="desc-text">{{v.badge}}</span>
                 </div>
                 <div v-if="v.dot && !v.badge && !titleUseSlot" class="dot"></div>
                 <slot :name="`tab-title-${index}`" v-if="titleUseSlot"></slot>
@@ -43,16 +43,19 @@
         border-top-width: 1px;
     }
     .tab-title-list {
+        display: flex;
         flex-direction: row;
+        display: flex;
         justify-content: space-around;
     }
     .title-item {
+        display: flex;
         justify-content: center;
         align-items: center;
         border-bottom-style: solid;
     }
     .tab-text {
-        lines: 1;
+        -webkit-line-clamp: 1; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical;
         text-overflow: ellipsis;
     }
     .desc-tag {
@@ -66,6 +69,7 @@
         background-color: #FF5E00;
         height: 26px;
         align-items: center;
+        display: flex;
         justify-content: center;
         padding-left: 6px;
         padding-right: 6px;
@@ -89,9 +93,7 @@
 </style>
 
 <script>
-    const dom = weex.requireModule('dom');
-    const animation = weex.requireModule('animation');
-    import { Utils } from 'weex-ui';
+    import Utils from '@/utils/env';
     import config from './config';
 
     export default {
@@ -131,7 +133,7 @@
             currentPage: 0
         }),
         created () {
-            this.isIPhoneX = Utils.env.isIPhoneX();
+            this.isIPhoneX = Utils.isIPhoneX();
         },
         methods: {
             getFillColor (index){

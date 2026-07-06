@@ -1,6 +1,6 @@
 <template>
     <div class="body" :style="getBodyStyle">
-        <text v-if="icon!=''" class="icon" :style="getIconStyle">{{icon}}</text>
+        <span v-if="icon!=''" class="icon" :style="getIconStyle">{{icon}}</span>
         <input @blur="onBlur"
                @focus="onFocus"
                @input="onInput"
@@ -15,7 +15,7 @@
                :value="value"
                :style="getInputStyle"
                />
-        <text class="skin">&nbsp;</text>
+        <span class="skin">&nbsp;</span>
     </div>
 </template>
 
@@ -149,7 +149,9 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .body{
+        display: flex;
         flex-direction: row;
+        display: flex;
         justify-content: space-between;
         align-items: center;
         border-width:1px;
@@ -163,7 +165,7 @@
     .input{
         flex:1;
         border: none;
-        placeholder-color:'a5a5a5'
+        /* placeholder-color handled by ::placeholder pseudo-element */
     }
     .skin{
         width: 20px;

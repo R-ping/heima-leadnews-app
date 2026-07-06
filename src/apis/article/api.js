@@ -1,15 +1,14 @@
-function Api(){
-    var vue;
-}
+import conf from '@/common/conf'
+import request from '@/common/request'
+import store from '@/stores/store'
+
+function Api(){}
 Api.prototype = {
-    setVue : function(vue){
-        this.vue = vue;
-    },
     // 保存展现行为数据
     loadinfo : function(articleId){
-        let url = this.vue.$config.urls.get('load_article_info')
+        let url = conf.urls.get('load_article_info')
         return new Promise((resolve, reject) => {
-            this.vue.$request.post(url,{article_id:articleId}).then((d)=>{
+            request.post(url,{article_id:articleId}).then((d)=>{
                 resolve(d);
             }).catch((e)=>{
                 reject(e);
@@ -18,10 +17,10 @@ Api.prototype = {
     },
     // 加载文章关系信息
     loadbehavior: function(articleId,authorId){
-        let url = this.vue.$config.urls.get('load_article_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('load_article_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{equipment_id:equipmentId,article_id:articleId,author_id:authorId}).then((d)=>{
+                request.post(url,{equipment_id:equipmentId,article_id:articleId,author_id:authorId}).then((d)=>{
                     resolve(d);
                 }).catch((e)=>{
                     reject(e);
@@ -35,10 +34,10 @@ Api.prototype = {
     },
     // 喜欢、点赞
     like : function(data){
-        let url = this.vue.$config.urls.get('like_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('like_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{equipment_id:equipmentId,entry_id:data.articleId,type:0,operation:data.operation}).then((d)=>{
+                request.post(url,{equipment_id:equipmentId,entry_id:data.articleId,type:0,operation:data.operation}).then((d)=>{
                     resolve(d);
                 }).catch((e)=>{
                     reject(e);
@@ -52,10 +51,10 @@ Api.prototype = {
     },
     // 不喜欢
     unlike : function(data){
-        let url = this.vue.$config.urls.get('unlike_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('unlike_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{equipment_id:equipmentId,article_id:data.articleId,type:data.type}).then((d)=>{
+                request.post(url,{equipment_id:equipmentId,article_id:data.articleId,type:data.type}).then((d)=>{
                     resolve(d);
                 }).catch((e)=>{
                     reject(e);
@@ -67,12 +66,12 @@ Api.prototype = {
             })
         })
     },
-    // 不喜欢
+    // 阅读
     read : function(data){
-        let url = this.vue.$config.urls.get('read_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('read_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{
+                request.post(url,{
                     equipment_id:equipmentId,
                     article_id:data.articleId,
                     count:1,
@@ -93,10 +92,10 @@ Api.prototype = {
     },
     // 收藏
     collection : function(data){
-        let url = this.vue.$config.urls.get('collection_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('collection_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{
+                request.post(url,{
                     equipment_id:equipmentId,
                     entry_id:data.articleId,
                     published_time:data.publishedTime,
@@ -116,10 +115,10 @@ Api.prototype = {
     },
     // 转发
     forward : function(data){
-        let url = this.vue.$config.urls.get('forward_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('forward_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{
+                request.post(url,{
                     equipment_id:equipmentId,
                     article_id:data.articleId
                 }).then((d)=>{
@@ -136,10 +135,10 @@ Api.prototype = {
     },
     // 分享
     share : function(data){
-        let url = this.vue.$config.urls.get('share_behavior')
-        return this.vue.$store.getEquipmentId().then(equipmentId=>{
+        let url = conf.urls.get('share_behavior')
+        return store.getEquipmentId().then(equipmentId=>{
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,{
+                request.post(url,{
                     equipment_id:equipmentId,
                     article_id:data.articleId,
                     type:data.type
@@ -154,13 +153,12 @@ Api.prototype = {
                 reject(e);
             })
         })
-    }
-    ,
+    },
     // 关注
     follow : function(data){
-        let url = this.vue.$config.urls.get('user_follow')
+        let url = conf.urls.get('user_follow')
         return new Promise((resolve, reject) => {
-            this.vue.$request.post(url,{
+            request.post(url,{
                 author_id:data.authorId,
                 operation:data.operation,
                 article_id:data.articleId

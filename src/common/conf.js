@@ -58,11 +58,7 @@ const  config = {
         main_bg : '#3296fa'
     },
     noAction:function(){
-        const modal = weex.requireModule('modal');
-        modal.toast({
-            message: '该功能暂未实现',
-            duration:3
-        })
+        alert('该功能暂未实现');
     }
 
 }

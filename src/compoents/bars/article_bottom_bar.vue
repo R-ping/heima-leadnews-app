@@ -1,9 +1,9 @@
 <template>
     <div class="bar_bg">
         <Search icon="" rightWidth=25 placeholder="写评论" />
-        <text class="icon">&#xf075;</text>
-        <text @click="clickCollection" class="icon" :style="{color:collection?'#3296fa':'#a5a5a5'}">&#xf005;</text>
-        <text @click="clickForward" class="icon" :style="{color:forward?'#3296fa':'#a5a5a5'}">&#xf14d;</text>
+        <span class="icon">&#xf075;</span>
+        <span @click="clickCollection" class="icon" :style="{color:collection?'#3296fa':'#a5a5a5'}">&#xf005;</span>
+        <span @click="clickForward" class="icon" :style="{color:forward?'#3296fa':'#a5a5a5'}">&#xf14d;</span>
     </div>
 </template>
 
@@ -37,6 +37,7 @@
     @import '../../styles/common';
     .bar_bg{
         width: @screen-width;
+        display: flex;
         flex-direction: row;
         align-items:center;
         border-width:1px;

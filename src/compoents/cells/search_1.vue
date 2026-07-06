@@ -1,7 +1,7 @@
 <template>
     <div class="cell-body" @click="onClick">
-        <text class="title">{{title}}</text>
-        <text class="icon" :style="{'backgroundColor':getColor()}" v-if="tip!=''||type!=''">{{getText()}}</text>
+        <span class="title">{{title}}</span>
+        <span class="icon" :style="{'backgroundColor':getColor()}" v-if="tip!=''||type!=''">{{getText()}}</span>
     </div>
 </template>
 
@@ -52,7 +52,8 @@
     @import '../../styles/common';
     .cell-body{
         flex: 1;
-       flex-direction: row;
+       display: flex;
+        flex-direction: row;
         font-size: 36px;
         align-items: center;
         border-bottom-color: #ebebeb;

@@ -1,4 +1,4 @@
-/*global Vue*/
+import Vue from 'vue'
 import Router from 'vue-router'
 import routes from '@/routers/index'
 import navigator from '@/utils/navigator'

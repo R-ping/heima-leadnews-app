@@ -1,79 +1,79 @@
 <template>
-    <div class="login-overlay">
-        <div class="login-modal">
-            <div class="modal-header">
-                <span class="modal-title">登录</span>
-                <span class="close-btn" @click="goHome">&#10005;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-section">
-                    <div class="form-wrapper">
-                        <div class="input-group">
-                            <span class="area-code">+86</span>
-                            <input v-model="params.phone" 
-                                   placeholder="请输入手机号"
-                                   class="input"
-                            />
+    <transition name="login-fade">
+        <div class="login-overlay" v-if="visible" @click.self="close">
+            <div class="login-modal">
+                <div class="modal-header">
+                    <span class="modal-title">登录</span>
+                    <span class="close-btn" @click="close">&#10005;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <div class="form-wrapper">
+                            <div class="input-group">
+                                <span class="area-code">+86</span>
+                                <input v-model="params.phone"
+                                       placeholder="请输入手机号"
+                                       class="input"
+                                />
+                            </div>
+                            <div class="input-group">
+                                <input v-model="params.password"
+                                       type="password"
+                                       placeholder="请输入密码"
+                                       class="input"
+                                />
+                            </div>
+                            <span class="button" @click="login">登录</span>
                         </div>
-                        <div class="input-group">
-                            <input v-model="params.password" 
-                                   type="password"
-                                   placeholder="请输入密码"
-                                   class="input"
-                            />
+                        <div class="link-row">
+                            <span class="go-register" @click="tip">手机号注册</span>
+                            <span class="go-home" @click="close">稍后再说</span>
                         </div>
-                        <span class="button" @click="login">登录</span>
+                        <div class="divider-wrap">
+                            <span class="divider-line"></span>
+                            <span class="divider-text">其他登录方式</span>
+                            <span class="divider-line"></span>
+                        </div>
+                        <div class="third-party">
+                            <span class="third-item">{{weiboIcon}}</span>
+                            <span class="third-item">{{wechatIcon}}</span>
+                            <span class="third-item">{{qqIcon}}</span>
+                        </div>
                     </div>
-                    <div class="link-row">
-                        <span class="go-register" @click="tip">手机号注册</span>
-                        <router-link to="/home">
-                            <span class="go-home">不登录，先看看</span>
-                        </router-link>
-                    </div>
-                    <div class="divider-wrap">
-                        <span class="divider-line"></span>
-                        <span class="divider-text">其他登录方式</span>
-                        <span class="divider-line"></span>
-                    </div>
-                    <div class="third-party">
-                        <span class="third-item">{{weiboIcon}}</span>
-                        <span class="third-item">{{wechatIcon}}</span>
-                        <span class="third-item">{{qqIcon}}</span>
+                    <div class="qr-section">
+                        <div class="qr-header">
+                            <span class="qr-title">扫码登录</span>
+                            <span class="qr-hint">iOS 4.1及以上版本支持</span>
+                        </div>
+                        <div class="qr-code">
+                            <div class="qr-placeholder">
+                                <span class="qr-icon">{{qrIcon}}</span>
+                            </div>
+                        </div>
+                        <div class="qr-tip">
+                            <span>打开黑马头条APP</span>
+                            <span>点击"我的-扫一扫"登录</span>
+                        </div>
                     </div>
                 </div>
-                <div class="qr-section">
-                    <div class="qr-header">
-                        <span class="qr-title">扫码登录</span>
-                        <span class="qr-hint">iOS 4.1及以上版本支持</span>
-                    </div>
-                    <div class="qr-code">
-                        <div class="qr-placeholder">
-                            <span class="qr-icon">{{qrIcon}}</span>
-                        </div>
-                    </div>
-                    <div class="qr-tip">
-                        <span>打开黑马头条APP</span>
-                        <span>点击"我的-扫一扫"登录</span>
-                    </div>
+                <div class="modal-footer">
+                    <span class="privacy-text">
+                        注册登录即表示同意
+                        <span class="link">用户协议</span>
+                        和
+                        <span class="link">隐私政策</span>
+                    </span>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <span class="privacy-text">
-                    注册登录即表示同意
-                    <span class="link">用户协议</span>
-                    和
-                    <span class="link">隐私政策</span>
-                </span>
             </div>
         </div>
-    </div>
+    </transition>
 </template>
 
 <script>
     import Api from '@/apis/login/api'
     import { toast } from "@/utils/toast"
     export default {
-        name: "login",
+        name: "LoginModal",
         data(){
             return{
                 weiboIcon : '\uf18a',
@@ -86,22 +86,27 @@
                 }
             }
         },
+        computed: {
+            visible() {
+                return this.$store.getters.showLoginModal
+            }
+        },
         methods:{
+            close() {
+                this.$store.dispatch('hideLogin')
+            },
             tip : function(){
                 toast('该功能暂未实现！', 3)
-            },
-            goHome: function(){
-                this.$router.push("/home")
             },
             login:function(){
                 if(this.params.phone==''||this.params.password==''){
                     toast('请输入用户名或密码', 3)
                 }else{
-                    alert(JSON.stringify(this.params))
                     Api.login(this.params).then(d=>{
                         if(d.code==0){
-                            this.$store.setToken(d.data.token)
-                            this.$router.push("/home")
+                            this.$store.dispatch('login', d.data.token)
+                            this.close()
+                            toast('登录成功', 2)
                         }else{
                             toast('用户或密码错误', 3)
                         }
@@ -115,7 +120,13 @@
 </script>
 
 <style lang="less" scoped>
-    @import '../../styles/common';
+    @import '../styles/common';
+    .login-fade-enter-active, .login-fade-leave-active {
+        transition: opacity 0.3s;
+    }
+    .login-fade-enter, .login-fade-leave-to {
+        opacity: 0;
+    }
     .login-overlay {
         position: fixed;
         top: 0;
@@ -126,7 +137,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: 9999;
     }
     .login-modal {
         width: 90%;

@@ -1,8 +1,9 @@
 <template>
     <div class="bar_bg">
-        <text class="icon"> </text>
+        <span class="icon"> </span>
         <Search type="search" @onClick="onClick" :icon="icon" left-width="25" rightWidth="20" placeholder="请输入搜索关键字..."/>
-        <text class="icon"> </text>
+        <span class="icon login-btn" v-if="!isLoggedIn" @click="showLogin">{{loginIcon}}</span>
+        <span class="icon user-btn" v-if="isLoggedIn">{{userIcon}}</span>
     </div>
 </template>
 
@@ -13,7 +14,14 @@
         components: { Search},
         data:()=>{
             return {
-                icon:'\uF002'
+                icon:'\uF002',
+                loginIcon:'\uf007',
+                userIcon:'\uf007'
+            }
+        },
+        computed: {
+            isLoggedIn() {
+                return this.$store.getters.isLoggedIn
             }
         },
         mounted(){
@@ -22,6 +30,9 @@
         methods: {
             onClick : function(){
                 this.$router.push('/search')
+            },
+            showLogin() {
+                this.$store.dispatch('showLogin')
             },
             minibarLeftButtonClick () {
             },
@@ -35,6 +46,7 @@
     @import '../../styles/common';
     .bar_bg{
         width: @screen-width;
+        display: flex;
         flex-direction: row;
         background-color: @mian-color;
         border-style: solid;
@@ -47,5 +59,8 @@
         color: #ffffff;
         font-family: fontawesome;
         font-size: 32px;
+    }
+    .login-btn, .user-btn {
+        cursor: pointer;
     }
 </style>

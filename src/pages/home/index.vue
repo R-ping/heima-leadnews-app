@@ -3,28 +3,28 @@
     <div class="top-body"><Home_Bar/></div>
     <div class="content-body">
       <wxc-tab-page ref="wxc-tab-page" :tab-titles="tabTitles" :tab-styles="tabStyles" title-type="text" :tab-page-height="tabPageHeight" @wxcTabPageCurrentTabSelected="wxcTabPageCurrentTabSelected">
-        <list v-for="(v,index) in tabList"  :key="index" class="item-container" :style="{ height: (tabPageHeight - tabStyles.height) + 'px' }">
+        <div v-for="(v,index) in tabList"  :key="index" class="item-container" :style="{ height: (tabPageHeight - tabStyles.height) + 'px' }">
           <!-- 下来刷新最新 -->
-          <refresh @refresh='loadnew'  :display="shownew?'show':'hide'" class="loading">
-            <loading-indicator class="loading-icon"></loading-indicator>
-            <text class="loading-text">{{load_new_text}}</text>
-          </refresh>
+          <div @refresh='loadnew'  :display="shownew?'show':'hide'" class="loading">
+            <!--<loading-indicator class="loading-icon"></loading-indicator>-->
+            <span class="loading-text">{{load_new_text}}</span>
+          </div>
           <!-- 列表项，并绑定显示事件 -->
-          <cell v-for="(item,key) in v" class="cell" @appear="show(item.id)" :key="key">
-            <wxc-pan-item :ext-id="'1-' + (v) + '-' + (key)" @wxcPanItemClicked="wxcPanItemClicked(item)" @wxcPanItemPan="wxcPanItemPan">
+          <div v-for="(item,key) in v" class="cell" @appear="show(item.id)" :key="key">
+            <div @click="wxcPanItemClicked(item)">
               <Item0 v-if="item.type==0" :data="item"/>
               <Item1 v-if="item.type==1" :data="item"/>
                 <Item3 v-if="item.type==2" :data="item"/>
               <Item3 v-if="item.type==3" :data="item"/>
-            </wxc-pan-item>
-          </cell>
+            </div>
+          </div>
           <!-- 上来加载更多 -->
-          <loading @loading="loadmore" :display="showmore?'show':'hide'" class="loading">
-            <loading-indicator class="loading-icon"></loading-indicator>
-            <text class="loading-text">{{load_more_text}}</text>
-          </loading>
-        </list>
-        <text slot="rightIcon">1212</text>
+          <div @loading="loadmore" :display="showmore?'show':'hide'" class="loading">
+            <!--<loading-indicator class="loading-icon"></loading-indicator>-->
+            <span class="loading-text">{{load_more_text}}</span>
+          </div>
+        </div>
+        <span slot="rightIcon">1212</span>
       </wxc-tab-page>
     </div>
   </div>
@@ -33,18 +33,18 @@
 <script>
   import Home_Bar from "@/compoents/bars/home_bar"
   import WxcTabPage from "@/compoents/tabs/home_tabs"
-  import {Utils, BindEnv,WxcPanItem } from 'weex-ui'
+  import Utils from '@/utils/env'
   import Item0 from '../../compoents/cells/article_0.vue'
   import Item1 from '../../compoents/cells/article_1.vue'
   import Item3 from '../../compoents/cells/article_3.vue'
   import Config from './config'
   import Api from '@/apis/home/api'
 
-  const modal = weex.requireModule("modal")
+  import { toast, confirmDialog } from "@/utils/toast"
 
   export default {
     name: 'HeiMa-Home',
-    components: {Home_Bar,WxcTabPage, Item0,Item1,Item3,WxcPanItem},
+    components: {Home_Bar,WxcTabPage, Item0,Item1,Item3},
     data: () => ({
       api:null,// API
       shownew:true,//是否显示loadnew动画
@@ -78,8 +78,7 @@
     },
     created () {
       // 初始化高度，顶部菜单高度120+顶部bar 90
-      this.tabPageHeight = Utils.env.getPageHeight()-222;
-      Api.setVue(this);
+      this.tabPageHeight = Utils.getPageHeight()-222;
       let _this = this;
       // 每隔5秒提交一次数据
       this.timer = setInterval(function(){
@@ -127,7 +126,7 @@
         if(data.length==0){
           this.showmore=false;
           this.shownew=false;
-          modal.toast({message:'没有数据了...',duration:3})
+          toast('没有数据了...', 3)
           return ;
         }
         let arr = []
@@ -179,9 +178,7 @@
       },
       // 兼容回调
       wxcPanItemPan (e) {
-        if (BindEnv.supportsEBForAndroid()) {
-          this.$refs['wxc-tab-page'].bindExp(e.element);
-        }
+        // Expression binding not available in browser — skip
       },
       // 列表项点击事件
       wxcPanItemClicked(item){
@@ -201,8 +198,10 @@
     background-color: @body-background;
     font-size: @font-size;
     font-family: @font-family;
-    flex-direction : column;
-    flex-wrap:wrap;
+    display: flex;
+        flex-direction : column;
+    display: flex;
+        flex-wrap:wrap;
   }
   .top-body{
     position: fixed;
@@ -211,7 +210,8 @@
   }
   .content-body{
     flex: 1;
-    flex-direction : column;
+    display: flex;
+        flex-direction : column;
     margin-top: 90px;
   }
   .item-container {

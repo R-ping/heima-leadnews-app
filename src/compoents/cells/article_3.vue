@@ -1,15 +1,15 @@
 <template>
     <div class="list-item">
-        <text class="title">{{formatTitle(data.title)}}</text>
+        <span class="title">{{formatTitle(data.title)}}</span>
         <div class="item-image">
-            <image class="image" v-for="img in data.image" :src="img"></image>
+            <img class="image" v-for="img in data.image" :src="img"></img>
         </div>
         <div class="item-l">
             <div class="tags">
-                <text class="tags-text tags-icon">{{data.icon}}</text>
-                <text class="tags-text">{{data.source}}</text>
-                <text class="tags-text">评论 {{data.commit}}</text>
-                <text class="tags-text">{{formatDate(data.date)}}</text>
+                <span class="tags-text tags-icon">{{data.icon}}</span>
+                <span class="tags-text">{{data.source}}</span>
+                <span class="tags-text">评论 {{data.commit}}</span>
+                <span class="tags-text">{{formatDate(data.date)}}</span>
             </div>
         </div>
     </div>
@@ -43,8 +43,10 @@
         height: @list-2-height;
     }
     .item-image{
+        display: flex;
         flex-direction: row;
         padding: 6px 10px 0px;
+        display: flex;
         justify-content: space-around;
     }
     .image{

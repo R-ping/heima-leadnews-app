@@ -2,15 +2,15 @@
     <div class="list-item">
         <div class="list-lr">
             <div class="item-l">
-                <text class="title">{{formatTitle(data.title)}}</text>
+                <span class="title">{{formatTitle(data.title)}}</span>
                 <div class="tags">
-                    <text class="tags-text tags-icon">{{data.icon}}</text>
-                    <text class="tags-text">{{data.source}}</text>
-                    <text class="tags-text">评论 {{data.commit}}</text>
+                    <span class="tags-text tags-icon">{{data.icon}}</span>
+                    <span class="tags-text">{{data.source}}</span>
+                    <span class="tags-text">评论 {{data.commit}}</span>
                 </div>
             </div>
             <div class="item-r">
-                <image class="image" :src="data.image[0]"/>
+                <img class="image" :src="data.image[0]"/>
             </div>
         </div>
     </div>
@@ -42,7 +42,9 @@
     .list-item{
     }
     .list-lr{
+        display: flex;
         flex-direction: row;
+        display: flex;
         justify-content: space-around;
     }
     .item-l{

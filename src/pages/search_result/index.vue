@@ -3,22 +3,22 @@
         <div class="top-body"><Home_Bar @onSubmit="onSubmit" :value="keyword"/></div>
         <div class="content-body">
             <wxc-tab-page ref="wxc-tab-page" :showMore="false" :tab-titles="tabTitles" :tab-styles="tabStyles" title-type="text" :tab-page-height="tabPageHeight" @wxcTabPageCurrentTabSelected="wxcTabPageCurrentTabSelected">
-                <list v-for="(v,index) in tabList"  :key="index" class="item-container" :style="{ height: (tabPageHeight - tabStyles.height) + 'px' }">
+                <div v-for="(v,index) in tabList"  :key="index" class="item-container" :style="{ height: (tabPageHeight - tabStyles.height) + 'px' }">
                     <!-- 列表项，并绑定显示事件 -->
-                    <cell v-for="(item,key) in v" class="cell" :key="key">
-                        <wxc-pan-item :ext-id="'1-' + (v) + '-' + (key)" @wxcPanItemClicked="wxcPanItemClicked(item)" @wxcPanItemPan="wxcPanItemPan">
+                    <div v-for="(item,key) in v" class="cell" :key="key">
+                        <div @click="wxcPanItemClicked(item)">
                             <Item0 v-if="item.type==0" :data="item"/>
                             <Item1 v-if="item.type==1" :data="item"/>
                             <Item3 v-if="item.type==2" :data="item"/>
                             <Item3 v-if="item.type==3" :data="item"/>
-                        </wxc-pan-item>
-                    </cell>
+                        </div>
+                    </div>
                     <!-- 上来加载更多 -->
-                    <loading @loading="loadmore" :display="showmore?'show':'hide'" class="loading">
-                        <loading-indicator class="loading-icon"></loading-indicator>
-                        <text class="loading-text">{{load_more_text}}</text>
-                    </loading>
-                </list>
+                    <div @loading="loadmore" :display="showmore?'show':'hide'" class="loading">
+                        <!--<loading-indicator class="loading-icon"></loading-indicator>-->
+                        <span class="loading-text">{{load_more_text}}</span>
+                    </div>
+                </div>
             </wxc-tab-page>
         </div>
     </div>
@@ -27,7 +27,8 @@
 <script>
     import Home_Bar from "@/compoents/bars/search_result_top"
     import WxcTabPage from "@/compoents/tabs/home_tabs"
-    import { Utils, BindEnv,WxcPanItem } from 'weex-ui'
+    import Utils from '@/utils/env'
+    import { toast } from "@/utils/toast"
     import Item0 from '../../compoents/cells/article_0.vue'
     import Item1 from '../../compoents/cells/article_1.vue'
     import Item3 from '../../compoents/cells/article_3.vue'
@@ -36,7 +37,7 @@
 
     export default {
         name: 'HeiMa-Home',
-        components: {Home_Bar,WxcTabPage, Item0,Item1,Item3,WxcPanItem},
+        components: {Home_Bar,WxcTabPage, Item0,Item1,Item3},
         props:{
             keyword:''//当前搜索的关键字
         },
@@ -66,9 +67,8 @@
         },
         created () {
             // 初始化高度，顶部菜单高度120+顶部bar 90
-            this.tabPageHeight = Utils.env.getPageHeight()-110;
+            this.tabPageHeight = Utils.getPageHeight()-110;
             this.params.keyword = this.keyword;
-            Api.setVue(this);
         },
         methods: {
             // 上拉加载更多
@@ -89,7 +89,7 @@
             tanfer : function(data){
                 if(data.length==0){
                     this.showmore=false;
-                    modal.toast({message:'没有数据了...',duration:3})
+                    toast({message:'没有数据了...',duration:3})
                     return ;
                 }
                 let arr = []
@@ -130,9 +130,7 @@
             },
             // 兼容回调
             wxcPanItemPan (e) {
-                if (BindEnv.supportsEBForAndroid()) {
-                    this.$refs['wxc-tab-page'].bindExp(e.element);
-                }
+                // Expression binding not available in browser — skip
             },
             // 列表项点击事件
             wxcPanItemClicked(item){
@@ -156,7 +154,9 @@
         background-color: @body-background;
         font-size: @font-size;
         font-family: @font-family;
+        display: flex;
         flex-direction : column;
+        display: flex;
         flex-wrap:wrap;
     }
     .top-body{
@@ -166,6 +166,7 @@
     }
     .content-body{
         flex: 1;
+        display: flex;
         flex-direction : column;
         margin-top: 90px;
     }

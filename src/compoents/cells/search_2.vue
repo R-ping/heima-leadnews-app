@@ -1,10 +1,10 @@
 <template>
     <div class="cell-body">
-        <text class="icon">{{icon}}</text>
+        <span class="icon">{{icon}}</span>
         <div @click="onClick" v-for="item in getText()">
-            <text class="text" :style="{color:getColor(item)}">{{item}}</text>
+            <span class="text" :style="{color:getColor(item)}">{{item}}</span>
         </div>
-        <text class="skip"> </text>
+        <span class="skip"> </span>
     </div>
 </template>
 
@@ -41,7 +41,8 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .cell-body{
-       flex-direction: row;
+       display: flex;
+        flex-direction: row;
         font-size: 36px;
         align-items: center;
         border-bottom-color: #ebebeb;

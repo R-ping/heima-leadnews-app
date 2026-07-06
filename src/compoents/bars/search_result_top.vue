@@ -1,6 +1,6 @@
 <template>
     <div class="bar_bg">
-        <text class="icon" @click="back">&#xf104;</text>
+        <span class="icon" @click="back">&#xf104;</span>
         <Search
                 :icon="icon"
                 @onSubmit="onSubmit"
@@ -9,7 +9,7 @@
                 :placeholder="placeholder"
                 right-width="30"
                 left-width="30" />
-        <text class="icon" @click="home">&#xf00d;</text>
+        <span class="icon" @click="home">&#xf00d;</span>
     </div>
 </template>
 
@@ -51,6 +51,7 @@
     @import '../../styles/common';
     .bar_bg{
         width: @screen-width;
+        display: flex;
         flex-direction: row;
         background-color: @mian-color;
         border-style: solid;

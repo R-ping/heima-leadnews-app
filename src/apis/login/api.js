@@ -1,15 +1,12 @@
-function Api(){
-    this.vue;
-}
-Api.prototype = {
-    setVue : function(vue){
-        this.vue = vue;
-    },
+import conf from '@/common/conf'
+import request from '@/common/request'
+
+var api = {
     // 登录
     login: function(data){
-        let url = this.vue.$config.urls.get('user_login')
-        return this.vue.$request.postByEquipmentId(url,data)
+        let url = conf.urls.get('user_login')
+        return request.postByEquipmentId(url,data)
     }
 }
 
-export default new Api()
+export default api

@@ -1,11 +1,11 @@
 <template>
     <div class="list-item">
-        <text class="title">{{data.title}}</text>
+        <span class="title">{{data.title}}</span>
         <div class="tags">
-            <text class="tags-text tags-icon">{{data.icon}}</text>
-            <text class="tags-text">{{data.source}}</text>
-            <text class="tags-text">评论 {{data.commit}}</text>
-            <text class="tags-text date">{{formatDate(data.date)}}</text>
+            <span class="tags-text tags-icon">{{data.icon}}</span>
+            <span class="tags-text">{{data.source}}</span>
+            <span class="tags-text">评论 {{data.commit}}</span>
+            <span class="tags-text date">{{formatDate(data.date)}}</span>
         </div>
     </div>
 </template>

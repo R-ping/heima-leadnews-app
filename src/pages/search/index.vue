@@ -1,12 +1,12 @@
 <template>
     <div class="art-page">
         <div class="art-top"><TopBar @onBlur="onBlur" @onInput="onInput"/></div>
-        <scroller class="scroller" :style="{'height':scrollerHeight}" show-scrollbar="true">
+        <div class="scroller" :style="{'height':scrollerHeight}" show-scrollbar="true">
             <template v-for="item in data.history">
                 <SearchHistory @onClickText="doSearch" @onDeleteHistory="onDeleteHistory" :id="item.id" :title="item.keyword"/>
             </template>
             <a href="#" class="all-search">
-                <text class="all-search-text">全部搜索记录</text>
+                <span class="all-search-text">全部搜索记录</span>
             </a>
             <Title title="今日热点" :icon="icon.hot"/>
             <div class="hot-body">
@@ -48,7 +48,7 @@
                     <HotCell title="长宁4.8级地震" tip="热"/>
                 </div>
             </div>
-        </scroller>
+        </div>
         <div class="art-tip" v-if="showTip" ref="tip"><SearchTip @onSelect="doSearch" :search="data.keyword" :data="data.tip"/></div>
     </div>
 </template>
@@ -60,8 +60,8 @@
     import HotCell from '@/compoents/cells/search_1'
     import Title from '@/compoents/titles/title'
     import Api from '@/apis/search/api'
-    import { Utils } from 'weex-ui'
-    const modal = weex.requireModule("modal")
+    import Utils from '@/utils/env'
+    import { toast, confirmDialog } from "@/utils/toast"
     export default {
         name: "index",
         components:{TopBar,SearchHistory,Title,HotCell,SearchTip},
@@ -85,7 +85,7 @@
             Api.setVue(this)
         },
         mounted(){
-            this.scrollerHeight=(Utils.env.getPageHeight()-180)+'px';
+            this.scrollerHeight=(Utils.getPageHeight()-180)+'px';
             this.load_search_history()
             this.load_hot_keywords()
         },
@@ -99,7 +99,7 @@
                     if(data.code==0){
                         this.data.history = data.data
                     }else{
-                        modal.toast({message: data.error_message,duration: 3})
+                        toast( data.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -108,14 +108,14 @@
             // 删除历史搜搜关键字
             onDeleteHistory : function(id){
                 let _this = this;
-                modal.confirm({message:'确认要删除吗？'},function(button) {
+                toast('确认要删除吗？'); confirmDialog('确认要删除吗？', function(button) {
                     if(button=='OK') {
                         Api.del_search(id).then(data => {
                             if (data.code == 0) {
-                                modal.toast({message: '删除成功', duration: 3})
+                                toast('删除成功', 3)
                                 _this.load_search_history()
                             } else {
-                                modal.toast({message: data.error_message, duration: 3})
+                                toast(data.error_message, 3)
                             }
                         }).catch((e) => {
                             console.log(e)
@@ -149,7 +149,7 @@
                         }
                         this.data.hot = newData
                     }else{
-                        modal.toast({message: data.error_message,duration: 3})
+                        toast( data.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -166,6 +166,7 @@
 <style scoped>
     .art-page{
         width: 750px;
+        display: flex;
         flex-direction: column;
         background-color: #ececec;
     }
@@ -184,6 +185,7 @@
     }
     .scroller{
         flex: 1;
+        display: flex;
         flex-direction: column;
         width: 750px;
         margin-top: 120px;
@@ -198,6 +200,7 @@
         color: #bdbdbd;
     }
     .item{
+        display: flex;
         flex-direction: row;
     }
 </style>

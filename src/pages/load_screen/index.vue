@@ -1,6 +1,6 @@
 <template>
     <div class="wapper" ref="bg">
-        <image class="img" src="/static/images/load_screen.png"/>
+        <img class="img" src="/static/images/load_screen.png"/>
     </div>
 </template>
 
@@ -9,25 +9,26 @@
         name: "load_screen",
         created() {
             let _this = this
-            setTimeout(function(){
-               _this.goLogin()
-            },2000)
+            if (this.isWeb()) {
+                _this.$router.push("/home")
+            } else {
+                setTimeout(function(){
+                   _this.goHome()
+                },2000)
+            }
         },
         methods : {
-            goLogin : function () {
+            isWeb: function() {
+                let ua = navigator.userAgent.toLowerCase()
+                return !/(iphone|ipad|ipod|android|mobile)/.test(ua)
+            },
+            goHome : function () {
                 let _this = this
-                let animation = weex.requireModule('animation')
-                animation.transition(this.$refs.bg, {
-                    styles: {
-                        opacity: '0',
-                    },
-                    duration: 800, //ms
-                    timingFunction: 'ease',
-                    needLayout:false,
-                    delay: 0 //ms
-                },function(){
-                    _this.$router.push("/login")
-                })
+                this.$refs.bg.style.transition = 'opacity 800ms ease'
+                this.$refs.bg.style.opacity = '0'
+                setTimeout(function(){
+                    _this.$router.push("/home")
+                }, 800)
             }
         }
     }
@@ -35,6 +36,7 @@
 
 <style scoped>
     .wapper{
+        display: flex;
         flex: 1;
         width: 750px;
     }

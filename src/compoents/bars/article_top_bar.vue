@@ -1,21 +1,15 @@
 <template>
-    <wxc-minibar title=""
-                 :background-color="backgroundColor"
-                 text-color="#FFFFFF"
-                 :useDefaultReturn="useDefaultReturn"
-                 @wxcMinibarLeftButtonClicked="minibarLeftButtonClick"
-                 @wxcMinibarRightButtonClicked="minibarRightButtonClick">
-        <text class="icon" slot="left" style="text-align: left">&#xf104;</text>
-        <text class="icon" slot="right" style="text-align: left" @click="noAction">···</text>
-    </wxc-minibar>
+    <div class="minibar" :style="{backgroundColor: backgroundColor}">
+        <span class="icon left-icon" @click="minibarLeftButtonClick">&#xf104;</span>
+        <span class="title-text" :style="{color: '#FFFFFF'}">{{getText}}</span>
+        <span class="icon right-icon" @click="noAction">···</span>
+    </div>
 </template>
 
 <script>
-    import { WxcMinibar } from 'weex-ui';
 
     export default {
         name: "article_top_bar",
-        components: { WxcMinibar},
         props:{
           text:{
               type:String,
@@ -55,7 +49,31 @@
 
 <style lang="less" scoped>
     @import '../../styles/common';
+    .minibar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        width: 750px;
+        height: 90px;
+        padding: 0 20px;
+    }
     .icon{
         font-size: 36px;
+        color: #ffffff;
+        cursor: pointer;
+        width: 60px;
+    }
+    .left-icon {
+        text-align: left;
+    }
+    .right-icon {
+        text-align: right;
+    }
+    .title-text {
+        flex: 1;
+        text-align: center;
+        font-size: 32px;
     }
 </style>

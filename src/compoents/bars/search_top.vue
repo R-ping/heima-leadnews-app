@@ -10,7 +10,7 @@
                 :icon="icon"
                 placeholder="请输入搜索关键字..."
                 rightWidth="0" />
-        <text class="icon" @click="back">取消</text>
+        <span class="icon" @click="back">取消</span>
     </div>
 </template>
 
@@ -49,6 +49,7 @@
     @import '../../styles/common';
     .bar_bg{
         width: @screen-width;
+        display: flex;
         flex-direction: row;
         background-color: @mian-color;
         border-style: solid;

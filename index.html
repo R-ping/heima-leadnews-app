@@ -2,14 +2,17 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Index</title>
-  <meta name="weex-viewport" content="750">
+  <title>黑马头条</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-touch-fullscreen" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="format-detection" content="telephone=no, email=no">
   <style>
-    html, body, #weex {
+    html {
+      font-size: 10vw;
+    }
+    html, body, #root {
       width: 100%;
       height: 100%;
     }
@@ -23,17 +26,23 @@
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
     }
-    body::before {
-      content: "1";
-      height: 1px;
-      overflow: hidden;
-      color: transparent;
-      display: block;
+    @media screen and (min-width: 750px) {
+      html {
+        font-size: 75px;
+      }
+      body {
+        max-width: 750px;
+        margin: 0 auto;
+      }
+    }
+    @font-face {
+      font-family: "fontawesome";
+      src: url("https://cdn.bootcss.com/font-awesome/4.7.0/fonts/fontawesome-webfont.ttf?v=5.10.2");
     }
   </style>
 </head>
 <body>
   <div id="root"></div>
+  <script type="module" src="/src/entry.js"></script>
 </body>
-<%= htmlWebpackPlugin.options.devScripts %>
 </html>

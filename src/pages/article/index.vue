@@ -1,22 +1,22 @@
 <template>
     <div class="art-page">
         <div class="art-top"><TopBar :text="title"/></div>
-        <scroller class="scroller" ref="scroller" @scroll="scroller" show-scrollbar="true">
-            <text class="title">{{title}}</text>
+        <div class="scroller" ref="scroller" @scroll="scroller" show-scrollbar="true">
+            <span class="title">{{title}}</span>
             <div class="info">
-                <image src="https://p3.pstatp.com/thumb/1480/7186611868" class="head"></image>
+                <img src="https://p3.pstatp.com/thumb/1480/7186611868" class="head"></img>
                 <div class="more">
-                    <text class="author">{{source}}</text>
-                    <text class="time">{{formatDate(date)}}</text>
+                    <span class="author">{{source}}</span>
+                    <span class="time">{{formatDate(date)}}</span>
                 </div>
                 <div class="empty"></div>
-                <wxc-button class="button" v-if="relation.isfollow" @wxcButtonClicked="follow" text="取消关注" size="small"></wxc-button>
-                <wxc-button class="button" v-if="!relation.isfollow" @wxcButtonClicked="follow" text="+ 关注" size="small"></wxc-button>
+                <div class="follow-btn" v-if="relation.isfollow" @click="follow">取消关注</div>
+                <div class="follow-btn" v-if="!relation.isfollow" @click="follow">+ 关注</div>
             </div>
             <div class="content">
                 <template v-for="item in content">
-                    <text class="text" :style="getStyle(item.style)" v-if="item.type=='text'">{{item.value}}</text>
-                    <image @load="imageLoad(item,$event)" class="image" :style="{width:'710px',height:imageHeight[item.value]}" v-if="item.type=='image'" :src="item.value"></image>
+                    <span class="text" :style="getStyle(item.style)" v-if="item.type=='text'">{{item.value}}</span>
+                    <img @load="imageLoad(item,$event)" class="image" :style="{width:'710px',height:imageHeight[item.value]}" v-if="item.type=='image'" :src="item.value"></img>
                 </template>
             </div>
             <div class="tools">
@@ -25,7 +25,7 @@
 <!--                <Button text="微信" :icon='icon.wechat' @onClick="share(0)"/>-->
 <!--                <Button text="朋友圈" :icon='icon.friend' @onClick="share(1)"/>-->
             </div>
-        </scroller>
+        </div>
         <div class="art-bottom"><BottomBar :forward="test.isforward" @clickForward="forward"
                                            :collection="relation.iscollection" @clickCollection="collection" /></div>
     </div>
@@ -35,14 +35,15 @@
     import TopBar from '@/compoents/bars/article_top_bar'
     import BottomBar from '@/compoents/bars/article_bottom_bar'
     import Button from '@/compoents/buttons/button'
-    import { WxcButton ,Utils } from 'weex-ui'
+    
     import Api from '@/apis/article/api'
 
-    const modal = weex.requireModule("modal")
+    import { toast, confirmDialog } from "@/utils/toast"
+    import Utils from '@/utils/env'
 
     export default {
         name: "index",
-        components:{TopBar,BottomBar,WxcButton,Button},
+        components:{TopBar,BottomBar,Button},
         props:['id','title','date','comment','type','source','authorId'],
         data(){
             return {
@@ -77,7 +78,6 @@
             }
         },
         created(){
-            Api.setVue(this);
             this.loadInfo();
             this.loadBehavior();
             let _this = this;
@@ -92,19 +92,17 @@
             this.read();
         },
         mounted(){
-            this.scrollerHeight=(Utils.env.getPageHeight()-180)+'px';
+            this.scrollerHeight=(Utils.getPageHeight()-180)+'px';
         },
         methods : {
             imageLoad : function(item,e){
-                console.log(item)
-                console.log(e)
-                if(e.success){
-                    if(e.size.naturalWidth>150){
-                        let height = parseInt(e.size.naturalHeight*(750/e.size.naturalWidth))+'px'
-                        this.$set(this.imageHeight,item.value,height)
-                    }else{
-                        this.$set(e.target,'resize','contain')
-                    }
+                // Standard img onload event
+                var img = e.target;
+                if(img.naturalWidth > 150){
+                    var height = parseInt(img.naturalHeight * (750 / img.naturalWidth)) + 'px';
+                    this.$set(this.imageHeight, item.value, height);
+                } else {
+                    img.style.objectFit = 'contain';
                 }
             },
             loadInfo : function(){
@@ -117,10 +115,10 @@
                             this.content = eval("("+temp+")")
                             this.time.loadOff=false;//关闭加载时间的记录
                         }else{
-                            modal.toast({message:'文章已被删除',duration:3})
+                            toast('文章已被删除', 3)
                         }
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -131,7 +129,7 @@
                     if(d.code==0){
                         this.relation = d.data
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -139,11 +137,15 @@
             },
             // 点赞
             like : function(){
+                if(!this.$store.getters.isLoggedIn){
+                    this.$store.dispatch('showLogin')
+                    return
+                }
                 Api.like({articleId:this.id,operation:this.relation.islike?1:0}).then(d=>{
                     if(d.code==0){
                         this.relation.islike = !this.relation.islike
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -151,11 +153,15 @@
             },
             // 不喜欢
             unlike : function(){
+                if(!this.$store.getters.isLoggedIn){
+                    this.$store.dispatch('showLogin')
+                    return
+                }
                 Api.unlike({articleId:this.id,type:this.relation.isunlike?1:0}).then(d=>{
                     if(d.code==0){
                         this.relation.isunlike = !this.relation.isunlike
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -165,9 +171,9 @@
             share : function(type){
                 Api.share({articleId:this.id,type:type}).then(d=>{
                     if(d.code==0){
-                        modal.toast({message: '分享成功',duration: 3})
+                        toast('分享成功', 3)
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -175,11 +181,15 @@
             },
             // 收藏
             collection : function(){
+                if(!this.$store.getters.isLoggedIn){
+                    this.$store.dispatch('showLogin')
+                    return
+                }
                 Api.collection({articleId:this.id,publishedTime:this.date,operation:this.relation.iscollection?1:0}).then(d=>{
                     if(d.code==0){
                         this.relation.iscollection = !this.relation.iscollection
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -187,6 +197,10 @@
             },
             // 转发
             forward : function(){
+                if(!this.$store.getters.isLoggedIn){
+                    this.$store.dispatch('showLogin')
+                    return
+                }
                 Api.forward({articleId:this.id}).then(d=>{
                     this.test.isforward = !this.test.isforward
                 }).catch((e)=>{
@@ -195,12 +209,16 @@
             },
             // 关注
             follow : function(){
+                if(!this.$store.getters.isLoggedIn){
+                    this.$store.dispatch('showLogin')
+                    return
+                }
                 Api.follow({articleId:this.id,authorId:this.authorId,operation:this.relation.isfollow?1:0}).then(d=>{
                     if(d.code==0){
                         this.relation.isfollow = !this.relation.isfollow
-                        modal.toast({message:this.relation.isfollow?'成功关注':'成功取消关注',duration: 3})
+                        toast(this.relation.isfollow?'成功关注':'成功取消关注', 3)
                     }else{
-                        modal.toast({message: d.error_message,duration: 3})
+                        toast( d.error_message, 3)
                     }
                 }).catch((e)=>{
                     console.log(e)
@@ -241,9 +259,10 @@
                 return item;
             },
             scroller : function(e){
-                let y = Math.abs(e.contentOffset.y)+(Utils.env.getPageHeight()-180)
-                let height = e.contentSize.height
-                this.time.percentage = Math.max(parseInt((y*100)/height),this.time.percentage)
+                // Standard scroll event — use scrollTop/scrollHeight instead of Weex contentOffset/contentSize
+                var y = Math.abs(e.target.scrollTop) + (Utils.getPageHeight() - 180);
+                var height = e.target.scrollHeight;
+                this.time.percentage = Math.max(parseInt((y * 100) / height), this.time.percentage);
             }
         }
     }
@@ -257,6 +276,7 @@
         right: 0;
         bottom: 0;
         width: 750px;
+        display: flex;
         flex-direction: column;
     }
     .art-top{
@@ -272,6 +292,7 @@
     }
     .scroller{
         flex: 1;
+        display: flex;
         flex-direction: column;
         width: 750px;
         padding: 0px 20px;
@@ -286,6 +307,7 @@
         margin-top: 20px;
         line-height: 48px;
         align-items: center;
+        display: flex;
         flex-direction: row;
     }
     .head{
@@ -294,6 +316,7 @@
         border-radius: 48px;
     }
     .more{
+        display: flex;
         flex-direction: column;
     }
     .author{
@@ -310,8 +333,10 @@
         flex: 1;
     }
     .content{
+        display: flex;
         flex-direction: column;
         font-size: 30px;
+        display: flex;
         justify-content:flex-start;
         margin-top: 20px;
         color: #222;
@@ -329,8 +354,10 @@
     }
     .tools{
         margin: 20px 0px 30px;
+        display: flex;
         flex-direction: row;
         height: 60px;
+        display: flex;
         justify-content: center;
     }
 </style>

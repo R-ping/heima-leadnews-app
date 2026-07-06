@@ -1,8 +1,8 @@
 <template>
     <div class="cell-body">
-        <text class="icon">{{icon}}</text>
-        <text class="title" @click="onClickText">{{title}}</text>
-        <text class="icon" @click="onDeleteHistory">&#xf00d;</text>
+        <span class="icon">{{icon}}</span>
+        <span class="title" @click="onClickText">{{title}}</span>
+        <span class="icon" @click="onDeleteHistory">&#xf00d;</span>
     </div>
 </template>
 
@@ -37,7 +37,8 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .cell-body{
-       flex-direction: row;
+       display: flex;
+        flex-direction: row;
         font-size: 36px;
         align-items: center;
         border-bottom-color: #e8e8e8;

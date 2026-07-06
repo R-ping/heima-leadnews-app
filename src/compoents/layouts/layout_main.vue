@@ -19,10 +19,14 @@
 
 <style scoped>
     .wrapper{
-        flex-direction : column;
+        display: flex;
+        flex-direction: column;
+        width: 750px;
+        height: 100%;
     }
     .router-body{
         flex: 1;
+        display: flex;
         flex-direction : column;
     }
     .main-body{

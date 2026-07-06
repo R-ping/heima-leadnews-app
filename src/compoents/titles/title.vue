@@ -1,8 +1,8 @@
 <template>
     <div class="t-body">
-        <text class="icon" style="color: red">{{icon}}</text>
-        <text class="title">{{title}}</text>
-        <text class="icon">&#xf105;</text>
+        <span class="icon" style="color: red">{{icon}}</span>
+        <span class="title">{{title}}</span>
+        <span class="icon">&#xf105;</span>
     </div>
 </template>
 
@@ -25,6 +25,7 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .t-body{
+        display: flex;
         flex-direction: row;
         font-size: 36px;
         align-items: center;

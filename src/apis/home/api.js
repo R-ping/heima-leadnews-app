@@ -1,17 +1,16 @@
-function Api(){
-    this.vue;
-}
+import conf from '@/common/conf'
+import request from '@/common/request'
+import store from '@/stores/store'
+
+function Api(){}
 Api.prototype = {
-    setVue : function(vue){
-        this.vue = vue;
-    },
     // 加载数据
     loaddata : function(params){
         let dir = params.loaddir
         let url = this.getLoadUrl(dir)
-        return this.vue.$store.getEquipmentId().then(equipmentId=> {
+        return store.getEquipmentId().then(equipmentId=> {
             return new Promise((resolve, reject) => {
-                this.vue.$request.post(url,params,{}).then((d)=>{
+                request.post(url,params,{}).then((d)=>{
                     resolve(d);
                 }).catch((e)=>{
                     reject(e);
@@ -32,10 +31,10 @@ Api.prototype = {
             }
         }
         if(ids.length>0){
-            let url = this.vue.$config.urls.get('show_behavior')
-            return this.vue.$store.getEquipmentId().then(equipmentId=> {
+            let url = conf.urls.get('show_behavior')
+            return store.getEquipmentId().then(equipmentId=> {
                 return new Promise((resolve, reject) => {
-                    this.vue.$request.post(url, {
+                    request.post(url, {
                         equipment_id: equipmentId,
                         article_ids: ids
                     }).then((d) => {
@@ -54,11 +53,11 @@ Api.prototype = {
     },
     // 区别请求那个URL
     getLoadUrl : function(dir){
-        let url = this.vue.$config.urls.get('load')
+        let url = conf.urls.get('load')
         if(dir==0)
-            url = this.vue.$config.urls.get('loadnew')
+            url = conf.urls.get('loadnew')
         else if(dir==2)
-            url = this.vue.$config.urls.get('loadmore')
+            url = conf.urls.get('loadmore')
         return url;
     }
 }

@@ -1,7 +1,7 @@
 <template>
     <div class="body" @click="onClick" :style="getBodyStyle">
-        <text class="icon" :style="getIconStyle">{{icon}}</text>
-        <text class="text">搜索</text>
+        <span class="icon" :style="getIconStyle">{{icon}}</span>
+        <span class="text">搜索</span>
     </div>
 </template>
 
@@ -54,7 +54,9 @@
     @import '../../styles/common';
     .body{
         background-color: #5aadff;
+        display: flex;
         flex-direction: row;
+        display: flex;
         justify-content: center;
         align-items: center;
         border-radius: @top-height - 30;

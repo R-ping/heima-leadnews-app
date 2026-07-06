@@ -1,4 +1,4 @@
-/*global Vue*/
+import Vue from 'vue'
 import lang from '@/langs/lang'
 import conf from '@/common/conf'
 import request from '@/common/request'
@@ -12,9 +12,8 @@ Vue.prototype.$store = store
 request.setStore(store)
 Vue.prototype.$request = request
 
-const { router } = require('./router');
-const App = require('@/main.vue');
+import { router } from './router';
+import App from '@/main.vue';
 /* eslint-disable no-new */
 new Vue(Vue.util.extend({el: '#root', router}, App));
-router.push('/screen');
-
+router.push('/home');

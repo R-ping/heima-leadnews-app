@@ -1,7 +1,7 @@
 <template>
     <div class="botton" @click="click">
-        <text class="icon" v-if="icon!=''" :style="{color:active?'#3296fa':'#636363'}">{{icon}}</text>
-        <text class="text">{{getText()}}</text>
+        <span class="icon" v-if="icon!=''" :style="{color:active?'#3296fa':'#636363'}">{{icon}}</span>
+        <span class="text">{{getText()}}</span>
     </div>
 </template>
 
@@ -53,6 +53,7 @@
         border-radius: 30px;
         border-color: @border-color;
         line-height: 60px;
+        display: flex;
         flex-direction: row;
         align-items: center;
         vertical-align: center;

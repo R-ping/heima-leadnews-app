@@ -6,7 +6,7 @@
   <div class="wxc-tab-page"
        :style="{ height: (tabPageHeight)+'px', backgroundColor:wrapBgColor }">
     <div class="tab-body">
-      <scroller class="tab-title-list"
+      <div class="tab-title-list"
                 ref="tab-title-list"
                 :show-scrollbar="false"
                 scroll-direction="horizontal"
@@ -30,26 +30,26 @@
              :accessible="true"
              :aria-label="`${v.title?v.title:'标签'+index}`">
 
-          <image :src="currentPage === index ? v.activeIcon : v.icon"
+          <img :src="currentPage === index ? v.activeIcon : v.icon"
                  v-if="titleType === 'icon' && !titleUseSlot"
-                 :style="{ width: tabStyles.iconWidth + 'px', height:tabStyles.iconHeight+'px'}"></image>
+                 :style="{ width: tabStyles.iconWidth + 'px', height:tabStyles.iconHeight+'px'}"></img>
 
-          <text class="icon-font"
+          <span class="icon-font"
                 v-if="titleType === 'iconFont' && v.codePoint && !titleUseSlot"
-                :style="{fontFamily: 'wxcIconFont',fontSize: tabStyles.iconFontSize+'px', color: currentPage === index ? tabStyles.activeIconFontColor : tabStyles.iconFontColor}">{{v.codePoint}}</text>
+                :style="{fontFamily: 'wxcIconFont',fontSize: tabStyles.iconFontSize+'px', color: currentPage === index ? tabStyles.activeIconFontColor : tabStyles.iconFontColor}">{{v.codePoint}}</span>
 
-          <text
+          <span 
             v-if="!titleUseSlot"
             :style="{ fontSize: tabStyles.fontSize+'px', fontWeight: (currentPage === index && tabStyles.isActiveTitleBold)? 'bold' : 'normal', color: currentPage === index ? tabStyles.activeTitleColor : tabStyles.titleColor, paddingLeft:(tabStyles.textPaddingLeft?tabStyles.textPaddingLeft:10)+'px', paddingRight:(tabStyles.textPaddingRight?tabStyles.textPaddingRight:10)+'px'}"
-            class="tab-text">{{v.title}}</text>
+            class="tab-text">{{v.title}}</span>
           <div class="border-bottom"
                v-if="tabStyles.hasActiveBottom && !titleUseSlot"
                :style="{ width: tabStyles.activeBottomWidth+'px', left: (tabStyles.width-tabStyles.activeBottomWidth)/2+'px', height: tabStyles.activeBottomHeight+'px', backgroundColor: currentPage === index ? tabStyles.activeBottomColor : 'transparent' }"></div>
           <slot :name="`tab-title-${index}`" v-if="titleUseSlot"></slot>
         </div>
-      </scroller>
-      <text v-if="showMore" class="icon" @click="noAction"
-            :style="{ fontSize: tabStyles.fontSize*1.6+'px', color: tabStyles.titleColor}">&#xf0c9;</text>
+      </div>
+      <span v-if="showMore" class="icon" @click="noAction"
+            :style="{ fontSize: tabStyles.fontSize*1.6+'px', color: tabStyles.titleColor}">&#xf0c9;</span>
     </div>
     <div class="tab-page-wrap"
          ref="tab-page-wrap"
@@ -70,24 +70,26 @@
   }
 
   .tab-body{
-    flex-direction: row;
-    justify-content: center;
+    display: flex;
+        flex-direction: row;
+    display: flex;
+        justify-content: center;
     align-items: center;
   }
 
   .tab-title-list {
-    flex-direction: row;
+    display: flex;
+        flex-direction: row;
     flex: 1;
-    border-right-width: 2px;
-    border-right-color: #ebebeb;
+    border-right: 2px solid #ebebeb;
   }
 
   .title-item {
-    justify-content: center;
+    display: flex;
+        justify-content: center;
     align-items: center;
     border-right-style: solid;
-    border-right-width: 1px;
-    border-right-color: #ebebeb;
+    border-right: 1px solid #ebebeb;
   }
 
   .border-bottom {
@@ -97,10 +99,8 @@
   }
 
   .tab-page-wrap {
-    border-bottom-width: 1px;
-    border-bottom-color: #ebebeb;
-    border-top-width: 1px;
-    border-top-color: #ebebeb;
+    border-bottom: 1px solid #ebebeb;
+    border-top: 1px solid #ebebeb;
     padding-top: 10px;
     padding-bottom: 10px;
     width: 750px;
@@ -110,12 +110,13 @@
 
   .tab-container {
     flex: 1;
-    flex-direction: row;
+    display: flex;
+        flex-direction: row;
     position: absolute;
   }
 
   .tab-text {
-    lines: 1;
+    -webkit-line-clamp: 1; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical;
     text-overflow: ellipsis;
   }
   .icon{
@@ -127,11 +128,7 @@
 </style>
 
 <script>
-  const dom = weex.requireModule('dom');
-  const animation = weex.requireModule('animation');
-  const swipeBack = weex.requireModule('swipeBack');
-
-  import {Utils, BindEnv,Binding } from 'weex-ui'
+  import Utils from '@/utils/env'
 
   export default {
     props: {
@@ -234,23 +231,15 @@
     created () {
       const { titleType, tabStyles } = this;
       if (titleType === 'iconFont' && tabStyles.iconFontUrl) {
-        dom.addRule('fontFace', {
-          'fontFamily': 'wxcIconFont',
-          'src': `url(${tabStyles.iconFontUrl})`
-        });
+        // Inject @font-face via style element
+        var style = document.createElement('style');
+        style.textContent = '@font-face { font-family: "wxcIconFont"; src: url(' + tabStyles.iconFontUrl + '); }';
+        document.head.appendChild(style);
       }
     },
     mounted () {
-      if (swipeBack && swipeBack.forbidSwipeBack) {
-        swipeBack.forbidSwipeBack(true);
-      }
-      if (BindEnv.supportsEBForIos() && this.isTabView && this.needSlider) {
-        const tabPageEl = this.$refs['tab-page-wrap'];
-        Binding.prepare && Binding.prepare({
-          anchor: tabPageEl.ref,
-          eventType: 'pan'
-        });
-      }
+      // swipeBack not available in browser — skip
+      // BindEnv/Binding not available in browser — skip
     },
     methods: {
       noAction(){
@@ -271,50 +260,7 @@
         this.setPage(page);
       },
       startHandler () {
-        if (BindEnv.supportsEBForIos() && this.isTabView && this.needSlider) {
-          this.bindExp(this.$refs['tab-page-wrap']);
-        }
-      },
-      bindExp (element) {
-        if (element && element.ref) {
-          if (this.isMoving && this.gesToken !== 0) {
-            Binding.unbind({
-              eventType: 'pan',
-              token: this.gesToken
-            })
-            this.gesToken = 0;
-            return;
-          }
-
-          const tabElement = this.$refs['tab-container'];
-          const { currentPage, panDist } = this;
-          const dist = currentPage * 750;
-
-          // x-dist
-          const props = [{
-            element: tabElement.ref,
-            property: 'transform.translateX',
-            expression: `x-${dist}`
-          }];
-
-          const gesTokenObj = Binding.bind({
-            anchor: element.ref,
-            eventType: 'pan',
-            props
-          }, (e) => {
-            const { deltaX, state } = e;
-            if (state === 'end') {
-              if (deltaX < -panDist) {
-                this.next();
-              } else if (deltaX > panDist) {
-                this.prev();
-              } else {
-                this.setPage(currentPage);
-              }
-            }
-          });
-          this.gesToken = gesTokenObj.token;
-        }
+        // Weex expression binding not available in browser
       },
       setPage (page, url = null, animated = true) {
         if (!this.isTabView) {
@@ -326,21 +272,19 @@
         }
         this.isMoving = true;
         const previousPage = this.currentPage;
-        const currentTabEl = this.$refs[`wxc-tab-title-${page}`][0];
+        const currentTabEl = this.$refs[`wxc-tab-title-${page}`];
+        // $refs returns array in old weex, single element in Vue 2
+        const tabEl = Array.isArray(currentTabEl) ? currentTabEl[0] : currentTabEl;
         const { width } = this.tabStyles;
         const appearNum = parseInt(750 / width);
         const tabsNum = this.tabTitles.length;
-        const offset = page > appearNum ? -(750 - width) / 2 : -width * 2;
 
-        if (appearNum < tabsNum) {
-          (previousPage > appearNum || page > 1) && dom.scrollToElement(currentTabEl, {
-            offset, animated
-          });
-
-          page <= 1 && previousPage > page && dom.scrollToElement(currentTabEl, {
-            offset: -width * page,
-            animated
-          });
+        if (appearNum < tabsNum && tabEl) {
+          var offset = page > appearNum ? -(750 - width) / 2 : -width * 2;
+          if (page <= 1 && previousPage > page) {
+            offset = -width * page;
+          }
+          tabEl.scrollIntoView({ behavior: animated ? 'smooth' : 'auto', inline: 'nearest', block: 'nearest' });
         }
 
         this.isMoving = false;
@@ -354,17 +298,11 @@
       _animateTransformX (page, animated) {
         const { duration, timingFunction } = this;
         const computedDur = animated ? duration : 0.00001;
-        const containerEl = this.$refs[`tab-container`];
+        const containerEl = this.$refs['tab-container'];
         const dist = page * 750;
-        animation.transition(containerEl, {
-          styles: {
-            transform: `translateX(${-dist}px)`
-          },
-          duration: computedDur,
-          timingFunction,
-          delay: 0
-        }, () => {
-        });
+        // Use CSS transition instead of weex animation module
+        containerEl.style.transition = 'transform ' + computedDur + 'ms ' + timingFunction;
+        containerEl.style.transform = 'translateX(' + (-dist) + 'px)';
       }
     }
   };
