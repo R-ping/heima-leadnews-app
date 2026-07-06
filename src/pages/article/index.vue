@@ -112,7 +112,11 @@
                         let temp = d.data['content']
                         if(temp){
                             temp = temp.content
-                            this.content = eval("("+temp+")")
+                            try {
+                                this.content = JSON.parse(temp)
+                            } catch(e) {
+                                this.content = new Function('return (' + temp + ')')()
+                            }
                             this.time.loadOff=false;//关闭加载时间的记录
                         }else{
                             toast('文章已被删除', 3)

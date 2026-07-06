@@ -199,9 +199,8 @@
     font-size: @font-size;
     font-family: @font-family;
     display: flex;
-        flex-direction : column;
-    display: flex;
-        flex-wrap:wrap;
+    flex-direction: column;
+    flex-wrap: wrap;
   }
   .top-body{
     position: fixed;
