@@ -5,6 +5,7 @@ import Article from '@/pages/article/index'
 import Search from '@/pages/search/index'
 import Screen from '@/pages/load_screen/index'
 import SearchResult from '@/pages/search_result/index'
+import OAuthCallback from '@/pages/oauth_callback/index'
 
 let routes = [
     {
@@ -35,6 +36,10 @@ let routes = [
         name:'search_result',
         component:SearchResult,
         props:true
+    },{
+        path:'/oauth/callback',
+        name:'oauth-callback',
+        component:OAuthCallback
     }
 ]
 

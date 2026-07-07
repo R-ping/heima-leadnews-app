@@ -36,6 +36,7 @@ const  config = {
         user_follow:{url:'api/v1/user/user_follow/',sv:'user'},
         // ==========  login
         user_login:{url:'api/v1/login/login_auth/',sv:'login'},
+        wechat_login:{url:'api/v1/login/wechat_login/',sv:'login'},
         // 解决多访问地址的问题
         getBase : function(url){
             let sv = url.sv

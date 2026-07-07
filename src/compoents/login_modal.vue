@@ -7,7 +7,7 @@
                     <span class="close-btn" @click="close">&#10005;</span>
                 </div>
                 <div class="modal-body">
-                    <div class="form-section">
+                    <div class="form-section" v-if="mode === 'phone'">
                         <div class="form-wrapper">
                             <div class="input-group">
                                 <span class="area-code">+86</span>
@@ -35,9 +35,26 @@
                             <span class="divider-line"></span>
                         </div>
                         <div class="third-party">
-                            <span class="third-item">{{weiboIcon}}</span>
-                            <span class="third-item">{{wechatIcon}}</span>
-                            <span class="third-item">{{qqIcon}}</span>
+                            <span class="third-item" @click="weiboLogin">{{weiboIcon}}</span>
+                            <span class="third-item" @click="githubLogin">{{githubIcon}}</span>
+                            <span class="third-item" @click="switchToWechat">{{wechatIcon}}</span>
+                            <span class="third-item" @click="tip">{{qqIcon}}</span>
+                        </div>
+                    </div>
+                    <div class="form-section" v-if="mode === 'wechat'">
+                        <div class="wechat-login-wrapper">
+                            <div class="wechat-qr-container">
+                                <img class="wechat-qr-img" src="/static/images/gzh.jpeg" alt="公众号二维码" />
+                            </div>
+                            <p class="wechat-tip-text">扫码关注公众号，获取验证码</p>
+                            <div class="input-group">
+                                <input v-model="wechatCode"
+                                       placeholder="请输入验证码"
+                                       class="input"
+                                />
+                            </div>
+                            <span class="button" @click="wechatLoginSubmit">登录</span>
+                            <span class="back-link" @click="switchToPhone">返回其他登录方式</span>
                         </div>
                     </div>
                     <div class="qr-section">
@@ -46,13 +63,18 @@
                             <span class="qr-hint">iOS 4.1及以上版本支持</span>
                         </div>
                         <div class="qr-code">
-                            <div class="qr-placeholder">
+                            <img v-if="mode === 'wechat'" class="wechat-qr-desktop" src="/static/images/gzh.jpeg" alt="公众号二维码" />
+                            <div v-else class="qr-placeholder">
                                 <span class="qr-icon">{{qrIcon}}</span>
                             </div>
                         </div>
-                        <div class="qr-tip">
+                        <div class="qr-tip" v-if="mode !== 'wechat'">
                             <span>打开黑马头条APP</span>
                             <span>点击"我的-扫一扫"登录</span>
+                        </div>
+                        <div class="qr-tip" v-else>
+                            <span>微信扫码关注公众号</span>
+                            <span>获取验证码完成登录</span>
                         </div>
                     </div>
                 </div>
@@ -72,14 +94,18 @@
 <script>
     import Api from '@/apis/login/api'
     import { toast } from "@/utils/toast"
+    import oauthConfig from '@/common/oauth'
     export default {
         name: "LoginModal",
         data(){
             return{
                 weiboIcon : '\uf18a',
                 wechatIcon : '\uf1d7',
+                githubIcon : '\uf09b',
                 qqIcon : '\uf1d6',
                 qrIcon : '\uf029',
+                mode: 'phone', // 'phone' | 'wechat'
+                wechatCode: '',
                 params:{
                     phone:'',
                     password:''
@@ -97,6 +123,62 @@
             },
             tip : function(){
                 toast('该功能暂未实现！', 3)
+            },
+            // 微博 OAuth 登录
+            weiboLogin: function(){
+                const cfg = oauthConfig.weibo
+                const params = {
+                    client_id: cfg.clientId,
+                    redirect_uri: cfg.redirectUri,
+                    response_type: cfg.responseType
+                }
+                const qs = Object.entries(params)
+                    .map(function(kv){ return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]) })
+                    .join('&')
+                window.location.href = cfg.authorizeUrl + '?' + qs
+            },
+            // GitHub OAuth 登录
+            githubLogin: function(){
+                const cfg = oauthConfig.github
+                const params = {
+                    client_id: cfg.clientId,
+                    redirect_uri: cfg.redirectUri,
+                    // response_type: cfg.responseType,
+                    // scope: cfg.scope
+                }
+                const qs = Object.entries(params)
+                    .map(function(kv){ return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]) })
+                    .join('&')
+                window.location.href = cfg.authorizeUrl + '?' + qs
+            },
+            // 切换到微信扫码登录
+            switchToWechat: function(){
+                this.mode = 'wechat'
+                this.wechatCode = ''
+            },
+            // 切回手机号登录
+            switchToPhone: function(){
+                this.mode = 'phone'
+                this.wechatCode = ''
+            },
+            // 微信验证码登录
+            wechatLoginSubmit: function(){
+                if(this.wechatCode === ''){
+                    toast('请输入验证码', 3)
+                    return
+                }
+                Api.wechatLogin({ code: this.wechatCode }).then(function(d){
+                    if(d.code==0){
+                        this.$store.dispatch('login', d.data.token)
+                        this.close()
+                        toast('登录成功', 2)
+                    }else{
+                        toast('验证码错误或已过期', 3)
+                    }
+                }.bind(this)).catch(function(e){
+                    console.log(e)
+                    toast('登录失败，请重试', 3)
+                })
             },
             login:function(){
                 if(this.params.phone==''||this.params.password==''){
@@ -348,6 +430,49 @@
         color: #3194ff;
         cursor: pointer;
     }
+    /* === WeChat Login Section === */
+    .wechat-login-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    .wechat-qr-container {
+        width: 200px;
+        height: 200px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+    }
+    .wechat-qr-img {
+        width: 180px;
+        height: 180px;
+        object-fit: contain;
+    }
+    .wechat-qr-desktop {
+        width: 150px;
+        height: 150px;
+        object-fit: contain;
+    }
+    .wechat-tip-text {
+        font-size: 16px;
+        color: #666666;
+        text-align: center;
+        margin: 0;
+    }
+    .back-link {
+        font-size: 16px;
+        color: #3194ff;
+        cursor: pointer;
+        text-align: center;
+    }
+    .back-link:hover {
+        color: #1a7de8;
+    }
     @media screen and (min-width: 600px) {
         .qr-section {
             display: flex;
@@ -392,6 +517,14 @@
             width: 50px;
             height: 50px;
             font-size: 28px;
+        }
+        .wechat-qr-container {
+            width: 160px;
+            height: 160px;
+        }
+        .wechat-qr-img {
+            width: 140px;
+            height: 140px;
         }
     }
 </style>
