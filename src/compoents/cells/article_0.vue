@@ -4,7 +4,7 @@
         <div class="tags">
             <span class="tags-text tags-icon">{{data.icon}}</span>
             <span class="tags-text">{{data.source}}</span>
-            <span class="tags-text">评论 {{data.commit}}</span>
+            <span class="tags-text">评论 {{data.comment}}</span>
             <span class="tags-text date">{{formatDate(data.date)}}</span>
         </div>
     </div>
@@ -28,6 +28,4 @@
 
 <style lang="less" scoped>
     @import '../../styles/article';
-    .list-item{
-    }
 </style>

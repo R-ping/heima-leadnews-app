@@ -1,18 +1,16 @@
 <template>
     <div class="wxc-tab-page">
-        <div class="tab-title-list"
-             :style="{ height: '120px',paddingBottom:isIPhoneX?'78px':'0'}">
+        <div class="tab-title-list">
             <div class="title-item"
                  v-for="(v,index) in tabTitles"
                  :key="index"
                  :ref="'wxc-tab-title-'+index"
                  @click="setPage(index,v.url)"
-                 :style="{ width: tabStyles.width +'px', height: tabStyles.height +'px', backgroundColor: currentPage == index ? tabStyles.activeBgColor : tabStyles.bgColor }"
+                 :style="{ backgroundColor: currentPage == index ? tabStyles.activeBgColor : tabStyles.bgColor }"
                  :accessible="true"
                  :aria-label="`${v.title?v.title:'标签'+index}`">
                 <span class="icon" :style="{color:getFillColor(index)}">{{v.icon}}</span>
-
-                <span 
+                <span
                         v-if="!titleUseSlot"
                         :style="{ fontSize: tabStyles.fontSize+'px', fontWeight: (currentPage == index && tabStyles.isActiveTitleBold)? 'bold' : 'normal', color: currentPage == index ? tabStyles.activeTitleColor : tabStyles.titleColor, paddingLeft:tabStyles.textPaddingLeft+'px', paddingRight:tabStyles.textPaddingRight+'px'}"
                         class="tab-text">{{v.title}}</span>
@@ -34,38 +32,34 @@
         background-color: transparent;
     }
     .wxc-tab-page {
-        width: 750px;
-        position: absolute;
-        left: 0;
-        bottom: 0;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
         background-color: #ffffff;
-        border-top-color: #ebebeb;
-        border-top-width: 1px;
+        border-top: 1px solid #ebebeb;
     }
     .tab-title-list {
         display: flex;
         flex-direction: row;
-        display: flex;
         justify-content: space-around;
     }
     .title-item {
         display: flex;
         justify-content: center;
         align-items: center;
-        border-bottom-style: solid;
+        position: relative;
+        cursor: pointer;
     }
     .tab-text {
-        -webkit-line-clamp: 1; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical;
+        white-space: nowrap;
+        overflow: hidden;
         text-overflow: ellipsis;
     }
     .desc-tag {
         position: absolute;
         top: 10px;
         right: 20px;
-        border-bottom-right-radius: 14px;
-        border-bottom-left-radius: 0;
-        border-top-left-radius: 14px;
-        border-top-right-radius: 14px;
+        border-radius: 14px;
         background-color: #FF5E00;
         height: 26px;
         align-items: center;
@@ -77,10 +71,7 @@
     .dot {
         width: 12px;
         height: 12px;
-        border-bottom-right-radius: 12px;
-        border-bottom-left-radius: 12px;
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
+        border-radius: 12px;
         position: absolute;
         top: 10px;
         right: 40px;

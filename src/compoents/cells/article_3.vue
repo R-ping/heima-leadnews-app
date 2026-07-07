@@ -2,13 +2,13 @@
     <div class="list-item">
         <span class="title">{{formatTitle(data.title)}}</span>
         <div class="item-image">
-            <img class="image" v-for="img in data.image" :src="img"></img>
+            <img class="image" v-for="img in data.image" :src="img" :key="img"/>
         </div>
         <div class="item-l">
             <div class="tags">
                 <span class="tags-text tags-icon">{{data.icon}}</span>
                 <span class="tags-text">{{data.source}}</span>
-                <span class="tags-text">评论 {{data.commit}}</span>
+                <span class="tags-text">评论 {{data.comment}}</span>
                 <span class="tags-text">{{formatDate(data.date)}}</span>
             </div>
         </div>
@@ -39,17 +39,15 @@
 
 <style lang="less" scoped>
     @import '../../styles/article';
-    .list-item{
-        height: @list-2-height;
-    }
     .item-image{
         display: flex;
         flex-direction: row;
         padding: 6px 10px 0px;
-        display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
+        gap: 6px;
     }
     .image{
-        width: 240px;
+        flex: 1;
+        height: 160px;
     }
 </style>

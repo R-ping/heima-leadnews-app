@@ -6,7 +6,7 @@
                 <div class="tags">
                     <span class="tags-text tags-icon">{{data.icon}}</span>
                     <span class="tags-text">{{data.source}}</span>
-                    <span class="tags-text">评论 {{data.commit}}</span>
+                    <span class="tags-text">评论 {{data.comment}}</span>
                 </div>
             </div>
             <div class="item-r">
@@ -39,19 +39,19 @@
 
 <style lang="less" scoped>
     @import '../../styles/article';
-    .list-item{
-    }
     .list-lr{
         display: flex;
         flex-direction: row;
-        display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
+        align-items: flex-start;
     }
     .item-l{
-        width: 550px;
+        flex: 1;
+        min-width: 0;
     }
     .item-r{
         width: 180px;
+        flex-shrink: 0;
         margin: @list-tb-margin @list-lr-margin;
     }
 </style>

@@ -19,6 +19,14 @@
             icon:{
               type:String,
               default:'\uf044'
+            },
+            leftWidth:{
+                type:Number,
+                default:25
+            },
+            rightWidth:{
+                type:Number,
+                default:20
             }
         },
         computed:{
@@ -56,7 +64,6 @@
         background-color: #5aadff;
         display: flex;
         flex-direction: row;
-        display: flex;
         justify-content: center;
         align-items: center;
         border-radius: @top-height - 30;

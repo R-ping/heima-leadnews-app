@@ -1,9 +1,9 @@
 <template>
     <div class="bar_bg">
-        <span class="icon"> </span>
+        <span class="bar-icon">&#xf0c9;</span>
         <Search type="search" @onClick="onClick" :icon="icon" left-width="25" rightWidth="20" placeholder="请输入搜索关键字..."/>
-        <span class="icon login-btn" v-if="!isLoggedIn" @click="showLogin">{{loginIcon}}</span>
-        <span class="icon user-btn" v-if="isLoggedIn">{{userIcon}}</span>
+        <span class="bar-icon login-btn" v-if="!isLoggedIn" @click="showLogin">&#xf007;</span>
+        <span class="bar-icon user-btn" v-if="isLoggedIn">&#xf007;</span>
     </div>
 </template>
 
@@ -14,9 +14,7 @@
         components: { Search},
         data:()=>{
             return {
-                icon:'\uF002',
-                loginIcon:'\uf007',
-                userIcon:'\uf007'
+                icon:'\uF002'
             }
         },
         computed: {
@@ -24,19 +22,12 @@
                 return this.$store.getters.isLoggedIn
             }
         },
-        mounted(){
-            this.backgroundColor = this.$config.style.main_bg;
-        },
         methods: {
             onClick : function(){
                 this.$router.push('/search')
             },
             showLogin() {
                 this.$store.dispatch('showLogin')
-            },
-            minibarLeftButtonClick () {
-            },
-            minibarRightButtonClick () {
             }
         }
     };
@@ -45,20 +36,22 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .bar_bg{
-        width: @screen-width;
+        width: 100%;
         display: flex;
         flex-direction: row;
         background-color: @mian-color;
-        border-style: solid;
         height: @top-height;
         padding: 7px 15px 10px;
         align-items: center;
+        box-sizing: border-box;
     }
-    .icon{
+    .bar-icon{
         width: 25px;
         color: #ffffff;
         font-family: fontawesome;
         font-size: 32px;
+        text-align: center;
+        flex-shrink: 0;
     }
     .login-btn, .user-btn {
         cursor: pointer;

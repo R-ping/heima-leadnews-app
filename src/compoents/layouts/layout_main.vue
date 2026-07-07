@@ -21,17 +21,21 @@
     .wrapper{
         display: flex;
         flex-direction: column;
-        width: 750px;
+        width: 100%;
         height: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
     }
     .router-body{
         flex: 1;
         display: flex;
-        flex-direction : column;
+        flex-direction: column;
+        overflow-y: auto;
     }
     .main-body{
         position: fixed;
         left: 0;
+        right: 0;
         bottom: 0;
     }
 </style>

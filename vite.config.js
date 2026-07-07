@@ -27,7 +27,7 @@ export default defineConfig({
     }
   ],
   server: {
-    port: 8081,
+    port: 9901,
     proxy: {
       '/server_85': {
         target: 'http://heima-app-java.research.itcast.cn',
