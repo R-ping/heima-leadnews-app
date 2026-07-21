@@ -45,6 +45,15 @@ export async function uploadFile(file, onProgress) {
         onProgress(100)
     }
 
+    const presignRes = await request({
+        url: '/api/v1/media/oss/presigned_url',
+        method: 'get',
+        params: { key: objectKey }
+    })
+    if (presignRes && presignRes.code === 200 && presignRes.data?.url) {
+        return presignRes.data.url
+    }
+
     return data.host + '/' + objectKey
 }
 

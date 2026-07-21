@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Date;
@@ -57,6 +58,20 @@ public class OssController {
         } catch (Exception e) {
             log.error("Unexpected exception: {}", e.getMessage());
             return ResponseResult.errorResult(503, "获取上传签名失败");
+        }
+        return ResponseResult.okResult(data);
+    }
+
+    @GetMapping("/presigned_url")
+    public ResponseResult presignedUrl(@RequestParam("key") String key) {
+        JSONObject data = new JSONObject();
+        try {
+            Date expiration = new Date(System.currentTimeMillis() + 3600 * 1000);
+            java.net.URL url = ossClient.generatePresignedUrl(ossConfig.getBucket(), key, expiration);
+            data.put("url", url.toString());
+        } catch (Exception e) {
+            log.error("生成签名URL失败: {}", e.getMessage());
+            return ResponseResult.errorResult(503, "生成签名URL失败");
         }
         return ResponseResult.okResult(data);
     }
