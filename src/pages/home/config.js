@@ -1,13 +1,15 @@
 export default {
-    tabTitles: [{title: '动态',id:'__dyna__'},
-        {title: '推荐',id:'__all__'},
-        { title: 'JAVA',id:1},
-        { title: 'Python',id:2},
-        {title: 'VUE',id:3},
-        {title: 'WEEX',id:4},
-        {title: '大数据',id:5},
-        {title: 'Docker',id:6},
-        {title: '其它',id:0}
+    tabTitles: [{title: '关注', id:'__follow__'},
+        {title: '综合',id:'__all__'},
+        {title: '后端',id:1},
+        {title: '前端',id:2},
+        {title: 'Android',id:3},
+        {title: 'iOS',id:4},
+        {title: '人工智能',id:6},
+        {title: '开发工具',id:5},
+        {title: '代码人生',id:0},
+        {title: '阅读',id:'__latest__'},
+        {title: '排行榜',id:'__hot__'}
     ],
     tabStyles: {
         bgColor: '#FFFFFF',

@@ -3,118 +3,268 @@ import Vuex from 'vuex'
 
 Vue.use(Vuex)
 
-function Cache(){
-    this.tokenKey = "TOKEN_KEY"
-    this.equipmentidKey = "EQUIPMENTID_KEY"
+// ========== localStorage 缓存工具 ==========
+// 安全说明：Token 存储在 localStorage 中存在 XSS 窃取风险。
+// 建议在生产环境使用 httpOnly Secure Cookie 配合 BFF 模式存储 Token。
+// 当前方案通过以下措施缓解风险：
+// 1. 所有 v-html 渲染前经过 DOMPurify 净化（见 src/utils/sanitize.js）
+// 2. accessToken 短期有效（1小时），refreshToken 为一次性使用（防重放）
+// 3. 请求拦截器中处理 444/401 错误时自动刷新 Token
+function Cache() {
+    this.tokenKey = 'ACCESS_TOKEN'
+    this.refreshTokenKey = 'REFRESH_TOKEN'
+    this.userInfoKey = 'USER_INFO'
+    this.equipmentidKey = 'EQUIPMENTID_KEY'
     // 设置默认设备ID
-    if(!localStorage.getItem(this.equipmentidKey)){
-        localStorage.setItem(this.equipmentidKey, "8D3E8E0CF883C4E99329AF8A29300AB6")
+    if (!localStorage.getItem(this.equipmentidKey)) {
+        localStorage.setItem(this.equipmentidKey, '8D3E8E0CF883C4E99329AF8A29300AB6')
     }
 }
-Cache.prototype={
-    setToken : function(token){
-        return this.__setItem(this.tokenKey,token);
+Cache.prototype = {
+    setToken: function (token) {
+        return this.__setItem(this.tokenKey, token)
     },
-    getToken : function(){
-        return this.__getItem(this.tokenKey);
+    getToken: function () {
+        return this.__getItem(this.tokenKey)
     },
-    setEquipmentId : function(equipmentId){
-        return this.__setItem(this.equipmentidKey,equipmentId);
+    setRefreshToken: function (token) {
+        return this.__setItem(this.refreshTokenKey, token)
     },
-    getEquipmentId : function(){
-        return this.__getItem(this.equipmentidKey);
+    getRefreshToken: function () {
+        return this.__getItem(this.refreshTokenKey)
     },
-    clearToken : function(){
-        return this.__removeItem(this.tokenKey);
-    },
-    __setItem : function(key,value){
+    setUserInfo: function (info) {
         try {
-            localStorage.setItem(key, value);
-            return Promise.resolve(true);
-        } catch(e) {
-            return Promise.reject(false);
+            localStorage.setItem(this.userInfoKey, JSON.stringify(info))
+            return Promise.resolve(true)
+        } catch (e) {
+            return Promise.reject(false)
         }
     },
-    __getItem : function(key){
+    getUserInfo: function () {
         try {
-            let val = localStorage.getItem(key);
-            if(val !== null && val !== undefined){
-                return Promise.resolve(val);
-            } else {
-                return Promise.reject({result:'fail', data:null});
+            var val = localStorage.getItem(this.userInfoKey)
+            if (val) {
+                return Promise.resolve(JSON.parse(val))
             }
-        } catch(e) {
-            return Promise.reject(e);
+            return Promise.reject({ result: 'fail', data: null })
+        } catch (e) {
+            return Promise.reject(e)
         }
     },
-    __removeItem : function(key){
+    setEquipmentId: function (equipmentId) {
+        return this.__setItem(this.equipmentidKey, equipmentId)
+    },
+    getEquipmentId: function () {
+        return this.__getItem(this.equipmentidKey)
+    },
+    clearAll: function () {
         try {
-            localStorage.removeItem(key);
-            return Promise.resolve(true);
-        } catch(e) {
-            return Promise.reject(false);
+            localStorage.removeItem(this.tokenKey)
+            localStorage.removeItem(this.refreshTokenKey)
+            localStorage.removeItem(this.userInfoKey)
+            return Promise.resolve(true)
+        } catch (e) {
+            return Promise.reject(false)
+        }
+    },
+    __setItem: function (key, value) {
+        try {
+            localStorage.setItem(key, value)
+            return Promise.resolve(true)
+        } catch (e) {
+            return Promise.reject(false)
+        }
+    },
+    __getItem: function (key) {
+        try {
+            var val = localStorage.getItem(key)
+            if (val !== null && val !== undefined) {
+                return Promise.resolve(val)
+            } else {
+                return Promise.reject({ result: 'fail', data: null })
+            }
+        } catch (e) {
+            return Promise.reject(e)
         }
     }
 }
-const cache = new Cache();
+var cache = new Cache()
 
-const store = new Vuex.Store({
+// ========== 同步从 localStorage 恢复登录状态 ==========
+// 在创建 Vuex.Store 之前同步读取，避免应用渲染并发送 API 请求时 token 仍为空字符串
+var cachedAccessToken = localStorage.getItem(cache.tokenKey) || ''
+var cachedRefreshToken = localStorage.getItem(cache.refreshTokenKey) || ''
+var cachedUserInfo = null
+try {
+    var cachedUserInfoStr = localStorage.getItem(cache.userInfoKey)
+    if (cachedUserInfoStr) {
+        cachedUserInfo = JSON.parse(cachedUserInfoStr)
+    }
+} catch (e) {
+    cachedUserInfo = null
+}
+
+// ========== Vuex Store ==========
+var store = new Vuex.Store({
     state: {
-        token: '',
-        showLoginModal: false
+        accessToken: cachedAccessToken,
+        refreshToken: cachedRefreshToken,
+        guestToken: '',
+        userInfo: cachedUserInfo,  // { userId, nickName, avatar, phone }
+        showLoginModal: false,
+        showSocialBindModal: false,
+        // 社交登录绑定状态（暂存，用于OAuth回调后弹出绑定弹窗）
+        socialBindInfo: null  // { platform, platformUid }
     },
     mutations: {
-        SET_TOKEN(state, token) {
-            state.token = token
+        SET_ACCESS_TOKEN(state, token) {
+            state.accessToken = token
             cache.setToken(token)
         },
-        CLEAR_TOKEN(state) {
-            state.token = ''
-            cache.clearToken()
+        SET_REFRESH_TOKEN(state, token) {
+            state.refreshToken = token
+            cache.setRefreshToken(token)
+        },
+        CLEAR_AUTH(state) {
+            state.accessToken = ''
+            state.refreshToken = ''
+            state.userInfo = null
+            state.guestToken = ''
+            cache.clearAll()
+        },
+        SET_GUEST_TOKEN(state, token) {
+            state.guestToken = token
+        },
+        SET_USER_INFO(state, info) {
+            state.userInfo = info
+            cache.setUserInfo(info)
         },
         SHOW_LOGIN_MODAL(state) {
             state.showLoginModal = true
         },
         HIDE_LOGIN_MODAL(state) {
             state.showLoginModal = false
+        },
+        SHOW_SOCIAL_BIND_MODAL(state) {
+            state.showSocialBindModal = true
+        },
+        HIDE_SOCIAL_BIND_MODAL(state) {
+            state.showSocialBindModal = false
+        },
+        SET_SOCIAL_BIND_INFO(state, info) {
+            state.socialBindInfo = info
+        },
+        CLEAR_SOCIAL_BIND_INFO(state) {
+            state.socialBindInfo = null
         }
     },
     actions: {
-        login({ commit }, token) {
-            commit('SET_TOKEN', token)
+        /**
+         * 登录成功：存储双Token + 用户信息
+         * @param {Object} loginResult - { accessToken, refreshToken, userId, nickName, avatar, phone }
+         */
+        login({ commit }, loginResult) {
+            if (loginResult.accessToken) {
+                commit('SET_ACCESS_TOKEN', loginResult.accessToken)
+            }
+            if (loginResult.refreshToken) {
+                commit('SET_REFRESH_TOKEN', loginResult.refreshToken)
+            }
+            if (loginResult.userId || loginResult.nickName) {
+                commit('SET_USER_INFO', {
+                    userId: loginResult.userId || '',
+                    nickName: loginResult.nickName || '',
+                    avatar: loginResult.avatar || '',
+                    phone: loginResult.phone || ''
+                })
+            }
+            commit('HIDE_LOGIN_MODAL')
         },
         logout({ commit }) {
-            commit('CLEAR_TOKEN')
+            commit('CLEAR_AUTH')
+        },
+        guestLogin({ commit }, token) {
+            commit('SET_GUEST_TOKEN', token)
         },
         showLogin({ commit }) {
             commit('SHOW_LOGIN_MODAL')
         },
         hideLogin({ commit }) {
             commit('HIDE_LOGIN_MODAL')
+        },
+        showSocialBind({ commit }) {
+            commit('SHOW_SOCIAL_BIND_MODAL')
+        },
+        hideSocialBind({ commit }) {
+            commit('HIDE_SOCIAL_BIND_MODAL')
+        },
+        setSocialBindInfo({ commit }, info) {
+            commit('SET_SOCIAL_BIND_INFO', info)
+        },
+        clearSocialBindInfo({ commit }) {
+            commit('CLEAR_SOCIAL_BIND_INFO')
         }
     },
     getters: {
-        isLoggedIn: state => !!state.token,
-        showLoginModal: state => state.showLoginModal
+        isLoggedIn: function (state) {
+            return !!state.accessToken
+        },
+        showLoginModal: function (state) {
+            return state.showLoginModal
+        },
+        showSocialBindModal: function (state) {
+            return state.showSocialBindModal
+        },
+        userInfo: function (state) {
+            return state.userInfo
+        },
+        socialBindInfo: function (state) {
+            return state.socialBindInfo
+        }
     }
 })
 
-// 初始化时从localStorage恢复token
-cache.getToken().then(token => {
+// 初始化时从localStorage恢复状态
+cache.getToken().then(function (token) {
     if (token) {
-        store.commit('SET_TOKEN', token)
+        store.commit('SET_ACCESS_TOKEN', token)
     }
-}).catch(() => {})
+}).catch(function () { })
 
-// 兼容旧的$store.setToken/getToken调用
-store.setToken = function(token) {
-    store.commit('SET_TOKEN', token)
+cache.getRefreshToken().then(function (token) {
+    if (token) {
+        store.commit('SET_REFRESH_TOKEN', token)
+    }
+}).catch(function () { })
+
+cache.getUserInfo().then(function (info) {
+    if (info) {
+        store.commit('SET_USER_INFO', info)
+    }
+}).catch(function () { })
+
+// ========== 兼容旧API（供request.js使用） ==========
+store.setToken = function (token) {
+    store.commit('SET_ACCESS_TOKEN', token)
 }
-store.getToken = function() {
+store.getToken = function () {
     return cache.getToken()
 }
-store.clearToken = function() {
-    store.commit('CLEAR_TOKEN')
+store.clearToken = function () {
+    store.commit('CLEAR_AUTH')
+}
+store.getEquipmentId = function () {
+    return cache.getEquipmentId()
+}
+store.setEquipmentId = function (equipmentId) {
+    return cache.setEquipmentId(equipmentId)
+}
+store.getGuestToken = function () {
+    return Promise.resolve(store.state.guestToken || '')
+}
+store.getRefreshToken = function () {
+    return cache.getRefreshToken()
 }
 
 export default store

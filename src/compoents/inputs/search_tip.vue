@@ -2,7 +2,7 @@
     <div class="body">
         <div class="content">
             <template v-for=" item in data">
-                <tip-cell @onClick="onClick" :keyword="item.associate_words" :search="search"></tip-cell>
+                <tip-cell @onClick="onClick" :keyword="item.associateWords || item.associate_words" :search="search"></tip-cell>
             </template>
         </div>
     </div>
@@ -36,5 +36,15 @@
     }
     .content{
         padding: 0px 20px 0px 48px;
+    }
+
+    @media screen and (min-width: 768px) {
+        .body {
+            max-width: 750PX;
+            margin: 0 auto;
+        }
+        .content {
+            padding: 0 20PX 0 48PX;
+        }
     }
 </style>

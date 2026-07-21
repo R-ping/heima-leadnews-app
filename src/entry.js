@@ -16,4 +16,7 @@ import { router } from './router';
 import App from '@/main.vue';
 /* eslint-disable no-new */
 new Vue(Vue.util.extend({el: '#root', router}, App));
-router.push('/home');
+// 仅根路径自动跳转首页，其他路径（如/creator、/oauth/callback）保持原路径
+if (window.location.pathname === '/' || window.location.pathname === '') {
+    router.push('/home');
+}

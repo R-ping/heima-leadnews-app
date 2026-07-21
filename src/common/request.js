@@ -12,10 +12,10 @@ Request.prototype = {
     postByEquipmentId: function (url, body) {
         var _this = this
         return this.store.getEquipmentId().then(function (equipmentId) {
-            body['equipment_id'] = equipmentId
+            body['equipmentId'] = equipmentId
             return _this.post(url, body)
-        }).catch(function (e) {
-            return Promise.reject(e)
+        }).catch(function () {
+            return _this.post(url, body)
         })
     },
     getByEquipmentId: function (url, body) {
@@ -23,8 +23,8 @@ Request.prototype = {
         return this.store.getEquipmentId().then(function (equipmentId) {
             body['equipmentId'] = equipmentId
             return _this.get(url, body)
-        }).catch(function (e) {
-            return Promise.reject(e)
+        }).catch(function () {
+            return _this.get(url, body)
         })
     },
     post: function (path, body, parms) {
@@ -38,56 +38,165 @@ Request.prototype = {
         return this.store.getToken().then(function (token) {
             return _this.__fetch('POST', path, token, time, parms, body)
         }).catch(function (e) {
-            if (e && e.status) {
-                return Promise.reject(e)
-            } else {
+            // 没有登录token，尝试使用guest token
+            return _this.store.getGuestToken().then(function (guestToken) {
+                if (guestToken) {
+                    return _this.__fetch('POST', path, guestToken, time, parms, body)
+                }
                 return _this.__fetch('POST', path, '', time, parms, body)
-            }
+            }).catch(function () {
+                return _this.__fetch('POST', path, '', time, parms, body)
+            })
         })
     },
     get: function (path, parms) {
         var _this = this
         if (parms) {
-            if (path.indexOf('?') == -1) {
+            if (path.indexOf('?') === -1) {
                 path += '?' + objToQueryString(parms)
             } else {
                 path += '&' + objToQueryString(parms)
             }
         }
         var time = new Date().getTime()
-        parms['t'] = time
+        var allParms = parms || {}
+        allParms['t'] = time
         return this.store.getToken().then(function (token) {
-            return _this.__fetch('GET', path, token, time, parms)
+            return _this.__fetch('GET', path, token, time, allParms)
         }).catch(function (e) {
-            if (e && e.status) {
-                return Promise.reject(e)
-            } else {
-                return _this.__fetch('GET', path, '', time, parms)
-            }
+            // 没有登录token，尝试使用guest token
+            return _this.store.getGuestToken().then(function (guestToken) {
+                if (guestToken) {
+                    return _this.__fetch('GET', path, guestToken, time, allParms)
+                }
+                return _this.__fetch('GET', path, '', time, allParms)
+            }).catch(function () {
+                return _this.__fetch('GET', path, '', time, allParms)
+            })
         })
     },
-    __fetch: function (type, path, token, time, parms, body) {
+    put: function (path, body, parms) {
+        var _this = this
+        var time = new Date().getTime()
+        if (parms == undefined) parms = {}
+        else {
+            path = path + '?' + objToQueryString(parms)
+        }
+        parms['t'] = time
+        return this.store.getToken().then(function (token) {
+            return _this.__fetch('PUT', path, token, time, parms, body)
+        }).catch(function (e) {
+            // 没有登录token，尝试使用guest token
+            return _this.store.getGuestToken().then(function (guestToken) {
+                if (guestToken) {
+                    return _this.__fetch('PUT', path, guestToken, time, parms, body)
+                }
+                return _this.__fetch('PUT', path, '', time, parms, body)
+            }).catch(function () {
+                return _this.__fetch('PUT', path, '', time, parms, body)
+            })
+        })
+    },
+    __fetch: function (type, path, token, time, parms, body, retryCount) {
+        retryCount = retryCount || 0
+        var _this = this
         var headers = {
             'Content-Type': 'application/json; charset=UTF-8',
-            'token': token,
+            'accToken': token,
             't': '' + time,
             'md': this.sign(parms)
         }
         var config = {
             method: type,
             url: path,
-            headers: headers
+            headers: headers,
+            timeout: 15000 // 15秒超时
         }
         if (body) {
             config.data = body
         }
+        // 判断本次请求是否使用了当前用户的 accessToken（而非游客/空 token）
+        var usedUserToken = !!token && token === _this.store.state.accessToken
         return axios(config).then(function (response) {
-            return response.data
+            var data = response.data
+            // 兼容后端直接返回字符串的情况（如文章内容）
+            if (typeof data === 'string') {
+                return { code: 200, data: data }
+            }
+            return data
         }).catch(function (error) {
+            // 444 — accessToken过期，仅当原请求使用用户token时才尝试刷新后重放
+            if (error.response && error.response.status === 444 && retryCount < 1 && usedUserToken) {
+                return _this.__refreshAndRetry(type, path, time, parms, body, retryCount)
+            }
+            // 401未授权 — 仅当原请求使用用户token时才弹出登录窗口
+            if (error.response && error.response.status === 401 && retryCount < 1 && usedUserToken) {
+                _this.store.dispatch('showLogin')
+                return Promise.reject(error.response || error)
+            }
+            // 网络错误
+            if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+                return Promise.reject({ code: -1, errorMessage: '网络连接超时，请检查网络' })
+            }
             if (error.response) {
                 return Promise.reject(error.response)
             }
             return Promise.reject(error)
+        })
+    },
+    /**
+     * 444状态码处理：用refreshToken刷新双Token后重放原请求
+     * - 无accessToken：用户从未登录，直接reject，不触发logout和showLogin
+     * - 有accessToken无refreshToken：无法刷新，弹出登录弹窗，不清除accessToken
+     * - 有accessToken和refreshToken：尝试刷新，失败才清除全部登录状态
+     */
+    __refreshAndRetry: function (type, path, time, parms, body, retryCount) {
+        var _this = this
+        // 先检查本地是否有accessToken，没有说明用户从未登录，直接 reject
+        var accessToken = _this.store.state.accessToken
+        if (!accessToken) {
+            return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+        }
+        var refreshToken = _this.store.state.refreshToken
+        if (!refreshToken) {
+            // 有accessToken但没有refreshToken，无法刷新，弹出登录弹窗（不清除token避免丢失登录状态）
+            _this.store.dispatch('showLogin')
+            return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+        }
+        // 有accessToken和refreshToken，尝试刷新token后重放
+        var refreshUrl = '/user/api/v1/token/refresh'
+        var refreshTime = new Date().getTime()
+        var refreshHeaders = {
+            'Content-Type': 'application/json; charset=UTF-8',
+            'accToken': accessToken,
+            't': '' + refreshTime,
+            'md': _this.sign({ t: refreshTime })
+        }
+        return axios({
+            method: 'POST',
+            url: refreshUrl,
+            headers: refreshHeaders,
+            timeout: 10000,
+            data: { refreshToken: refreshToken }
+        }).then(function (response) {
+            var d = response.data
+            if (d && d.code === 200 && d.data && d.data.accessToken) {
+                // 刷新成功，存储新token
+                _this.store.dispatch('login', d.data)
+                // 重放原请求
+                return _this.store.getToken().then(function (newToken) {
+                    return _this.__fetch(type, path, newToken, time, parms, body, retryCount + 1)
+                })
+            }
+            // 刷新失败，清除全部登录状态
+            _this.store.dispatch('logout')
+            _this.store.dispatch('showLogin')
+            return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+        }).catch(function () {
+            // 刷新失败，清除全部登录状态
+            _this.store.dispatch('logout')
+            _this.store.dispatch('showLogin')
+            return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         })
     },
     sign: function (parms) {
@@ -98,7 +207,7 @@ Request.prototype = {
         arr.sort()
         var str = ''
         for (var i in arr) {
-            if (str != '') {
+            if (str !== '') {
                 str += '&'
             }
             str += arr[i] + '=' + parms[arr[i]]

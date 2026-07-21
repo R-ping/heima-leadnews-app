@@ -4,39 +4,48 @@ const  config = {
         article:'ARTICLE',
         behavior:'BEHAVIOR',
         user:'USER',
-        login:'LOGIN'
+        search:'SEARCH'
     },
     // 请求本地的请求service
-    local:{user:true,article:true,behavior:true,login:true},
+    local:{user:true,article:true,behavior:true,search:true},
     // 代理前缀
     prefix:{
         server_85:'/server_85'
     },
     urls:{
+        // ==========  article (后端已实现)
         load:{url:'api/v1/article/load/',sv:'article'},
         loadmore:{url:'api/v1/article/loadmore/',sv:'article'},
         loadnew:{url:'api/v1/article/loadnew/',sv:'article'},
-        load_article_info:{url:'api/v1/article/load_article_info/',sv:'article'},
-        load_article_behavior:{url:'api/v1/article/load_article_behavior/',sv:'article'},
-        load_search_history:{url:'api/v1/article/search/load_search_history/',sv:'article'},
-        del_search:{url:'api/v1/article/search/del_search/',sv:'article'},
-        clear_search:{url:'api/v1/article/search/clear_search/',sv:'article'},
-        associate_search:{url:'api/v1/article/search/associate_search/',sv:'article'},
-        load_hot_keywords:{url:'api/v1/article/search/load_hot_keywords/',sv:'article'},
-        article_search:{url:'api/v1/article/search/article_search/',sv:'article'},
-        // ==========  behavior
-        show_behavior:{url:'api/v1/behavior/show_behavior/',sv:'behavior'},
-        read_behavior:{url:'api/v1/behavior/read_behavior/',sv:'behavior'},
-        forward_behavior:{url:'api/v1/behavior/forward_behavior/',sv:'behavior'},
-        like_behavior:{url:'api/v1/behavior/like_behavior/',sv:'behavior'},
-        share_behavior:{url:'api/v1/behavior/share_behavior/',sv:'behavior'},
-        unlike_behavior:{url:'api/v1/behavior/unlike_behavior/',sv:'behavior'},
-        collection_behavior:{url:'api/v1/behavior/collection_behavior/',sv:'behavior'},
-        // ==========  user
-        user_follow:{url:'api/v1/user/user_follow/',sv:'user'},
-        // ==========  login
-        user_login:{url:'api/v1/login/login_auth/',sv:'login'},
-        wechat_login:{url:'api/v1/login/wechat_login/',sv:'login'},
+        article_info:{url:'api/v1/article/info',sv:'article'},
+        article_content:{url:'api/v1/article/content',sv:'article'},
+        // ==========  comment (article服务)
+        comment_list:{url:'api/v1/comment/list',sv:'article'},
+        comment_add:{url:'api/v1/comment',sv:'article'},
+        comment_like:{url:'api/v1/comment/like',sv:'article'},
+        // ==========  search (后端已实现)
+        load_search_history:{url:'api/v1/history/load',sv:'search'},
+        del_search:{url:'api/v1/history/del',sv:'search'},
+        clear_search:{url:'api/v1/history/clear',sv:'search'},
+        associate_search:{url:'api/v1/associate/search',sv:'search'},
+        article_search:{url:'api/v1/article/search/search',sv:'search'},
+        // 后端未提供 load_hot_keywords 接口，已在前端注释对应调用
+        // ==========  behavior (后端已实现)
+        read_behavior:{url:'api/v1/read_behavior',sv:'behavior'},
+        like_behavior:{url:'api/v1/likes_behavior/',sv:'behavior'},
+        unlike_behavior:{url:'api/v1/un_likes_behavior/',sv:'behavior'},
+        collection_behavior:{url:'api/v1/collection_behavior/',sv:'behavior'},
+        follow_behavior:{url:'api/v1/follow_behavior/',sv:'behavior'},
+        // ==========  user (后端已实现)
+        // 后端未提供 user_follow 接口，已在前端注释对应调用
+        // ==========  login (login 属于 user 微服务)
+        user_login:{url:'api/v1/login/login_auth',sv:'user'},
+        user_code:{url:'api/v1/login/code',sv:'user'},
+        user_social_bind:{url:'api/v1/login/social_bind',sv:'user'},
+        user_token_refresh:{url:'api/v1/token/refresh',sv:'user'},
+        oauth_github:{url:'oauth2/code/github',sv:'user'},
+        oauth_weibo:{url:'oauth2/code/weibo',sv:'user'},
+        // 后端未提供 wechat_login 接口，已在前端注释对应调用
         // 解决多访问地址的问题
         getBase : function(url){
             let sv = url.sv
@@ -59,7 +68,14 @@ const  config = {
         main_bg : '#3296fa'
     },
     noAction:function(){
-        alert('该功能暂未实现');
+        var msg = '该功能暂未实现';
+        console.warn(msg);
+        // 使用轻量级 toast 替代 alert，避免阻塞 UI
+        var el = document.createElement('div');
+        el.textContent = msg;
+        el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:6px;z-index:99999;font-size:14px;transition:opacity .3s';
+        document.body.appendChild(el);
+        setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); },300); },2000);
     }
 
 }

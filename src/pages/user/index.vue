@@ -1,0 +1,1146 @@
+<template>
+    <div class="user-page">
+        <div class="art-top"><HomeBar/></div>
+        <div class="user-content">
+            <div class="user-header">
+                <div class="header-left">
+                    <img :src="userInfo.avatar || defaultAvatar" class="user-big-avatar" alt="avatar">
+                    <div class="user-meta">
+                        <div class="user-name">{{ userInfo.nickName || '用户' }}</div>
+                        <div class="user-level">掘友等级 Lv.2</div>
+                        <div class="user-intro">{{ userInfo.intro || '这个人很懒，什么都没有留下' }}</div>
+                        <div class="user-stats-row">
+                            <span class="stat-item">
+                                <span class="stat-num">{{ stats.followCount }}</span>
+                                <span class="stat-text">关注</span>
+                            </span>
+                            <span class="stat-divider">·</span>
+                            <span class="stat-item">
+                                <span class="stat-num">{{ stats.followerCount }}</span>
+                                <span class="stat-text">关注者</span>
+                            </span>
+                            <span class="stat-divider">·</span>
+                            <span class="stat-item">
+                                <span class="stat-num">{{ stats.articleCount }}</span>
+                                <span class="stat-text">文章</span>
+                            </span>
+                            <span class="stat-divider">·</span>
+                            <span class="stat-item">
+                                <span class="stat-num">{{ stats.readCount }}</span>
+                                <span class="stat-text">阅读</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <button class="settings-btn" @click="goToSettings">设置</button>
+            </div>
+
+            <div class="user-sidebar">
+                <div class="sidebar-card achievements-card">
+                    <h4 class="card-title">个人成就</h4>
+                    <div class="achievement-item">
+                        <span class="achievement-icon">👁️</span>
+                        <span class="achievement-text">文章被阅读</span>
+                        <span class="achievement-value">1</span>
+                    </div>
+                </div>
+                <div class="sidebar-card level-card">
+                    <h4 class="card-title">等级</h4>
+                    <div class="level-row">
+                        <span class="level-icon">☀️</span>
+                        <span class="level-name">逐日等级</span>
+                        <span class="level-value">Lv.{{ levelInfo.dailyLevel }}</span>
+                        <span class="level-score">{{ levelInfo.dailyScore }}</span>
+                    </div>
+                    <div class="level-row">
+                        <span class="level-icon">💪</span>
+                        <span class="level-name">逐力值</span>
+                        <span class="level-value">Lv.{{ levelInfo.powerLevel }}</span>
+                        <span class="level-score">{{ levelInfo.powerValue }}</span>
+                    </div>
+                </div>
+                <div class="sidebar-card stats-card">
+                    <div class="stats-header">
+                        <span class="stats-label">关注了</span>
+                        <span class="stats-value">{{ stats.followCount }}</span>
+                    </div>
+                    <div class="stats-header">
+                        <span class="stats-label">关注者</span>
+                        <span class="stats-value">{{ stats.followerCount }}</span>
+                    </div>
+                    <div class="stats-header">
+                        <span class="stats-label">收藏集</span>
+                        <span class="stats-value">{{ stats.collectionCount }}</span>
+                    </div>
+                    <div class="stats-header">
+                        <span class="stats-label">关注标签</span>
+                        <span class="stats-value">{{ stats.tagCount }}</span>
+                    </div>
+                    <div class="join-date">
+                        <span class="join-label">加入于</span>
+                        <span class="join-value">2025-10-25</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-bar">
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'dynamic' }"
+                    @click="switchTab('dynamic')"
+                >
+                    动态
+                </div>
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'article' }"
+                    @click="switchTab('article')"
+                >
+                    文章
+                </div>
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'column' }"
+                    @click="switchTab('column')"
+                >
+                    专栏
+                </div>
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'boiling' }"
+                    @click="switchTab('boiling')"
+                >
+                    沸点
+                </div>
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'collection' }"
+                    @click="switchTab('collection')"
+                >
+                    收藏集
+                </div>
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'follow' }"
+                    @click="switchTab('follow')"
+                >
+                    关注
+                </div>
+                <div 
+                    class="tab-item" 
+                    :class="{ 'active': activeTab === 'work' }"
+                    @click="switchTab('work')"
+                >
+                    作品
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div v-if="activeTab === 'dynamic'" class="tab-content">
+                    <div class="dynamic-list">
+                        <div class="dynamic-item" v-for="item in dynamicList" :key="item.id">
+                            <img :src="item.userAvatar || defaultAvatar" class="dynamic-avatar" alt="avatar">
+                            <div class="dynamic-content">
+                                <span class="dynamic-user">{{ item.userName }}</span>
+                                <span class="dynamic-action">{{ item.action }}</span>
+                                <span class="dynamic-target">{{ item.target }}</span>
+                                <span class="dynamic-time">{{ item.time }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'article'" class="tab-content">
+                    <div class="article-filter">
+                        <button 
+                            class="filter-btn" 
+                            :class="{ 'active': articleFilter === 'hot' }"
+                            @click="articleFilter = 'hot'"
+                        >
+                            最热
+                        </button>
+                        <button 
+                            class="filter-btn" 
+                            :class="{ 'active': articleFilter === 'new' }"
+                            @click="articleFilter = 'new'"
+                        >
+                            最新
+                        </button>
+                    </div>
+                    <div class="article-list">
+                        <div class="article-item" v-for="article in articleList" :key="article.id">
+                            <div class="article-info">
+                                <div class="article-title">{{ article.title }}</div>
+                                <div class="article-meta">
+                                    <span class="article-time">{{ article.time }}</span>
+                                    <span class="article-read">{{ article.readCount }}阅读</span>
+                                    <span class="article-comment">{{ article.commentCount }}评论</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'column'" class="tab-content">
+                    <div v-if="columnList.length === 0" class="empty-state">
+                        <div class="empty-icon">📚</div>
+                        <div class="empty-text">暂无专栏</div>
+                        <button class="empty-btn" @click="showCreateColumn = true">新建专栏</button>
+                    </div>
+                    <div v-else class="column-list">
+                        <div class="column-item" v-for="column in columnList" :key="column.id">
+                            <img :src="column.cover || defaultAvatar" class="column-cover" alt="cover">
+                            <div class="column-info">
+                                <div class="column-name">{{ column.name }}</div>
+                                <div class="column-desc">{{ column.desc }}</div>
+                                <div class="column-count">{{ column.articleCount }}篇文章</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'boiling'" class="tab-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">💧</div>
+                        <div class="empty-text">暂无沸点</div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'collection'" class="tab-content">
+                    <div v-if="collectionList.length === 0" class="empty-state">
+                        <div class="empty-icon">⭐</div>
+                        <div class="empty-text">暂无收藏集</div>
+                    </div>
+                    <div v-else class="collection-list">
+                        <div 
+                            class="collection-item" 
+                            v-for="collection in collectionList" 
+                            :key="collection.id"
+                            @click="showCollectionDetail(collection)"
+                        >
+                            <div class="collection-icon">📁</div>
+                            <div class="collection-info">
+                                <div class="collection-name">{{ collection.name }}</div>
+                                <div class="collection-count">{{ collection.articleCount }}篇文章</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'follow'" class="tab-content">
+                    <div class="follow-subtabs">
+                        <button 
+                            class="subtab-btn" 
+                            :class="{ 'active': followSubtab === 'following' }"
+                            @click="followSubtab = 'following'"
+                        >
+                            关注的用户
+                        </button>
+                        <button 
+                            class="subtab-btn" 
+                            :class="{ 'active': followSubtab === 'followers' }"
+                            @click="followSubtab = 'followers'"
+                        >
+                            关注者
+                        </button>
+                        <button 
+                            class="subtab-btn" 
+                            :class="{ 'active': followSubtab === 'columns' }"
+                            @click="followSubtab = 'columns'"
+                        >
+                            订阅的专栏
+                        </button>
+                        <button 
+                            class="subtab-btn" 
+                            :class="{ 'active': followSubtab === 'tags' }"
+                            @click="followSubtab = 'tags'"
+                        >
+                            关注标签
+                        </button>
+                    </div>
+                    <div class="follow-content">
+                        <div v-if="followSubtab === 'following'" class="following-list">
+                            <div class="following-item" v-for="user in followingList" :key="user.id">
+                                <img :src="user.avatar || defaultAvatar" class="following-avatar" alt="avatar">
+                                <div class="following-info">
+                                    <div class="following-name">{{ user.name }}</div>
+                                    <div class="following-intro">{{ user.intro }}</div>
+                                </div>
+                                <button class="unfollow-btn">已关注</button>
+                            </div>
+                        </div>
+                        <div v-if="followSubtab === 'followers'" class="followers-list">
+                            <div class="follower-item" v-for="user in followersList" :key="user.id">
+                                <img :src="user.avatar || defaultAvatar" class="follower-avatar" alt="avatar">
+                                <div class="follower-info">
+                                    <div class="follower-name">{{ user.name }}</div>
+                                    <div class="follower-intro">{{ user.intro }}</div>
+                                </div>
+                                <button class="follow-btn">关注</button>
+                            </div>
+                        </div>
+                        <div v-if="followSubtab === 'columns'" class="subscribed-columns">
+                            <div class="subscribed-column-item" v-for="column in subscribedColumns" :key="column.id">
+                                <img :src="column.cover || defaultAvatar" class="column-mini-cover" alt="cover">
+                                <div class="column-mini-info">
+                                    <div class="column-mini-name">{{ column.name }}</div>
+                                    <div class="column-mini-count">{{ column.articleCount }}篇</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="followSubtab === 'tags'" class="followed-tags">
+                            <span class="tag-item" v-for="tag in followedTags" :key="tag.id">{{ tag.name }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'work'" class="tab-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎨</div>
+                        <div class="empty-text">暂无作品</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <el-dialog 
+            title="新建专栏" 
+            :visible.sync="showCreateColumn" 
+            width="480px"
+        >
+            <el-form label-position="top">
+                <el-form-item label="专栏名称">
+                    <el-input placeholder="请输入专栏名称" v-model="columnForm.name"></el-input>
+                </el-form-item>
+                <el-form-item label="专栏简介">
+                    <el-input type="textarea" placeholder="请输入专栏简介" v-model="columnForm.desc"></el-input>
+                </el-form-item>
+                <el-form-item label="专栏封面">
+                    <el-upload 
+                        class="column-cover-upload" 
+                        action="#" 
+                        :auto-upload="false"
+                    >
+                        <img v-if="columnForm.cover" :src="columnForm.cover" class="cover-preview">
+                        <i v-else class="el-icon-plus cover-upload-icon"></i>
+                    </el-upload>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="showCreateColumn = false">取消</el-button>
+                <el-button type="primary" @click="createColumn">创建</el-button>
+            </span>
+        </el-dialog>
+
+        <el-dialog 
+            :title="selectedCollection?.name || '收藏集'" 
+            :visible.sync="showCollectionDetailModal" 
+            width="700px"
+        >
+            <div class="collection-detail">
+                <div class="detail-header">
+                    <span class="detail-count">{{ selectedCollection?.articleCount || 0 }}篇文章</span>
+                </div>
+                <div class="detail-list">
+                    <div class="detail-item" v-for="article in selectedCollection?.articles || []" :key="article.id">
+                        <div class="detail-title">{{ article.title }}</div>
+                        <div class="detail-meta">{{ article.time }} · {{ article.readCount }}阅读</div>
+                    </div>
+                </div>
+            </div>
+        </el-dialog>
+    </div>
+</template>
+
+<script>
+import HomeBar from '@/compoents/bars/home_bar'
+import defaultAvatar from '@/static/images/creator/avatar.jpg'
+import { toast } from '@/utils/toast'
+
+export default {
+    name: 'UserProfile',
+    components: { HomeBar },
+    data() {
+        return {
+            activeTab: 'dynamic',
+            articleFilter: 'hot',
+            followSubtab: 'following',
+            showCreateColumn: false,
+            showCollectionDetailModal: false,
+            selectedCollection: null,
+            userInfo: {
+                nickName: '程序员小站',
+                avatar: '',
+                intro: '分享技术心得，记录成长历程'
+            },
+            stats: {
+                followCount: 4,
+                followerCount: 1,
+                articleCount: 5,
+                readCount: '12k',
+                collectionCount: 1,
+                tagCount: 0
+            },
+            levelInfo: {
+                dailyScore: 1250,
+                dailyLevel: 3,
+                dailyTitle: '中级掘友',
+                powerValue: 2300,
+                powerLevel: 4,
+                powerTitle: '高级创作者'
+            },
+            columnForm: {
+                name: '',
+                desc: '',
+                cover: ''
+            },
+            dynamicList: [
+                { id: 1, userAvatar: '', userName: '程序员小站', action: '关注了', target: '雨夜寻晴天', time: '2小时前' },
+                { id: 2, userAvatar: '', userName: '程序员小站', action: '关注了', target: '大前端历险记', time: '3小时前' },
+                { id: 3, userAvatar: '', userName: '程序员小站', action: '发布了文章', target: 'Vue3组合式API入门指南', time: '1天前' },
+                { id: 4, userAvatar: '', userName: '程序员小站', action: '关注了', target: '奋飛', time: '2天前' }
+            ],
+            articleList: [
+                { id: 1, title: 'Vue3组合式API入门指南', time: '2025-10-20', readCount: '3.2k', commentCount: 15 },
+                { id: 2, title: 'TypeScript高级类型技巧', time: '2025-10-18', readCount: '2.1k', commentCount: 8 },
+                { id: 3, title: 'React Hooks最佳实践', time: '2025-10-15', readCount: '1.8k', commentCount: 12 }
+            ],
+            columnList: [],
+            collectionList: [
+                { 
+                    id: 1, 
+                    name: '前端学习笔记', 
+                    articleCount: 10,
+                    articles: [
+                        { id: 1, title: 'JavaScript基础', time: '2025-10-01', readCount: '1.2k' },
+                        { id: 2, title: 'CSS布局技巧', time: '2025-09-28', readCount: '800' }
+                    ]
+                }
+            ],
+            followingList: [
+                { id: 1, name: '雨夜寻晴天', avatar: '', intro: '全栈开发者' },
+                { id: 2, name: '大前端历险记', avatar: '', intro: '前端架构师' },
+                { id: 3, name: '奋飛', avatar: '', intro: '技术博主' },
+                { id: 4, name: 'qwfy', avatar: '', intro: '程序员' }
+            ],
+            followersList: [
+                { id: 1, name: '新来的小伙伴', avatar: '', intro: '前端新手' }
+            ],
+            subscribedColumns: [],
+            followedTags: []
+        }
+    },
+    computed: {
+        defaultAvatar() {
+            return defaultAvatar
+        }
+    },
+    methods: {
+        switchTab(tab) {
+            this.activeTab = tab
+        },
+        goToSettings() {
+            this.$router.push('/user/settings')
+        },
+        showCollectionDetail(collection) {
+            this.selectedCollection = collection
+            this.showCollectionDetailModal = true
+        },
+        createColumn() {
+            if (!this.columnForm.name) {
+                toast('请输入专栏名称', 2)
+                return
+            }
+            this.columnList.push({
+                id: Date.now(),
+                name: this.columnForm.name,
+                desc: this.columnForm.desc || '暂无简介',
+                cover: this.columnForm.cover || defaultAvatar,
+                articleCount: 0
+            })
+            this.showCreateColumn = false
+            this.columnForm = { name: '', desc: '', cover: '' }
+            toast('专栏创建成功', 2)
+        }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+@import '../../styles/common';
+
+.user-page {
+    min-height: 100vh;
+    background: #f7f8fa;
+}
+
+.user-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    position: relative;
+}
+
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+}
+
+.header-left {
+    display: flex;
+    gap: 16px;
+}
+
+.user-big-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #1e80ff;
+}
+
+.user-meta {
+    flex: 1;
+}
+
+.user-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #252933;
+    margin-bottom: 4px;
+}
+
+.user-level {
+    font-size: 12px;
+    color: #1e80ff;
+    background: #eaf2ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.user-intro {
+    font-size: 14px;
+    color: #515767;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.user-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.stat-num {
+    font-size: 16px;
+    font-weight: 600;
+    color: #252933;
+}
+
+.stat-text {
+    font-size: 14px;
+    color: #8a919f;
+}
+
+.stat-divider {
+    color: #c4c9d1;
+}
+
+.settings-btn {
+    padding: 8px 24px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    background: #fff;
+    color: #515767;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.user-sidebar {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    width: 240px;
+}
+
+.sidebar-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #252933;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f2f3f5;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.achievement-icon {
+    font-size: 20px;
+}
+
+.achievement-text {
+    flex: 1;
+    font-size: 13px;
+    color: #515767;
+}
+
+.achievement-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #252933;
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child {
+        border: none;
+    }
+}
+
+.stats-label {
+    font-size: 13px;
+    color: #8a919f;
+}
+
+.stats-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #252933;
+}
+
+.level-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child {
+        border: none;
+    }
+}
+
+.level-icon {
+    font-size: 16px;
+}
+
+.level-name {
+    flex: 1;
+    font-size: 13px;
+    color: #515767;
+}
+
+.level-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e80ff;
+}
+
+.level-score {
+    font-size: 12px;
+    color: #8a919f;
+}
+
+.join-date {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid #f2f3f5;
+}
+
+.join-label {
+    font-size: 13px;
+    color: #8a919f;
+}
+
+.join-value {
+    font-size: 13px;
+    color: #515767;
+}
+
+.tabs-bar {
+    display: flex;
+    background: #fff;
+    border-radius: 8px;
+    padding: 0 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.tab-item {
+    padding: 16px 24px;
+    font-size: 14px;
+    color: #515767;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+    &:hover {
+        color: #1e80ff;
+    }
+    &.active {
+        color: #1e80ff;
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 3px;
+            background: #1e80ff;
+            border-radius: 2px;
+        }
+    }
+}
+
+.content-area {
+    margin-right: 264px;
+}
+
+.tab-content {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 300px;
+}
+
+.dynamic-list {
+    padding: 8px 0;
+}
+
+.dynamic-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child {
+        border: none;
+    }
+}
+
+.dynamic-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.dynamic-content {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.dynamic-user {
+    color: #252933;
+    font-weight: 500;
+}
+
+.dynamic-action {
+    color: #515767;
+    margin: 0 4px;
+}
+
+.dynamic-target {
+    color: #1e80ff;
+    cursor: pointer;
+}
+
+.dynamic-time {
+    color: #8a919f;
+    margin-left: 8px;
+    font-size: 12px;
+}
+
+.article-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.filter-btn {
+    padding: 6px 16px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    background: #fff;
+    color: #515767;
+    font-size: 13px;
+    cursor: pointer;
+    &.active {
+        background: #1e80ff;
+        color: #fff;
+        border-color: #1e80ff;
+    }
+}
+
+.article-list {
+    padding: 8px 0;
+}
+
+.article-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child {
+        border: none;
+    }
+}
+
+.article-title {
+    font-size: 16px;
+    color: #252933;
+    margin-bottom: 8px;
+    cursor: pointer;
+    &:hover {
+        color: #1e80ff;
+    }
+}
+
+.article-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #8a919f;
+}
+
+.column-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.column-item {
+    border: 1px solid #f2f3f5;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    &:hover {
+        border-color: #1e80ff;
+    }
+}
+
+.column-cover {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.column-info {
+    padding: 12px;
+}
+
+.column-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #252933;
+    margin-bottom: 4px;
+}
+
+.column-desc {
+    font-size: 13px;
+    color: #8a919f;
+    margin-bottom: 8px;
+}
+
+.column-count {
+    font-size: 12px;
+    color: #c4c9d1;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-text {
+    font-size: 14px;
+    color: #8a919f;
+    margin-bottom: 16px;
+}
+
+.empty-btn {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 4px;
+    background: #1e80ff;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.collection-list {
+    padding: 8px 0;
+}
+
+.collection-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f3f5;
+    cursor: pointer;
+    &:hover {
+        background: #f7f8fa;
+    }
+    &:last-child {
+        border: none;
+    }
+}
+
+.collection-icon {
+    font-size: 24px;
+}
+
+.collection-name {
+    font-size: 14px;
+    color: #252933;
+}
+
+.collection-count {
+    font-size: 12px;
+    color: #8a919f;
+}
+
+.follow-subtabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f2f3f5;
+}
+
+.subtab-btn {
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    color: #515767;
+    font-size: 14px;
+    cursor: pointer;
+    &.active {
+        color: #1e80ff;
+        font-weight: 500;
+    }
+}
+
+.following-list, .followers-list {
+    padding: 8px 0;
+}
+
+.following-item, .follower-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child {
+        border: none;
+    }
+}
+
+.following-avatar, .follower-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.following-info, .follower-info {
+    flex: 1;
+}
+
+.following-name, .follower-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #252933;
+    margin-bottom: 4px;
+}
+
+.following-intro, .follower-intro {
+    font-size: 13px;
+    color: #8a919f;
+}
+
+.unfollow-btn {
+    padding: 6px 16px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    background: #fff;
+    color: #8a919f;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.follow-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 4px;
+    background: #1e80ff;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.subscribed-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.subscribed-column-item {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #f2f3f5;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.column-mini-cover {
+    width: 60px;
+    height: 60px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.column-mini-info {
+    flex: 1;
+}
+
+.column-mini-name {
+    font-size: 13px;
+    color: #252933;
+    margin-bottom: 4px;
+}
+
+.column-mini-count {
+    font-size: 12px;
+    color: #8a919f;
+}
+
+.followed-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-item {
+    padding: 6px 12px;
+    background: #f7f8fa;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #515767;
+    cursor: pointer;
+}
+
+.collection-detail {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.detail-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f2f3f5;
+    margin-bottom: 12px;
+}
+
+.detail-count {
+    font-size: 13px;
+    color: #8a919f;
+}
+
+.detail-list {
+    padding: 8px 0;
+}
+
+.detail-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child {
+        border: none;
+    }
+}
+
+.detail-title {
+    font-size: 14px;
+    color: #252933;
+    margin-bottom: 4px;
+}
+
+.detail-meta {
+    font-size: 12px;
+    color: #8a919f;
+}
+
+.column-cover-upload {
+    width: 100%;
+    height: 150px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.cover-preview {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.cover-upload-icon {
+    font-size: 32px;
+    color: #8c939d;
+}
+
+@media screen and (max-width: 960px) {
+    .user-sidebar {
+        display: none;
+    }
+    .content-area {
+        margin-right: 0;
+    }
+    .user-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+</style>

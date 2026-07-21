@@ -1,7 +1,7 @@
 <template>
   <div class="wxc-tab-page"
        :style="{ height: (tabPageHeight)+'px', backgroundColor:wrapBgColor }">
-    <div class="tab-body">
+    <div class="tab-body" :style="{ height: tabStyles.height + 'px' }">
       <div class="tab-title-list"
            ref="tab-title-list">
 
@@ -50,6 +50,7 @@
     justify-content: center;
     align-items: center;
     border-bottom: 1px solid #ebebeb;
+    flex-shrink: 0;
   }
 
   .tab-title-list {
@@ -84,14 +85,13 @@
 
   .tab-page-wrap {
     width: 100%;
-    background-color: #ffffff;
+    background-color: #f5f5f5;
     overflow: hidden;
   }
 
   .tab-container {
     display: flex;
     flex-direction: row;
-    width: 100%;
   }
 
   .tab-text {
@@ -181,7 +181,7 @@
       },
       wrapBgColor: {
         type: String,
-        default: '#ffffff'
+        default: '#f5f5f5'
       },
       clickAnimation: {
         type: Boolean,
@@ -247,8 +247,12 @@
         const { duration, timingFunction } = this;
         const computedDur = animated ? duration : 0.00001;
         const containerEl = this.$refs['tab-container'];
+        if (!containerEl) return
         // Get the actual width of the container parent
         const parentWidth = containerEl.parentElement.offsetWidth;
+        const tabCount = this.tabTitles.length;
+        // 容器宽度 = tab数量 * 父容器宽度，确保所有子元素能水平排列
+        containerEl.style.width = (tabCount * parentWidth) + 'px';
         const dist = page * parentWidth;
         containerEl.style.transition = 'transform ' + computedDur + 'ms ' + timingFunction;
         containerEl.style.transform = 'translateX(' + (-dist) + 'px)';
@@ -256,6 +260,7 @@
         const children = containerEl.children;
         for (let i = 0; i < children.length; i++) {
           children[i].style.width = parentWidth + 'px';
+          children[i].style.flexShrink = '0';
         }
       }
     }

@@ -1,0 +1,29 @@
+groups:
+  - name: application_alerts
+    rules:
+      - alert: HighJVMMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap memory usage is above 90%"
+          description: "Service {{ $labels.service }} JVM heap usage is {{ $value | humanizePercentage }}"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute"
+
+      - alert: HighCPUUsage
+        expr: system_cpu_usage > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage is above 90%"
+          description: "Service {{ $labels.service }} CPU usage is {{ $value | humanizePercentage }}"

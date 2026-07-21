@@ -97,13 +97,12 @@
                 if(this.params.phone==''||this.params.password==''){
                     toast('请输入用户名或密码', 3)
                 }else{
-                    alert(JSON.stringify(this.params))
                     Api.login(this.params).then(d=>{
-                        if(d.code==0){
-                            this.$store.setToken(d.data.token)
+                        if(d.code === 200 && d.data && d.data.accessToken){
+                            this.$store.dispatch('login', d.data)
                             this.$router.push("/home")
                         }else{
-                            toast('用户或密码错误', 3)
+                            toast(d.errorMessage || '用户或密码错误', 3)
                         }
                     }).catch(e=>{
                         console.log(e)

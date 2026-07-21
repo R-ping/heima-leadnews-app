@@ -10,7 +10,7 @@ const srcDir = path.resolve(__dirname, 'src').replace(/\\/g, '/')
 export default defineConfig({
   plugins: [
     vue(),
-    {
+    { 
       name: 'resolve-at-alias',
       resolveId(source) {
         if (!source.startsWith('@/')) return null
@@ -28,30 +28,46 @@ export default defineConfig({
   ],
   server: {
     port: 9901,
+    allowedHosts: [
+      '195b7e5b.r40.cpolar.top',
+      '.cpolar.top',
+      'localhost'
+    ],
     proxy: {
       '/server_85': {
         target: 'http://heima-app-java.research.itcast.cn',
         changeOrigin: true
       },
       '/article': {
-        target: 'http://127.0.0.1:9003/',
+        target: 'http://127.0.0.1:51601/',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/article/, '')
+        bypass(req) {
+          // 前端路由 /article 和 /article/:id 由 SPA 处理，不代理到后端
+          if (req.url === '/article' || req.url.startsWith('/article?') || /^\/article\/\d+/.test(req.url)) {
+            return req.url;
+          }
+        }
       },
       '/behavior': {
-        target: 'http://127.0.0.1:9004/',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/behavior/, '')
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true
       },
       '/user': {
-        target: 'http://127.0.0.1:9005/',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/user/, '')
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true
       },
-      '/login': {
-        target: 'http://127.0.0.1:9001/',
+      '/search': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true
+      },
+      '/wemedia': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true
+      },
+      '/minio-static': {
+        target: 'http://127.0.0.1:9005',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/login/, '')
+        rewrite: (path) => path.replace(/^\/minio-static/, '/leadnews')
       }
     }
   }

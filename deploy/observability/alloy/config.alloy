@@ -1,0 +1,97 @@
+// =============================================================================
+// Grafana Alloy Configuration - heima-leadnews-app
+// OTLP → Alloy → Prometheus (Metrics) + Jaeger (Traces) + Loki (Logs)
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// 1. OTLP Receiver (gRPC + HTTP)
+// ---------------------------------------------------------------------------
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2. Batch Processor
+// ---------------------------------------------------------------------------
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+    traces  = [otelcol.exporter.otlp.default.input]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3a. Metrics → Prometheus (via remote_write)
+// ---------------------------------------------------------------------------
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3b. Traces → Jaeger (via OTLP)
+// ---------------------------------------------------------------------------
+otelcol.exporter.otlp "default" {
+  client {
+    endpoint = "http://jaeger:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// =============================================================================
+// Log Pipeline → Loki
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// 4. Log file collection
+// ---------------------------------------------------------------------------
+loki.source.file "app_logs" {
+  targets = [{
+    __path__ = "/var/log/app/*.log",
+  }]
+  forward_to = [loki.process.app_logs.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// 5. Log processing
+// ---------------------------------------------------------------------------
+loki.process "app_logs" {
+  stage.multiline {
+    firstline = "^\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}"
+  }
+
+  stage.static_labels {
+    values = {
+      env     = "dev",
+      service = "heima-leadnews",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// 6. Loki write
+// ---------------------------------------------------------------------------
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

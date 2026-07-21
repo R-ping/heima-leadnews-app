@@ -1,0 +1,126 @@
+<template>
+  <header class="creator-header">
+    <div class="user-main">
+      <img class="user-avatar" :src="headImg" alt="">
+      <div class="user-meta">
+        <h3 class="nickname">{{ nickname }}</h3>
+        <div class="stats-row">
+          <span class="stat-item"><span class="stat-value">{{ fans }}</span> <span class="stat-label">粉丝</span></span>
+          <span class="divider"></span>
+          <span class="stat-item"><span class="stat-value">{{ follow }}</span> <span class="stat-label">关注</span></span>
+          <span class="divider"></span>
+          <span class="stat-item"><span class="stat-value">{{ power }}</span> <span class="stat-label">掘力值</span></span>
+        </div>
+        <div class="days">在黑马头条创作的第 {{ days }} 天</div>
+      </div>
+    </div>
+  </header>
+</template>
+
+<script>
+import { mapGetters } from 'vuex'
+import defaultAvatar from '@/static/images/avatar_head_1.png'
+
+export default {
+  computed: {
+    ...mapGetters(['userInfo']),
+    nickname() {
+      const u = this.userInfo || {}
+      return u.nickName || '创作者'
+    },
+    headImg() {
+      if (this.userInfo && this.userInfo.avatar) {
+        return '/static/images/' + this.userInfo.avatar + '.png'
+      }
+      return defaultAvatar
+    },
+    fans() {
+      const u = this.userInfo || {}
+      return u.fans || 0
+    },
+    follow() {
+      const u = this.userInfo || {}
+      return u.follow || 0
+    },
+    power() {
+      const u = this.userInfo || {}
+      return u.power || 0
+    },
+    days() {
+      const u = this.userInfo || {}
+      return u.createDays || 1
+    }
+  },
+  methods: {
+    goPublish() {
+      window.open('/creator/publish', '_blank')
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+  @import '../../layout/styles/variables.less';
+
+  .creator-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 32px 36px;
+    background-color: @colorCreatorHeaderBg;
+    border-bottom: 1px solid @colorCreatorHeaderBorder;
+
+    .user-main {
+      display: flex;
+      align-items: center;
+    }
+
+    .user-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 20px;
+    }
+
+    .nickname {
+      margin: 0 0 12px;
+      font-size: 18px;
+      font-weight: 600;
+      color: @textPrimary;
+    }
+
+    .stats-row {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: @textMuted;
+      margin-bottom: 8px;
+
+      .stat-item {
+        .stat-value {
+          color: @colorStatValue;
+          font-weight: 600;
+        }
+        .stat-label {
+          color: @textMuted;
+          font-weight: 400;
+          margin-left: 4px;
+        }
+      }
+
+      .divider {
+        margin: 0 12px;
+        color: @textMuted;
+      }
+    }
+
+    .days {
+      margin-top: 6px;
+      font-size: 14px;
+      color: @colorStatLabel;
+      font-weight: 400;
+    }
+
+  }
+</style>

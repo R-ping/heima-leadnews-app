@@ -1,7 +1,7 @@
 <template>
-    <div class="body" @click="onClick" :style="getBodyStyle">
-        <span class="icon" :style="getIconStyle">{{icon}}</span>
-        <span class="text">搜索</span>
+    <div class="search-body" @click="onClick" :style="getBodyStyle">
+        <span class="search-icon" :style="getIconStyle">{{icon}}</span>
+        <span class="search-text">{{ placeholder || '搜索' }}</span>
     </div>
 </template>
 
@@ -14,19 +14,23 @@
             },
             height:{
                 type:Number,
-                default:70
+                default:56
             },
             icon:{
               type:String,
-              default:'\uf044'
+              default:'\uf002'
+            },
+            placeholder:{
+                type:String,
+                default:''
             },
             leftWidth:{
                 type:Number,
-                default:25
+                default:15
             },
             rightWidth:{
                 type:Number,
-                default:20
+                default:15
             }
         },
         computed:{
@@ -34,25 +38,20 @@
                 return {
                     marginLeft:this.leftWidth+'px',
                     marginRight:this.rightWidth+'px',
-                    borderColor:this.color,
                     'flex':this.flex,
                     'height':this.height+'px'
                 }
             },
             getIconStyle:function(){
+                var iconSize = Math.max(20, Math.floor(this.height * 0.4));
                 return {
-                    width:(this.height-30)+"px",
-                    height:(this.height-10)+"px",
-                    lineHeight:(this.height-10)+"px",
-                    fontSize:(this.height/70)*32+"px"
+                    "font-size": iconSize + "px"
                 }
             }
         },
         methods:{
             onClick : function(){
-                if(this.inpValue!=''){
-                    this.$emit('onClick', {});
-                }
+                this.$emit('onClick', {});
             }
         }
     }
@@ -60,20 +59,28 @@
 
 <style lang="less" scoped>
     @import '../../styles/common';
-    .body{
-        background-color: #5aadff;
+
+    .search-body{
+        background-color: rgba(255,255,255,0.25);
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        border-radius: @top-height - 30;
+        border-radius: 28px;
+        overflow: hidden;
+        box-sizing: border-box;
+        transition: background-color 0.2s;
     }
-    .icon{
-        color: #ffffff;
-        font-size: 28px;
+    .search-body:active {
+        background-color: rgba(255,255,255,0.35);
     }
-    .text{
+    .search-icon{
         color: #ffffff;
-        font-size: 28px;
+        margin-right: 8px;
+        opacity: 0.9;
+    }
+    .search-text{
+        color: rgba(255,255,255,0.85);
+        font-size: 26px;
     }
 </style>

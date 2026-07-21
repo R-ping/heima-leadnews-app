@@ -1,87 +1,20 @@
 <template>
-    <div class="wxc-tab-page">
-        <div class="tab-title-list">
-            <div class="title-item"
-                 v-for="(v,index) in tabTitles"
+    <div class="menu-bar">
+        <div class="menu-inner">
+            <div class="menu-item"
+                 v-for="(item, index) in tabTitles"
                  :key="index"
-                 :ref="'wxc-tab-title-'+index"
-                 @click="setPage(index,v.url)"
-                 :style="{ backgroundColor: currentPage == index ? tabStyles.activeBgColor : tabStyles.bgColor }"
-                 :accessible="true"
-                 :aria-label="`${v.title?v.title:'标签'+index}`">
-                <span class="icon" :style="{color:getFillColor(index)}">{{v.icon}}</span>
-                <span
-                        v-if="!titleUseSlot"
-                        :style="{ fontSize: tabStyles.fontSize+'px', fontWeight: (currentPage == index && tabStyles.isActiveTitleBold)? 'bold' : 'normal', color: currentPage == index ? tabStyles.activeTitleColor : tabStyles.titleColor, paddingLeft:tabStyles.textPaddingLeft+'px', paddingRight:tabStyles.textPaddingRight+'px'}"
-                        class="tab-text">{{v.title}}</span>
-                <div class="desc-tag" v-if="v.badge && !titleUseSlot">
-                    <span class="desc-text">{{v.badge}}</span>
-                </div>
-                <div v-if="v.dot && !v.badge && !titleUseSlot" class="dot"></div>
-                <slot :name="`tab-title-${index}`" v-if="titleUseSlot"></slot>
+                 :class="{ active: currentPage === index }"
+                 @click="handleClick(item, index)">
+                <span class="menu-icon" :class="{ 'dot-icon': item.dot }">{{ item.icon }}</span>
+                <span class="menu-text">{{ item.title }}</span>
+                <span class="menu-badge" v-if="item.badge">{{ item.badge }}</span>
+                <span class="menu-dot" v-if="item.dot && !item.badge"></span>
             </div>
         </div>
+        <div class="menu-safe-area" v-if="isIPhoneX"></div>
     </div>
 </template>
-
-<style scoped>
-    .icon{
-        color: #666666;
-        font-family: fontawesome;
-        font-size: 48px;
-        background-color: transparent;
-    }
-    .wxc-tab-page {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        background-color: #ffffff;
-        border-top: 1px solid #ebebeb;
-    }
-    .tab-title-list {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-    }
-    .title-item {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        cursor: pointer;
-    }
-    .tab-text {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .desc-tag {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        border-radius: 14px;
-        background-color: #FF5E00;
-        height: 26px;
-        align-items: center;
-        display: flex;
-        justify-content: center;
-        padding-left: 6px;
-        padding-right: 6px;
-    }
-    .dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 12px;
-        position: absolute;
-        top: 10px;
-        right: 40px;
-        background-color: #FF5E00;
-    }
-    .desc-text {
-        font-size: 18px;
-        color: #ffffff;
-    }
-</style>
 
 <script>
     import Utils from '@/utils/env';
@@ -92,54 +25,117 @@
             tabTitles: {
                 type: Array,
                 default: () => (config.tabTitles)
-            },
-            tabStyles:{
-                type: Object,
-                default: () => ({
-                    bgColor: '#ffffff',
-                    titleColor: '#757575',
-                    activeTitleColor: '#3194FF',
-                    activeBgColor: '#ffffff',
-                    activeIconColor:'#3194FF',
-                    iconColor:'#757575',
-                    isActiveTitleBold: true,
-                    iconWidth: 70,
-                    iconHeight: 70,
-                    width: 160,
-                    height: 120,
-                    fontSize: 24,
-                    activeBottomColor: '#FFC900',
-                    activeBottomWidth: 120,
-                    activeBottomHeight: 6,
-                    textPaddingLeft: 10,
-                    textPaddingRight: 10
-                })
-            },
-            titleUseSlot: {
-                type: Boolean,
-                default: false
             }
         },
         data: () => ({
-            currentPage: 0
+            currentPage: 0,
+            isIPhoneX: false
         }),
-        created () {
+        created() {
             this.isIPhoneX = Utils.isIPhoneX();
         },
         methods: {
-            getFillColor (index){
-                if(this.currentPage==index){
-                    return this.tabStyles.activeIconColor;
-                }else{
-                    return this.tabStyles.iconColor;
-                }
-            },
-            setPage(page, url = null, animated = true) {
-                this.currentPage = page;
-                if(page>0){
-                    this.$config.noAction();
+            handleClick(item, index) {
+                this.currentPage = index;
+                switch(index) {
+                    case 0:
+                        this.$router.push('/home');
+                        break;
+                    case 1:
+                    case 2:
+                        this.$config && this.$config.noAction && this.$config.noAction();
+                        break;
+                    case 3:
+                        var isLoggedIn = this.$store.getters.isLoggedIn;
+                        if (!isLoggedIn) {
+                            this.$store.dispatch('showLogin');
+                        } else {
+                            this.$config && this.$config.noAction && this.$config.noAction();
+                        }
+                        break;
+                    default:
+                        this.$router.push('/home');
                 }
             }
         }
     };
 </script>
+
+<style lang="less" scoped>
+    @import '../../styles/common';
+
+    .menu-bar {
+        width: 100%;
+        background-color: #ffffff;
+        border-top: 1px solid #ebebeb;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    .menu-inner {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        height: 120px;
+        padding: 8px 0;
+        box-sizing: border-box;
+    }
+    .menu-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        position: relative;
+        padding: 8px 0;
+        transition: all 0.2s;
+    }
+    .menu-icon {
+        font-family: fontawesome;
+        font-size: 44px;
+        color: #999999;
+        transition: color 0.2s;
+        line-height: 1;
+    }
+    .menu-item.active .menu-icon {
+        color: @mian-color;
+    }
+    .menu-text {
+        font-size: 22px;
+        color: #999999;
+        transition: color 0.2s;
+    }
+    .menu-item.active .menu-text {
+        color: @mian-color;
+        font-weight: 500;
+    }
+    .menu-badge {
+        position: absolute;
+        top: 2px;
+        right: 50%;
+        margin-right: -40px;
+        background-color: #ff5e00;
+        color: #ffffff;
+        font-size: 18px;
+        padding: 2px 10px;
+        border-radius: 14px;
+        min-width: 24px;
+        text-align: center;
+        line-height: 1.4;
+    }
+    .menu-dot {
+        position: absolute;
+        top: 8px;
+        right: 50%;
+        margin-right: -32px;
+        width: 14px;
+        height: 14px;
+        background-color: #ff5e00;
+        border-radius: 50%;
+    }
+    .menu-safe-area {
+        height: 68px;
+        background-color: #ffffff;
+    }
+</style>

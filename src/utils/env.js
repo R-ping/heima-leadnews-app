@@ -3,6 +3,18 @@ var env = {
   getPageHeight: function () {
     return window.innerHeight || document.documentElement.clientHeight;
   },
+  getPageWidth: function () {
+    return window.innerWidth || document.documentElement.clientWidth;
+  },
+  isMobile: function () {
+    if (typeof window === 'undefined') return true;
+    var w = this.getPageWidth();
+    if (w < 768) return true;
+    return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  },
+  isDesktop: function () {
+    return !this.isMobile();
+  },
   isIPhoneX: function () {
     if (typeof window === 'undefined') return false;
     return /iPhone/.test(navigator.userAgent) && window.screen.height >= 812;

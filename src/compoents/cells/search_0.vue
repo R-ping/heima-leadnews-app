@@ -57,4 +57,18 @@
         width: 45px;
         margin-right: 10px;
     }
+
+    @media screen and (min-width: 768px) {
+        .cell-body {
+            max-width: 750PX;
+            margin: 0 auto;
+            font-size: 16PX;
+            padding: 12PX 20PX;
+        }
+        .icon {
+            font-size: 18PX;
+            width: 24PX;
+            margin-right: 12PX;
+        }
+    }
 </style>

@@ -16,6 +16,8 @@
 </template>
 
 <script>
+import conf from '@/common/conf'
+
 export default {
   name: 'OAuthCallback',
   data() {
@@ -25,26 +27,71 @@ export default {
     }
   },
   created() {
-    // Already logged in (e.g. page refresh) — redirect immediately
-    if (this.$store.state.token) {
-      this.$router.replace('/home')
-      return
-    }
+    this.handleCallback()
+  },
+  methods: {
+    handleCallback: function () {
+      var self = this
+      var code = this.$route.query.code
+      var platform = this.$route.query.platform || this.$route.query.state || this.getPlatformFromPath()
 
-    const token = this.$route.query.token
-    if (token) {
-      this.$store.dispatch('login', token)
-      this.status = 'success'
-      this.statusMessage = '登录成功'
-      setTimeout(() => {
-        this.$router.replace('/home')
-      }, 1500)
-    } else {
-      this.status = 'error'
-      this.statusMessage = '登录失败，请重试'
-      setTimeout(() => {
-        this.$router.replace('/home')
-      }, 2000)
+      if (!code) {
+        this.status = 'error'
+        this.statusMessage = '缺少授权码，请重试'
+        setTimeout(function () { self.$router.replace('/home') }, 2000)
+        return
+      }
+      if (!platform) {
+        this.status = 'error'
+        this.statusMessage = '未知平台，请重试'
+        setTimeout(function () { self.$router.replace('/home') }, 2000)
+        return
+      }
+
+      // 调用后端OAuth回调接口（通过网关转发到user微服务）
+      var url = '/user/oauth2/code/' + platform
+
+      // 使用 fetch 直接调用（绕过 request.js 的 token 逻辑）
+      fetch(url + '?code=' + encodeURIComponent(code), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' }
+      })
+        .then(function (response) { return response.json() })
+        .then(function (d) {
+          if (d && d.code === 200 && d.data) {
+            var result = d.data
+            if (result.status === 'need_bind') {
+              // 未绑定：存储社交信息，跳转首页并弹出绑定弹窗
+              self.$store.dispatch('setSocialBindInfo', {
+                platform: result.platform,
+                platformUid: result.platformUid
+              })
+              self.$store.dispatch('showSocialBind')
+              self.$router.replace('/home')
+            } else {
+              // 已绑定：直接登录
+              self.$store.dispatch('login', result)
+              self.status = 'success'
+              self.statusMessage = '登录成功'
+              setTimeout(function () { self.$router.replace('/home') }, 1500)
+            }
+          } else {
+            self.status = 'error'
+            self.statusMessage = (d && d.errorMessage) || '登录失败，请重试'
+            setTimeout(function () { self.$router.replace('/home') }, 2000)
+          }
+        })
+        .catch(function () {
+          self.status = 'error'
+          self.statusMessage = '网络请求失败，请重试'
+          setTimeout(function () { self.$router.replace('/home') }, 2000)
+        })
+    },
+    getPlatformFromPath: function () {
+      var path = this.$route.path || ''
+      if (path.indexOf('github') !== -1) return 'github'
+      if (path.indexOf('weibo') !== -1) return 'weibo'
+      return null
     }
   }
 }
@@ -53,29 +100,23 @@ export default {
 <style scoped>
 .callback-page {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #ffffff;
+  z-index: 10000;
 }
-.callback-card {
-  text-align: center;
-}
+.callback-card { text-align: center; }
 .status-icon {
-  width: 80px;
-  height: 80px;
+  width: 80px; height: 80px;
   margin: 0 auto 24px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .spinner {
-  width: 40px;
-  height: 40px;
+  width: 40px; height: 40px;
   border: 4px solid #e0e0e0;
   border-top-color: #3194ff;
   border-radius: 50%;
@@ -84,17 +125,12 @@ export default {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-.checkmark,
-.cross {
+.checkmark, .cross {
   font-size: 48px;
   font-weight: bold;
 }
-.status-icon.success .checkmark {
-  color: #52c41a;
-}
-.status-icon.error .cross {
-  color: #ff4d4f;
-}
+.status-icon.success .checkmark { color: #52c41a; }
+.status-icon.error .cross { color: #ff4d4f; }
 .status-text {
   font-size: 18px;
   color: #666666;

@@ -30,7 +30,7 @@
                 this.$router.back();
             },
             onSubmit : function(val){
-                this.$router.push({name:'search_result',params:{'keyword':val}})
+                this.$emit('onSubmit',val)
             },
             onInput:function(val){
                 this.$emit("onInput",val)
@@ -48,18 +48,38 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .bar_bg{
-        width: @screen-width;
+        width: 100%;
         display: flex;
         flex-direction: row;
         background-color: @mian-color;
-        border-style: solid;
         height: @top-height;
         align-items: center;
         padding: 5px 30px 8px;
+        box-sizing: border-box;
     }
     .icon{
         color: #ffffff;
         font-size: 32px;
         padding:0px 0px 0px 20px ;
+    }
+
+    @media screen and (min-width: 768px) {
+        .bar_bg {
+            max-width: 750PX;
+            margin: 0 auto;
+            position: relative;
+            left: auto;
+            right: auto;
+            border-radius: 0;
+            background-color: #ffffff;
+            padding: 10PX 20PX;
+            height: 60PX;
+            border-bottom: 1PX solid #f0f0f0;
+        }
+        .icon {
+            color: @mian-color;
+            font-size: 16PX;
+            padding-left: 16PX;
+        }
     }
 </style>

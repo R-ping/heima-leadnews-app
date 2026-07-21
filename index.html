@@ -3,15 +3,13 @@
 <head>
   <meta charset="utf-8">
   <title>黑马头条</title>
+  <link rel="icon" type="image/svg+xml" href="/static/images/logo-icon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-touch-fullscreen" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="format-detection" content="telephone=no, email=no">
   <style>
-    html {
-      font-size: 10vw;
-    }
     html, body, #root {
       width: 100%;
       height: 100%;
@@ -25,10 +23,29 @@
       height: 100%;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: #f5f5f5;
     }
-    @media screen and (min-width: 750px) {
-      html {
-        font-size: 75px;
+    #root {
+      overflow-x: hidden;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.15);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.25);
+    }
+    @media screen and (min-width: 768px) {
+      body {
+        background-color: #f4f5f5;
       }
     }
     @font-face {

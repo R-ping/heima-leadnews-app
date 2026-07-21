@@ -5,11 +5,11 @@ var api = {
     // 加载
     article_search: function(parms){
         let url = conf.urls.get('article_search')
+        // 后端 UserSearchDto 使用驼峰字段 searchWords/pageNum/pageSize
         return request.postByEquipmentId(url,{
-            search_words:parms.keyword,
-            page_num:parms.pageNum,
-            tag:parms.tag,
-            page_size:20
+            searchWords:parms.keyword,
+            pageNum:parms.pageNum,
+            pageSize:20
         })
     }
 }

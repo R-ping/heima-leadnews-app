@@ -8,57 +8,41 @@ Api.prototype = {
     loaddata : function(params){
         let dir = params.loaddir
         let url = this.getLoadUrl(dir)
-        return store.getEquipmentId().then(equipmentId=> {
+        // 后端 ArticleHomeDto 使用驼峰字段
+        let body = {
+            tag: params.tag,
+            size: params.size || 10
+        }
+        // maxBehotTime/minBehotTime 为数字时间戳，发送给后端 Date 类型
+        if (params.max_behot_time && params.max_behot_time > 0) {
+            body.maxBehotTime = params.max_behot_time
+        }
+        if (params.min_behot_time && params.min_behot_time > 0 && params.min_behot_time < 20000000000000) {
+            body.minBehotTime = params.min_behot_time
+        }
+        return store.getEquipmentId().then(equipmentId => {
+            body.equipmentId = equipmentId
             return new Promise((resolve, reject) => {
-                request.post(url,params,{}).then((d)=>{
-                    resolve(d);
-                }).catch((e)=>{
-                    reject(e);
+                request.post(url, body, {}).then((d) => {
+                    resolve(d)
+                }).catch((e) => {
+                    reject(e)
                 })
             })
-        }).catch(e=>{
+        }).catch(e => {
             return new Promise((resolve, reject) => {
-                reject(e);
+                reject(e)
             })
         })
     },
-    // 保存展现行为数据
-    saveShowBehavior : function(params){
-        let ids = [];
-        for(let k in params){
-            if(params[k]){
-                ids.push({id:k});
-            }
-        }
-        if(ids.length>0){
-            let url = conf.urls.get('show_behavior')
-            return store.getEquipmentId().then(equipmentId=> {
-                return new Promise((resolve, reject) => {
-                    request.post(url, {
-                        equipment_id: equipmentId,
-                        article_ids: ids
-                    }).then((d) => {
-                        d.data = ids
-                        resolve(d);
-                    }).catch((e) => {
-                        reject(e);
-                    })
-                })
-            }).catch(e=>{
-                return new Promise((resolve, reject) => {
-                    reject(e);
-                })
-            })
-        }
-    },
-    // 区别请求那个URL
+    // 区别请求哪个URL
     getLoadUrl : function(dir){
         let url = conf.urls.get('load')
-        if(dir==0)
+        if (dir === 0)
             url = conf.urls.get('loadnew')
-        else if(dir==2)
+        else if (dir === 2)
             url = conf.urls.get('loadmore')
-        return url;
+        return url
     }
 }
 

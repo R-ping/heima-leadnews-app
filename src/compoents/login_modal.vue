@@ -1,90 +1,95 @@
 <template>
     <transition name="login-fade">
-        <div class="login-overlay" v-if="visible" @click.self="close">
+        <div class="login-overlay" :class="{ 'is-desktop': isDesktop }" v-if="visible" @click.self="close">
             <div class="login-modal">
-                <div class="modal-header">
-                    <span class="modal-title">登录</span>
-                    <span class="close-btn" @click="close">&#10005;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="form-section" v-if="mode === 'phone'">
-                        <div class="form-wrapper">
+                <!-- 关闭按钮 -->
+                <span class="close-btn" @click="close">&#10005;</span>
+
+                <!-- 登录/注册 -->
+                <div class="login-container">
+                    <div class="modal-title">登录黑马头条</div>
+                    <p class="modal-subtitle">
+                        {{ isPasswordMode ? '手机号或邮箱登录' : '验证码登录' }}
+                    </p>
+
+                    <div class="form-wrapper">
+                        <!-- 验证码登录 -->
+                        <template v-if="!isPasswordMode">
                             <div class="input-group">
                                 <span class="area-code">+86</span>
-                                <input v-model="params.phone"
-                                       placeholder="请输入手机号"
-                                       class="input"
-                                />
+                                <input v-model="params.phone" type="tel" placeholder="请输入手机号" class="input" maxlength="11" />
+                            </div>
+                            <div class="input-group code-group">
+                                <input v-model="params.code" type="tel" placeholder="请输入验证码" class="input" maxlength="6" />
+                                <span class="code-btn" :class="{ disabled: codeCountdown > 0 }" @click="getCode">
+                                    {{ codeCountdown > 0 ? codeCountdown + 's后重试' : '获取验证码' }}
+                                </span>
+                            </div>
+                            <span class="login-btn" @click="loginByCode">登录/注册</span>
+                        </template>
+
+                        <!-- 密码登录（手机号/邮箱） -->
+                        <template v-else>
+                            <div class="input-group">
+                                <input v-model="params.phoneOrEmail" type="text" placeholder="请输入手机号或邮箱" class="input" />
                             </div>
                             <div class="input-group">
-                                <input v-model="params.password"
-                                       type="password"
-                                       placeholder="请输入密码"
-                                       class="input"
-                                />
+                                <input v-model="params.password" type="password" placeholder="请输入密码" class="input" />
                             </div>
-                            <span class="button" @click="login">登录</span>
+                            <span class="login-btn" @click="loginByPassword">登录</span>
+                        </template>
+                    </div>
+
+                    <!-- 切换链接 -->
+                    <div class="switch-row">
+                        <template v-if="!isPasswordMode">
+                            <span class="switch-link" @click="toggleMode">密码登录</span>
+                            <span class="switch-link forget-link" @click="onForgetPassword">忘记密码?</span>
+                        </template>
+                        <template v-else>
+                            <span class="switch-link" @click="toggleMode">验证码登录</span>
+                            <span class="switch-link forget-link" @click="goRegister">注册新账号</span>
+                        </template>
+                    </div>
+
+                    <!-- 分隔线 -->
+                    <div class="divider">
+                        <span class="divider-line"></span>
+                        <span class="divider-text">其他登录方式</span>
+                        <span class="divider-line"></span>
+                    </div>
+
+                    <!-- 社交登录 -->
+                    <div class="social-login">
+                        <div class="social-item" @click="weiboLogin" title="微博登录">
+                            <span class="social-icon weibo-icon">&#xf18a;</span>
+                            <span class="social-label">微博</span>
                         </div>
-                        <div class="link-row">
-                            <span class="go-register" @click="tip">手机号注册</span>
-                            <span class="go-home" @click="close">稍后再说</span>
+                        <div class="social-item" @click="githubLogin" title="GitHub登录">
+                            <span class="social-icon github-icon">&#xf09b;</span>
+                            <span class="social-label">GitHub</span>
                         </div>
-                        <div class="divider-wrap">
-                            <span class="divider-line"></span>
-                            <span class="divider-text">其他登录方式</span>
-                            <span class="divider-line"></span>
-                        </div>
-                        <div class="third-party">
-                            <span class="third-item" @click="weiboLogin">{{weiboIcon}}</span>
-                            <span class="third-item" @click="githubLogin">{{githubIcon}}</span>
-                            <span class="third-item" @click="switchToWechat">{{wechatIcon}}</span>
-                            <span class="third-item" @click="tip">{{qqIcon}}</span>
+                        <div class="social-item wechat-item" @click="toggleWechatQr" :class="{ active: showWechatQr }" title="微信公众号登录">
+                            <span class="social-icon wechat-icon">&#xf1d7;</span>
+                            <span class="social-label">微信</span>
                         </div>
                     </div>
-                    <div class="form-section" v-if="mode === 'wechat'">
-                        <div class="wechat-login-wrapper">
-                            <div class="wechat-qr-container">
-                                <img class="wechat-qr-img" src="/static/images/gzh.jpeg" alt="公众号二维码" />
-                            </div>
-                            <p class="wechat-tip-text">扫码关注公众号，获取验证码</p>
-                            <div class="input-group">
-                                <input v-model="wechatCode"
-                                       placeholder="请输入验证码"
-                                       class="input"
-                                />
-                            </div>
-                            <span class="button" @click="wechatLoginSubmit">登录</span>
-                            <span class="back-link" @click="switchToPhone">返回其他登录方式</span>
+
+                    <!-- 微信二维码 -->
+                    <div class="wechat-qr-area" v-if="showWechatQr">
+                        <div class="qr-box">
+                            <img src="/static/images/gzh.jpeg" alt="微信公众号二维码" class="qr-img" />
                         </div>
-                    </div>
-                    <div class="qr-section">
-                        <div class="qr-header">
-                            <span class="qr-title">扫码登录</span>
-                            <span class="qr-hint">iOS 4.1及以上版本支持</span>
-                        </div>
-                        <div class="qr-code">
-                            <img v-if="mode === 'wechat'" class="wechat-qr-desktop" src="/static/images/gzh.jpeg" alt="公众号二维码" />
-                            <div v-else class="qr-placeholder">
-                                <span class="qr-icon">{{qrIcon}}</span>
-                            </div>
-                        </div>
-                        <div class="qr-tip" v-if="mode !== 'wechat'">
-                            <span>打开黑马头条APP</span>
-                            <span>点击"我的-扫一扫"登录</span>
-                        </div>
-                        <div class="qr-tip" v-else>
-                            <span>微信扫码关注公众号</span>
-                            <span>获取验证码完成登录</span>
-                        </div>
+                        <p class="qr-tip">请使用微信扫描二维码<br/>关注公众号后获取验证码登录</p>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <span class="privacy-text">
-                        注册登录即表示同意
-                        <span class="link">用户协议</span>
-                        和
-                        <span class="link">隐私政策</span>
-                    </span>
+
+                <!-- 底部协议 -->
+                <div class="agreement">
+                    <span>注册登录即表示同意</span>
+                    <span class="link">《用户协议》</span>
+                    <span>和</span>
+                    <span class="link">《隐私政策》</span>
                 </div>
             </div>
         </div>
@@ -92,439 +97,629 @@
 </template>
 
 <script>
-    import Api from '@/apis/login/api'
-    import { toast } from "@/utils/toast"
-    import oauthConfig from '@/common/oauth'
-    export default {
-        name: "LoginModal",
-        data(){
-            return{
-                weiboIcon : '\uf18a',
-                wechatIcon : '\uf1d7',
-                githubIcon : '\uf09b',
-                qqIcon : '\uf1d6',
-                qrIcon : '\uf029',
-                mode: 'phone', // 'phone' | 'wechat'
-                wechatCode: '',
-                params:{
-                    phone:'',
-                    password:''
-                }
-            }
-        },
-        computed: {
-            visible() {
-                return this.$store.getters.showLoginModal
-            }
-        },
-        methods:{
-            close() {
-                this.$store.dispatch('hideLogin')
-            },
-            tip : function(){
-                toast('该功能暂未实现！', 3)
-            },
-            // 微博 OAuth 登录
-            weiboLogin: function(){
-                const cfg = oauthConfig.weibo
-                const params = {
-                    client_id: cfg.clientId,
-                    redirect_uri: cfg.redirectUri,
-                    response_type: cfg.responseType
-                }
-                const qs = Object.entries(params)
-                    .map(function(kv){ return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]) })
-                    .join('&')
-                window.location.href = cfg.authorizeUrl + '?' + qs
-            },
-            // GitHub OAuth 登录
-            githubLogin: function(){
-                const cfg = oauthConfig.github
-                const params = {
-                    client_id: cfg.clientId,
-                    redirect_uri: cfg.redirectUri,
-                    // response_type: cfg.responseType,
-                    // scope: cfg.scope
-                }
-                const qs = Object.entries(params)
-                    .map(function(kv){ return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]) })
-                    .join('&')
-                window.location.href = cfg.authorizeUrl + '?' + qs
-            },
-            // 切换到微信扫码登录
-            switchToWechat: function(){
-                this.mode = 'wechat'
-                this.wechatCode = ''
-            },
-            // 切回手机号登录
-            switchToPhone: function(){
-                this.mode = 'phone'
-                this.wechatCode = ''
-            },
-            // 微信验证码登录
-            wechatLoginSubmit: function(){
-                if(this.wechatCode === ''){
-                    toast('请输入验证码', 3)
-                    return
-                }
-                Api.wechatLogin({ code: this.wechatCode }).then(function(d){
-                    if(d.code==0){
-                        this.$store.dispatch('login', d.data.token)
-                        this.close()
-                        toast('登录成功', 2)
-                    }else{
-                        toast('验证码错误或已过期', 3)
-                    }
-                }.bind(this)).catch(function(e){
-                    console.log(e)
-                    toast('登录失败，请重试', 3)
-                })
-            },
-            login:function(){
-                if(this.params.phone==''||this.params.password==''){
-                    toast('请输入用户名或密码', 3)
-                }else{
-                    Api.login(this.params).then(d=>{
-                        if(d.code==0){
-                            this.$store.dispatch('login', d.data.token)
-                            this.close()
-                            toast('登录成功', 2)
-                        }else{
-                            toast('用户或密码错误', 3)
-                        }
-                    }).catch(e=>{
-                        console.log(e)
-                    })
-                }
+import Api from '@/apis/login/api'
+import { toast } from "@/utils/toast"
+import { getOAuthUrl } from '@/common/oauth'
+import Utils from '@/utils/env'
+
+export default {
+    name: "LoginModal",
+    data() {
+        return {
+            weiboIcon: '\uf18a',
+            wechatIcon: '\uf1d7',
+            githubIcon: '\uf09b',
+            isPasswordMode: false,
+            showWechatQr: false,
+            codeCountdown: 0,
+            codeTimer: null,
+            params: {
+                phone: '',
+                phoneOrEmail: '',
+                password: '',
+                code: ''
             }
         }
+    },
+    computed: {
+        visible() {
+            return this.$store.getters.showLoginModal
+        },
+        isDesktop() {
+            return Utils.isDesktop()
+        }
+    },
+    watch: {
+        visible: function (val) {
+            if (val) {
+                this.isPasswordMode = false
+                this.showWechatQr = false
+                this.resetParams()
+            } else {
+                this.showWechatQr = false
+                this.clearCodeTimer()
+            }
+        }
+    },
+    beforeDestroy() {
+        this.clearCodeTimer()
+        if (this._resizeHandler) {
+            window.removeEventListener('resize', this._resizeHandler)
+        }
+    },
+    mounted() {
+        var self = this
+        this._resizeHandler = function () {
+            self.$forceUpdate()
+        }
+        window.addEventListener('resize', this._resizeHandler)
+    },
+    methods: {
+        close() {
+            this.$store.dispatch('hideLogin')
+            this.showWechatQr = false
+        },
+        resetParams() {
+            this.params.phone = ''
+            this.params.phoneOrEmail = ''
+            this.params.password = ''
+            this.params.code = ''
+        },
+        toggleMode() {
+            this.isPasswordMode = !this.isPasswordMode
+            this.showWechatQr = false
+            this.resetParams()
+        },
+        goRegister() {
+            this.isPasswordMode = false
+            this.resetParams()
+        },
+        onForgetPassword() {
+            toast('请使用验证码登录后在设置中重置密码', 3)
+        },
+        toggleWechatQr() {
+            this.showWechatQr = !this.showWechatQr
+        },
+
+        getCode() {
+            var phone = this.params.phone
+            if (!phone || phone.length < 11) {
+                toast('请输入正确的手机号', 3)
+                return
+            }
+            var self = this
+            Api.getCode(phone, 'app', 'login').then(function (d) {
+                if (d && d.code === 200) {
+                    toast('验证码已发送', 2)
+                } else {
+                    toast((d && d.errorMessage) || (d && d.message) || '获取验证码失败', 3)
+                }
+            }).catch(function () {
+                toast('获取验证码失败', 3)
+            })
+            this.startCodeCountdown()
+        },
+        startCodeCountdown() {
+            var self = this
+            this.clearCodeTimer()
+            this.codeCountdown = 60
+            this.codeTimer = setInterval(function () {
+                self.codeCountdown--
+                if (self.codeCountdown <= 0) {
+                    self.clearCodeTimer()
+                }
+            }, 1000)
+        },
+        clearCodeTimer() {
+            if (this.codeTimer) {
+                clearInterval(this.codeTimer)
+                this.codeTimer = null
+            }
+            this.codeCountdown = 0
+        },
+
+        loginByCode() {
+            var self = this
+            var phone = this.params.phone
+            if (!phone || phone.length < 11) {
+                toast('请输入正确的手机号', 3)
+                return
+            }
+            if (!this.params.code) {
+                toast('请输入验证码', 3)
+                return
+            }
+            Api.loginAuth({
+                phoneOrEmail: phone,
+                code: this.params.code,
+                platform: 'app'
+            }).then(function (d) {
+                if (d && d.code === 200 && d.data) {
+                    self.$store.dispatch('login', d.data)
+                    self.close()
+                    toast('登录成功', 2)
+                } else {
+                    toast((d && d.errorMessage) || (d && d.message) || '登录失败', 3)
+                }
+            }).catch(function () {
+                toast('登录失败，请重试', 3)
+            })
+        },
+
+        loginByPassword() {
+            var self = this
+            var account = this.params.phoneOrEmail
+            var pwd = this.params.password
+            if (!account) {
+                toast('请输入手机号或邮箱', 3)
+                return
+            }
+            if (!pwd) {
+                toast('请输入密码', 3)
+                return
+            }
+            var isPhone = /^1[3-9]\d{9}$/.test(account)
+            var isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(account)
+            if (!isPhone && !isEmail) {
+                toast('请输入正确的手机号或邮箱', 3)
+                return
+            }
+            Api.loginAuth({
+                phoneOrEmail: account,
+                password: pwd,
+                platform: 'app'
+            }).then(function (d) {
+                if (d && d.code === 200 && d.data) {
+                    self.$store.dispatch('login', d.data)
+                    self.close()
+                    toast('登录成功', 2)
+                } else {
+                    toast((d && d.errorMessage) || (d && d.message) || '账号或密码错误', 3)
+                }
+            }).catch(function () {
+                toast('登录失败，请重试', 3)
+            })
+        },
+
+        weiboLogin() {
+            window.location.href = getOAuthUrl('weibo')
+        },
+        githubLogin() {
+            window.location.href = getOAuthUrl('github')
+        }
     }
+}
 </script>
 
 <style lang="less" scoped>
-    @import '../styles/common';
-    .login-fade-enter-active, .login-fade-leave-active {
-        transition: opacity 0.3s;
-    }
-    .login-fade-enter, .login-fade-leave-to {
-        opacity: 0;
-    }
+.login-fade-enter-active, .login-fade-leave-active {
+    transition: opacity 0.25s ease;
+}
+.login-fade-enter, .login-fade-leave-to {
+    opacity: 0;
+}
+
+.login-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.login-modal {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 48px 48px 36px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #999999;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+.close-btn:hover {
+    background-color: #f5f5f5;
+    color: #666666;
+}
+
+.modal-title {
+    font-size: 28px;
+    color: #333333;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 8px;
+}
+.modal-subtitle {
+    font-size: 16px;
+    color: #999999;
+    text-align: center;
+    margin: 0 0 32px 0;
+}
+
+.form-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    background-color: #f7f8fa;
+    border-radius: 8px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    height: 56px;
+    box-sizing: border-box;
+}
+.input-group:focus-within {
+    border-color: #3194ff;
+    background-color: #ffffff;
+}
+.area-code {
+    font-size: 17px;
+    color: #333333;
+    padding-right: 16px;
+    border-right: 1px solid #e0e0e0;
+    margin-right: 16px;
+    font-weight: 500;
+}
+.input {
+    flex: 1;
+    height: 100%;
+    font-size: 16px;
+    color: #333333;
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+.input::placeholder {
+    color: #c0c4cc;
+}
+
+.code-group {
+    padding-right: 12px;
+}
+.code-btn {
+    font-size: 15px;
+    color: #3194ff;
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 8px 14px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+.code-btn:hover {
+    background-color: #e8f4ff;
+}
+.code-btn.disabled {
+    color: #c0c4cc;
+    cursor: not-allowed;
+}
+.code-btn.disabled:hover {
+    background-color: transparent;
+}
+
+.login-btn {
+    height: 52px;
+    line-height: 52px;
+    background-color: #3194ff;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    border-radius: 8px;
+    margin-top: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.login-btn:hover {
+    background-color: #2684e8;
+}
+.login-btn:active {
+    background-color: #1a74d4;
+}
+
+.switch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+.switch-link {
+    font-size: 15px;
+    color: #3194ff;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.switch-link:hover {
+    color: #1a7de8;
+    text-decoration: underline;
+}
+.forget-link {
+    color: #999999;
+}
+.forget-link:hover {
+    color: #3194ff;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 36px 0 24px;
+    gap: 16px;
+}
+.divider-line {
+    flex: 1;
+    height: 1px;
+    background-color: #eeeeee;
+}
+.divider-text {
+    font-size: 13px;
+    color: #c0c4cc;
+}
+
+.social-login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+}
+.social-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.social-item:hover {
+    transform: translateY(-2px);
+}
+.social-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-family: fontawesome;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+.weibo-icon {
+    background-color: #fff3f3;
+    color: #e6162d;
+}
+.social-item:hover .weibo-icon {
+    background-color: #e6162d;
+    color: #ffffff;
+}
+.github-icon {
+    background-color: #f5f5f5;
+    color: #333333;
+}
+.social-item:hover .github-icon {
+    background-color: #333333;
+    color: #ffffff;
+}
+.wechat-icon {
+    background-color: #f0f9eb;
+    color: #07c160;
+}
+.wechat-item.active .wechat-icon,
+.social-item:hover .wechat-icon {
+    background-color: #07c160;
+    color: #ffffff;
+}
+.social-label {
+    font-size: 13px;
+    color: #999999;
+}
+
+.wechat-qr-area {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    background-color: #fafafa;
+    border-radius: 8px;
+}
+.qr-box {
+    width: 180px;
+    height: 180px;
+    background-color: #ffffff;
+    border: 1px solid #eeeeee;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.qr-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.qr-tip {
+    font-size: 13px;
+    color: #999999;
+    text-align: center;
+    margin: 16px 0 0 0;
+    line-height: 1.6;
+}
+
+.agreement {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 12px;
+    color: #c0c4cc;
+    line-height: 1.6;
+}
+.agreement .link {
+    color: #999999;
+    cursor: pointer;
+}
+.agreement .link:hover {
+    color: #3194ff;
+}
+
+/* ========== Web端适配：通过.is-desktop类控制，大写PX避免px2rem转换 ========== */
+.is-desktop.login-overlay {
+    padding: 20PX;
+    align-items: center;
+}
+.is-desktop .login-modal {
+    width: 440PX;
+    max-width: 90vw;
+    padding: 48PX 48PX 36PX;
+    border-radius: 12PX;
+    box-shadow: 0 20PX 60PX rgba(0, 0, 0, 0.15);
+}
+.is-desktop .close-btn {
+    top: 16PX;
+    right: 16PX;
+    width: 32PX;
+    height: 32PX;
+    font-size: 18PX;
+}
+.is-desktop .modal-title {
+    font-size: 24PX;
+    margin-bottom: 8PX;
+}
+.is-desktop .modal-subtitle {
+    font-size: 14PX;
+    margin-bottom: 28PX;
+}
+.is-desktop .form-wrapper {
+    gap: 16PX;
+}
+.is-desktop .input-group {
+    height: 44PX;
+    padding: 0 16PX;
+    border-radius: 6PX;
+}
+.is-desktop .area-code {
+    font-size: 15PX;
+    padding-right: 12PX;
+    margin-right: 12PX;
+}
+.is-desktop .input {
+    font-size: 14PX;
+}
+.is-desktop .code-group {
+    padding-right: 8PX;
+}
+.is-desktop .code-btn {
+    font-size: 13PX;
+    padding: 6PX 12PX;
+}
+.is-desktop .login-btn {
+    height: 44PX;
+    line-height: 44PX;
+    font-size: 16PX;
+    border-radius: 6PX;
+    margin-top: 4PX;
+}
+.is-desktop .switch-row {
+    margin-top: 16PX;
+}
+.is-desktop .switch-link {
+    font-size: 13PX;
+}
+.is-desktop .divider {
+    margin: 28PX 0 20PX;
+    gap: 12PX;
+}
+.is-desktop .divider-text {
+    font-size: 12PX;
+}
+.is-desktop .social-login {
+    gap: 36PX;
+}
+.is-desktop .social-item {
+    gap: 6PX;
+}
+.is-desktop .social-icon {
+    width: 40PX;
+    height: 40PX;
+    font-size: 20PX;
+}
+.is-desktop .social-label {
+    font-size: 12PX;
+}
+.is-desktop .wechat-qr-area {
+    margin-top: 20PX;
+    padding: 20PX;
+    border-radius: 8PX;
+}
+.is-desktop .qr-box {
+    width: 140PX;
+    height: 140PX;
+}
+.is-desktop .qr-tip {
+    font-size: 12PX;
+    margin-top: 12PX;
+}
+.is-desktop .agreement {
+    margin-top: 24PX;
+    font-size: 12PX;
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 560px) {
     .login-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
+        padding: 0;
+        align-items: flex-end;
     }
     .login-modal {
-        width: 90%;
-        max-width: 880px;
-        background-color: #ffffff;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        padding: 36px 28px 30px;
+        animation: slideUp 0.3s ease;
     }
-    .modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 30px 40px;
-        border-bottom: 1px solid #f0f0f0;
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    .close-btn {
+        top: 16px;
+        right: 16px;
     }
     .modal-title {
         font-size: 24px;
-        color: #333333;
-        font-weight: bold;
     }
-    .close-btn {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        color: #999999;
-        cursor: pointer;
+    .social-login {
+        gap: 32px;
     }
-    .close-btn:hover {
-        color: #666666;
+    .social-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
     }
-    .modal-body {
-        display: flex;
-        padding: 40px;
-        gap: 50px;
-    }
-    .form-section {
-        flex: 1;
-        min-width: 320px;
-    }
-    .form-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .input-group {
-        display: flex;
-        align-items: center;
-        background-color: #fafafa;
-        border-radius: 8px;
-        padding: 0 20px;
-        border: 1px solid #f0f0f0;
-        transition: border-color 0.3s;
-    }
-    .input-group:focus-within {
-        border-color: #3194ff;
-    }
-    .area-code {
-        font-size: 18px;
-        color: #666666;
-        padding-right: 16px;
-        border-right: 1px solid #e0e0e0;
-        margin-right: 16px;
-    }
-    .input {
-        flex: 1;
-        height: 54px;
-        line-height: 54px;
-        font-size: 18px;
-        color: #333333;
-        background-color: transparent;
-        border: none;
-        outline: none;
-    }
-    .button {
-        height: 54px;
-        line-height: 54px;
-        background-color: #3194ff;
-        color: #ffffff;
-        font-size: 18px;
-        text-align: center;
-        border-radius: 8px;
-        margin-top: 10px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    .button:hover {
-        background-color: #1a7de8;
-    }
-    .link-row {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-    }
-    .go-register, .go-home {
-        font-size: 16px;
-        color: #999999;
-        cursor: pointer;
-    }
-    .go-register:hover, .go-home:hover {
-        color: #3194ff;
-    }
-    .divider-wrap {
-        display: flex;
-        align-items: center;
-        margin-top: 40px;
-        padding: 0 15px;
-    }
-    .divider-line {
-        flex: 1;
-        height: 1px;
-        background-color: #e0e0e0;
-    }
-    .divider-text {
-        padding: 0 20px;
-        font-size: 16px;
-        color: #cccccc;
-    }
-    .third-party {
-        display: flex;
-        justify-content: center;
-        gap: 50px;
-        margin-top: 32px;
-    }
-    .third-item {
-        width: 52px;
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        color: #666666;
-        font-family: fontawesome;
-        cursor: pointer;
-        transition: color 0.3s;
-    }
-    .third-item:hover {
-        color: #3194ff;
-    }
-    .qr-section {
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px 30px;
-        border-left: 1px solid #f0f0f0;
-    }
-    .qr-header {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    .qr-title {
-        display: block;
-        font-size: 18px;
-        color: #333333;
-        font-weight: bold;
-        margin-bottom: 8px;
-    }
-    .qr-hint {
-        font-size: 14px;
-        color: #999999;
-    }
-    .qr-code {
-        width: 180px;
-        height: 180px;
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 16px;
-    }
-    .qr-placeholder {
-        width: 150px;
-        height: 150px;
-        background-color: #f8f8f8;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .qr-icon {
-        font-size: 70px;
-        color: #cccccc;
-        font-family: fontawesome;
-    }
-    .qr-tip {
-        text-align: center;
-        font-size: 14px;
-        color: #999999;
-        line-height: 1.8;
-    }
-    .modal-footer {
-        padding: 25px 40px;
-        border-top: 1px solid #f0f0f0;
-    }
-    .privacy-text {
-        display: block;
-        text-align: center;
-        font-size: 14px;
-        color: #cccccc;
-        line-height: 1.8;
-    }
-    .link {
-        color: #3194ff;
-        cursor: pointer;
-    }
-    /* === WeChat Login Section === */
-    .wechat-login-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-    }
-    .wechat-qr-container {
-        width: 200px;
-        height: 200px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #ffffff;
-    }
-    .wechat-qr-img {
-        width: 180px;
-        height: 180px;
-        object-fit: contain;
-    }
-    .wechat-qr-desktop {
-        width: 150px;
-        height: 150px;
-        object-fit: contain;
-    }
-    .wechat-tip-text {
-        font-size: 16px;
-        color: #666666;
-        text-align: center;
-        margin: 0;
-    }
-    .back-link {
-        font-size: 16px;
-        color: #3194ff;
-        cursor: pointer;
-        text-align: center;
-    }
-    .back-link:hover {
-        color: #1a7de8;
-    }
-    @media screen and (min-width: 600px) {
-        .qr-section {
-            display: flex;
-        }
-    }
-    @media screen and (max-width: 600px) {
-        .login-overlay {
-            background-color: #ffffff;
-        }
-        .login-modal {
-            width: 100%;
-            max-width: 100%;
-            border-radius: 0;
-            box-shadow: none;
-            min-height: 100vh;
-        }
-        .modal-header {
-            padding: 20px;
-        }
-        .modal-title {
-            font-size: 18px;
-        }
-        .modal-body {
-            padding: 20px;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .input {
-            height: 50px;
-            line-height: 50px;
-            font-size: 17px;
-        }
-        .button {
-            height: 50px;
-            line-height: 50px;
-            font-size: 17px;
-        }
-        .go-register, .go-home {
-            font-size: 15px;
-        }
-        .third-item {
-            width: 50px;
-            height: 50px;
-            font-size: 28px;
-        }
-        .wechat-qr-container {
-            width: 160px;
-            height: 160px;
-        }
-        .wechat-qr-img {
-            width: 140px;
-            height: 140px;
-        }
-    }
+}
 </style>

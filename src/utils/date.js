@@ -26,8 +26,35 @@ FormatDate.prototype= {
         return this.format13(time*1000);
     },
     format13:function(time){
+      if(time==undefined){
+        return ""
+      }
         let date = new Date(time);
         return this.formatDate(date,'yyyy-MM-dd')
+    },
+    format13HH:function(time){
+      if(time==undefined){
+        return ""
+      }
+      let date = new Date(time);
+      return this.formatDate(date,'yyyy-MM-dd hh:mm:ss')
+    },
+    // 最近几天时间
+    getNearTime:function(AddDayCount) {
+      var dd = new Date();
+      return dd.getTime()-AddDayCount*24*3600000;
+    },
+    // 最近本周开始时间
+    getWeekSTime:function() {
+      var dd = new Date();
+      dd.setDate(dd.getDate() -dd.getDay());
+      return dd.getTime();
+    },
+    // 最近本周结束时间
+    getWeekETime:function() {
+      var dd = new Date();
+      dd.setDate(dd.getDate() +(7-dd.getDay()));
+      return dd.getTime();
     },
     diffTime:function(time){
         if(time.length==10){

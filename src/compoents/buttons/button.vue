@@ -49,9 +49,8 @@
 <style lang="less" scoped>
     @import '../../styles/common';
     .botton{
-        border-width: 1px;
+        border: 1px solid @border-color;
         border-radius: 30px;
-        border-color: @border-color;
         line-height: 60px;
         display: flex;
         flex-direction: row;
