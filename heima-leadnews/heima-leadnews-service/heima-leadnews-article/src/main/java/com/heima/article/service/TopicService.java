@@ -1,7 +1,6 @@
 package com.heima.article.service;
 
-import com.heima.model.wemedia.pojos.WmTopic;
-
+import com.heima.model.article.pojos.ApTopic;
 import java.util.List;
 
 public interface TopicService {
@@ -11,5 +10,5 @@ public interface TopicService {
      * @param keyword 关键字
      * @return
      */
-    List<WmTopic> findList(String keyword);
+    List<ApTopic> findList(String keyword);
 }

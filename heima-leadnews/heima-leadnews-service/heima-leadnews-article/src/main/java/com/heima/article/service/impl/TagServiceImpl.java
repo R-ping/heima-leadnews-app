@@ -4,17 +4,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.heima.article.mapper.TagMapper;
 import com.heima.article.service.TagService;
+import com.heima.model.article.pojos.ApTag;
 import com.heima.model.wemedia.pojos.WmTag;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @Transactional
 @Slf4j
-public class TagServiceImpl extends ServiceImpl<TagMapper, WmTag> implements TagService {
+public class TagServiceImpl extends ServiceImpl<TagMapper, ApTag> implements TagService {
 
     /**
      * 查询标签列表
@@ -22,13 +22,13 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, WmTag> implements Tag
      * @return
      */
     @Override
-    public List<WmTag> findList(String keyword) {
-        LambdaQueryWrapper<WmTag> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(WmTag::getStatus, 1);
+    public List<ApTag> findList(String keyword) {
+        LambdaQueryWrapper<ApTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApTag::getStatus, 1);
         if (keyword != null && !keyword.trim().isEmpty()) {
-            wrapper.like(WmTag::getName, keyword.trim());
+            wrapper.like(ApTag::getName, keyword.trim());
         }
-        wrapper.orderByAsc(WmTag::getSort);
+        wrapper.orderByAsc(ApTag::getSort);
         return list(wrapper);
     }
 }

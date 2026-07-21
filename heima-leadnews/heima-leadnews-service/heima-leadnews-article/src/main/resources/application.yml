@@ -63,20 +63,22 @@ mybatis-plus:
   # 设置别名包扫描路径，通过该属性可以给包中的类注册别名
   type-aliases-package: com.heima.model.article.pojos
 
-#  cloud:
-#    nacos:
-#      discovery:
-#        server-addr: 192.168.200.130:8848
-#      config:
-#        server-addr: 192.168.200.130:8848
-#        file-extension: yml
-
 minio:
   accessKey: minio
   secretKey: minio123
   bucket: leadnews
   endpoint: http://127.0.0.1:9000
   readPath: http://127.0.0.1:9000
+
+aliyun:
+  oss:
+    accessKeyId: ${ALIBABA_RAM_ACCESS_KEY}
+    accessKeySecret: ${ALIBABA_RAM_ACCESS_SECRET}
+    endpoint: http://oss-cn-beijing.aliyuncs.com
+    host: https://zhuri-leadnews.oss-cn-beijing.aliyuncs.com
+    bucket: zhuri-leadnews
+    dir: material/
+    expireTime: 300
 
 kafka:
   hosts: 127.0.0.1:9092

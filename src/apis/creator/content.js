@@ -1,4 +1,4 @@
-import request from '@/common/wemedia_request'
+import request from '@/common/article_request'
 
 const API_STATISTICS_NEWS = '/api/v1/statistics/news'
 const API_ARTICLES_INFO = '/api/v1/news/news'

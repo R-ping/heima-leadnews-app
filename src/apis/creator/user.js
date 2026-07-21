@@ -1,4 +1,4 @@
-import request from '@/common/wemedia_request'
+import request from '@/common/article_request'
 
 const API_USERPROFILE = 'user/profile'
 const API_HEAD = 'user/photo'

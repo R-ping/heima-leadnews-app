@@ -1,4 +1,4 @@
-import request from '@/common/wemedia_request'
+import request from '@/common/article_request'
 
 const API_FANS = '/api/v1/user_fans/list'
 const API_FOLLOWER_PORTRAIT = '/api/v1/user_fans/fans_portrait'

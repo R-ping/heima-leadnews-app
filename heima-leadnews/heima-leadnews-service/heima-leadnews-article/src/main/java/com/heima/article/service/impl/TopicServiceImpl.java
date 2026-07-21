@@ -4,17 +4,16 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.heima.article.mapper.TopicMapper;
 import com.heima.article.service.TopicService;
-import com.heima.model.wemedia.pojos.WmTopic;
+import com.heima.model.article.pojos.ApTopic;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @Transactional
 @Slf4j
-public class TopicServiceImpl extends ServiceImpl<TopicMapper, WmTopic> implements TopicService {
+public class TopicServiceImpl extends ServiceImpl<TopicMapper, ApTopic> implements TopicService {
 
     /**
      * 查询话题列表
@@ -22,13 +21,13 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, WmTopic> implemen
      * @return
      */
     @Override
-    public List<WmTopic> findList(String keyword) {
-        LambdaQueryWrapper<WmTopic> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(WmTopic::getStatus, 1);
+    public List<ApTopic> findList(String keyword) {
+        LambdaQueryWrapper<ApTopic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApTopic::getStatus, 1);
         if (keyword != null && !keyword.trim().isEmpty()) {
-            wrapper.like(WmTopic::getName, keyword.trim());
+            wrapper.like(ApTopic::getName, keyword.trim());
         }
-        wrapper.orderByAsc(WmTopic::getSort);
+        wrapper.orderByAsc(ApTopic::getSortOrder);
         return list(wrapper);
     }
 }

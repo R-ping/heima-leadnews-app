@@ -27,6 +27,9 @@ public class ApTopic implements Serializable {
     @TableField("sort_order")
     private Integer sortOrder;
 
+    @TableField("status")
+    private Integer status;
+
     @TableField("created_time")
     private Date createdTime;
 }

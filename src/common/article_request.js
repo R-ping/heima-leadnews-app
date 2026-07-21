@@ -24,7 +24,8 @@ service.interceptors.request.use(
       if (!isImgUpload(config)) {
         config.headers['Content-Type'] = 'application/json'
       } else {
-        config.headers['Content-Type'] = 'multipart/form-data'
+        // FormData 上传：删除手动 Content-Type，让浏览器自动设置带 boundary 的值
+        delete config.headers['Content-Type']
       }
       config.headers['accToken'] = accessToken
     }

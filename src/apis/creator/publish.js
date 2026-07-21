@@ -1,4 +1,4 @@
-import request from '@/common/wemedia_request'
+import request from '@/common/article_request'
 
 const API_USERIMAGES_LIST = '/api/v1/material/list'
 const API_USERIMAGES_ADD = '/api/v1/material/upload_picture'
@@ -91,12 +91,9 @@ export const getTopicList = (keyword) => {
 export const importMarkdown = (file) => {
   const formData = new FormData()
   formData.append('file', file)
-  return articleRequest({
+  return request({
     url: '/api/v1/article/import',
     method: 'post',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    data: formData
   })
 }

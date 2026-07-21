@@ -286,7 +286,7 @@
   import uploadImgUrl from "@/static/images/creator/pic_bg.png";
   import { permission } from "@/utils/permission";
   import { API_DRAFT_CREATE, API_DRAFT_UPDATE, API_DRAFT_PUBLISH } from "@/pages/creator/constants/api";
-  import wemediaRequest from '@/common/wemedia_request';
+  import wemediaRequest from '@/common/article_request';
 
   export default {
     name: "PublishEditor",

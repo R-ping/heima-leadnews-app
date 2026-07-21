@@ -18,7 +18,7 @@ import com.heima.model.article.pojos.ApArticleDraft;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.pojos.ApUser;
-import com.heima.utils.thread.WmThreadLocalUtil;
+import com.heima.utils.thread.AppThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,9 +48,10 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
     @Override
     @Transactional
     public ResponseResult createDraft(ApArticleDraft draft) {
+        ApUser user = AppThreadLocalUtil.getUser();
         draft.setCreatedTime(new Date());
         draft.setUpdatedTime(new Date());
-        draft.setAuthorId(WmThreadLocalUtil.getUser().getId().longValue());
+        draft.setAuthorId(user.getId().longValue());
         save(draft);
         log.info("草稿创建成功, draftId: {}", draft.getId());
         return ResponseResult.okResult(draft);
@@ -59,6 +60,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
     @Override
     @Transactional
     public ResponseResult updateDraft(ApArticleDraft draft) {
+        ApUser user = AppThreadLocalUtil.getUser();
         if (draft.getId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "草稿ID不能为空");
         }
@@ -68,7 +70,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         }
         draft.setUpdatedTime(new Date());
         if (draft.getAuthorId() == null) {
-            draft.setAuthorId(WmThreadLocalUtil.getUser().getId().longValue());
+            draft.setAuthorId(user.getId().longValue());
         }
         updateById(draft);
         return ResponseResult.okResult(draft);
@@ -77,6 +79,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
     @Override
     @Transactional
     public ResponseResult publishFromDraft(Long draftId) {
+        ApUser user = AppThreadLocalUtil.getUser();
         if (draftId == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "草稿ID不能为空");
         }
@@ -88,7 +91,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         // 从草稿直接创建 ap_article 记录
         ApArticle article = new ApArticle();
         article.setTitle(draft.getTitle());
-        article.setAuthorId(draft.getAuthorId() != null ? draft.getAuthorId() : WmThreadLocalUtil.getUser().getId().longValue());
+        article.setAuthorId(draft.getAuthorId() != null ? draft.getAuthorId() : user.getId().longValue());
         article.setChannelId(draft.getChannelId());
         article.setLayout(draft.getLayout() != null ? draft.getLayout().byteValue() : (byte) 0);
         article.setImages(draft.getImages());
@@ -98,7 +101,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         article.setStatus(ApArticle.Status.SUBMIT.getCode()); // 审核中
 
         // 查询作者信息
-        ApUser apUser = WmThreadLocalUtil.getUser();
+        ApUser apUser = AppThreadLocalUtil.getUser();
         if (apUser != null) {
             article.setAuthorName(apUser.getNickname());
             article.setAuthorImage(apUser.getImage());

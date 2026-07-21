@@ -1,9 +1,9 @@
 package com.heima.article.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.heima.model.wemedia.pojos.WmChannel;
+import com.heima.model.article.pojos.ApChannel;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface ChannelMapper extends BaseMapper<WmChannel> {
+public interface ChannelMapper extends BaseMapper<ApChannel> {
 }

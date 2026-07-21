@@ -1,7 +1,6 @@
 package com.heima.article.service;
 
-import com.heima.model.wemedia.pojos.WmTag;
-
+import com.heima.model.article.pojos.ApTag;
 import java.util.List;
 
 public interface TagService {
@@ -11,5 +10,5 @@ public interface TagService {
      * @param keyword 关键字
      * @return
      */
-    List<WmTag> findList(String keyword);
+    List<ApTag> findList(String keyword);
 }

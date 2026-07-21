@@ -2,7 +2,6 @@ package com.heima.article.interceptor;
 
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
-import com.heima.utils.thread.WmThreadLocalUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -27,7 +26,6 @@ public class AppTokenInterceptor implements HandlerInterceptor {
             ApUser apUser = new ApUser();
             apUser.setId(Integer.valueOf(userId));
             AppThreadLocalUtil.setUser(apUser);
-
         }
         return true;
     }
@@ -42,11 +40,9 @@ public class AppTokenInterceptor implements HandlerInterceptor {
      */
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-//        WmThreadLocalUtil.clear();
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        WmThreadLocalUtil.clear();
     }
 }

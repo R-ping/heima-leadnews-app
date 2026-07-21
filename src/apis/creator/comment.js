@@ -1,4 +1,4 @@
-import request from '@/common/wemedia_request'
+import request from '@/common/article_request'
 
 const API_COMMENT_LIST = '/api/v1/comment/list'
 const API_CLOSECOMMENTS = 'comments/status'
