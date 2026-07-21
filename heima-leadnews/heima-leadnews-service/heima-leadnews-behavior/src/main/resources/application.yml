@@ -1,0 +1,40 @@
+server:
+  port: 51805
+spring:
+  application:
+    name: leadnews-behavior
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: 192.168.200.130:8848
+#      config:
+#        server-addr: 192.168.200.130:8848
+#        file-extension: yml
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      # 读超时
+      timeout: 5s
+      # 连接超时
+      connect-timeout: 5s
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/leadnews_article?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false
+    username: root
+    password: 123456
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    producer:
+      retries: 10
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#minio:
+#  accessKey: minio
+#  secretKey: minio123
+#  bucket: leadnews
+#  endpoint: http://47.104.68.187:9000
+#  readPath: http://47.104.68.187:9000

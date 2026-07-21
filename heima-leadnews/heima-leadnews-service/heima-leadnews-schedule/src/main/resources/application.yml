@@ -1,0 +1,69 @@
+server:
+#  port: ${server.port:51701}
+  port: 51701
+spring:
+  application:
+    name: leadnews-schedule
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/leadnews_schedule?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&&useSSL=false
+    username: root
+    password: 123456
+  rabbitmq:
+    host: 192.168.44.128
+    port: 5672
+    username: admin
+    password: admin
+    connection-timeout: 5000ms
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        multiplier: 1
+        max-attempts: 2
+    publisher-confirm-type: correlated
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 20000
+            readTimeout: 20000
+  # 设置Mapper接口所对应的XML文件位置，如果你在Mapper接口中有自定义方法，需要进行该配置
+  data:
+    redis:
+#      host: 47.104.68.187
+      host: localhost
+      port: 6379
+      # 读超时
+      timeout: 5s
+      # 连接超时
+      connect-timeout: 5s
+#      password: 123456
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+  mapper-locations: classpath*:mapper/*.xml
+  # 设置别名包扫描路径，通过该属性可以给包中的类注册别名
+  type-aliases-package: com.heima.model.article.pojos
+feign:
+  # 开启feign对hystrix熔断降级的支持
+  sentinel:
+    enabled: true
+  # 修改调用超时时间
+
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: 192.168.200.130:8848
+#      config:
+#        server-addr: 192.168.200.130:8848
+#        file-extension: yml

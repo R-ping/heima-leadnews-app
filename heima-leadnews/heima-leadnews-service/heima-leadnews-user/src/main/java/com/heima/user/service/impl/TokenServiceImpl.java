@@ -1,0 +1,105 @@
+package com.heima.user.service.impl;
+
+import com.alibaba.fastjson.JSON;
+import com.heima.model.user.dtos.LoginResultVo;
+import com.heima.user.service.TokenService;
+import com.heima.utils.common.AppJwtUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 双Token认证服务实现
+ */
+@Slf4j
+@Service
+public class TokenServiceImpl implements TokenService {
+
+    private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
+    /** refresh_token 有效期：7天 */
+    private static final long REFRESH_TOKEN_TTL = 7;
+    private static final TimeUnit REFRESH_TOKEN_UNIT = TimeUnit.DAYS;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Override
+    public LoginResultVo generateDualToken(Integer userId, String nickName, String phone, String image) {
+        // 1. 生成 JWT access_token（1小时有效期）
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("nickName", nickName);
+//        extraClaims.put("phone", phone != null ? phone : "");
+        String accessToken = AppJwtUtil.getToken(userId.longValue(), extraClaims);
+        // 2. 生成 UUID refresh_token
+        String refreshToken = UUID.randomUUID().toString().replace("-", "");
+        // 3. 将 refresh_token → 用户信息存入Redis
+        Map<String, String> userInfo = new HashMap<>();
+        userInfo.put("userId", String.valueOf(userId));
+        userInfo.put("nickName", nickName);
+        userInfo.put("phone", phone);
+        userInfo.put("image", image);
+
+        String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
+        redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(userInfo),
+                REFRESH_TOKEN_TTL, REFRESH_TOKEN_UNIT);
+        log.info("生成双token成功: userId={}, refreshToken={}", userId, refreshToken);
+        // 4. 构建返回结果
+        return LoginResultVo.builder()
+                .status("login")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(userId)
+                .nickName(nickName)
+                .phone(phone)
+                .avatar(image)
+                .build();
+    }
+
+    @Override
+    public LoginResultVo refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            log.warn("refresh_token为空");
+            return null;
+        }
+
+        String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
+        String userInfoJson = redisTemplate.opsForValue().get(redisKey);
+
+        if (userInfoJson == null) {
+            log.warn("refresh_token无效或已过期: {}", refreshToken);
+            return null;
+        }
+
+        // 解析Redis中的用户信息
+        @SuppressWarnings("unchecked")
+        Map<String, String> userInfo = JSON.parseObject(userInfoJson, Map.class);
+        Integer userId = Integer.valueOf(userInfo.get("userId"));
+        String nickName = userInfo.get("nickName");
+        String phone = userInfo.get("phone");
+        String image = userInfo.get("image");
+
+        // 删除旧的 refresh_token（一次性使用，防止重放攻击）
+        redisTemplate.delete(redisKey);
+
+        // 生成新的双token
+        LoginResultVo result = generateDualToken(userId, nickName, phone, image);
+        log.info("刷新token成功: userId={}", userId);
+        return result;
+    }
+
+    @Override
+    public void revokeRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
+        redisTemplate.delete(redisKey);
+        log.info("吊销refresh_token成功: {}", refreshToken);
+    }
+}

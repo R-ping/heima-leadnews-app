@@ -1,0 +1,61 @@
+server:
+  port: 51901
+spring:
+  application:
+    name: leadnews-user
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/leadnews_user?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+  data:
+    redis:
+      port: 6379
+      host: localhost
+  # FreeMarker 模板引擎配置
+  freemarker:
+    charset: UTF-8
+    suffix: .ftl
+    content-type: text/html
+    template-loader-path: classpath:/templates/
+# 设置Mapper接口所对应的XML文件位置，如果你在Mapper接口中有自定义方法，需要进行该配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+  mapper-locations: classpath*:mapper/*.xml
+  # 设置别名包扫描路径，通过该属性可以给包中的类注册别名
+  type-aliases-package: com.heima.model.user.pojos
+# 日志
+logging:
+  level:
+    com.heima: debug
+
+# 第三方登录 OAuth 配置（请替换为实际的参数值）
+oauth:
+  weibo:
+    client-id: 3770872274
+    redirect-uri: https://195b7e5b.r40.cpolar.top/oauth/callback
+    authorize-url: https://api.weibo.com/oauth2/authorize
+  github:
+    client-id: Ov23liBlhpjPoc6XKPbf
+    redirect-uri: https://195b7e5b.r40.cpolar.top/oauth/callback
+    authorize-url: https://github.com/login/oauth/authorize
+  wechat:
+    # 公众号二维码图片URL（需替换为实际的公众号二维码）
+    qrcode-url: mmexport1780758632985.jpeg
+
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: 192.168.200.130:8848
+#      config:
+#        server-addr: 192.168.200.130:8848
+#        file-extension: yml

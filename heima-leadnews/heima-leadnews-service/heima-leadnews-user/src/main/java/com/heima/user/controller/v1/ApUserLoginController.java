@@ -1,0 +1,84 @@
+package com.heima.user.controller.v1;
+
+import cn.hutool.core.util.StrUtil;
+import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.common.enums.AppHttpCodeEnum;
+import com.heima.model.user.dtos.LoginDto;
+import com.heima.model.user.dtos.SocialBindDto;
+import com.heima.user.service.ApUserService;
+import com.heima.user.service.SocialLoginService;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+
+@RestController
+@RequestMapping("/api/v1/login")
+@Slf4j
+public class ApUserLoginController {
+
+    @Autowired
+    private ApUserService apUserService;
+    @Autowired
+    private SocialLoginService socialLoginService;
+
+    /**
+     * 1、手机号验证码 登录/注册
+     * 2、手机号/邮箱 + 密码 登录
+     */
+    @PostMapping("/login_auth")
+    public ResponseResult login(@RequestBody LoginDto dto) {
+        // 确定具体流程
+        String phoneOrEmail = dto.getPhoneOrEmail();
+        String tag;
+        if (phoneOrEmail.contains("@")) {
+            // 邮箱+密码登录
+            tag = "emailPass";
+        } else if (StrUtil.isNotBlank(dto.getPassword())) {
+            // 手机号+密码登录
+            tag = "phonePass";
+        } else {
+            // 手机号验证码登录/注册
+            tag = "phoneCode";
+        }
+        return apUserService.allLoginAuth(dto, tag);
+    }
+
+    /**
+     * 已有账号 → 绑定社交账号
+     * <p>
+     * 社交登录的后置，绑定账号操作，手机号验证码的方式，
+     */
+    @PostMapping("/social_bind")
+    public ResponseResult socialBind(@RequestBody SocialBindDto dto) {
+        log.info("收到社交绑定请求: name={}", dto.getPhone());
+        // 1. 参数校验
+        if (StringUtils.isAnyBlank(dto.getPlatform(), dto.getPlatformUid(), dto.getPhone(), dto.getCode())) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_REQUIRE);
+        }
+        return socialLoginService.socialBind(dto);
+    }
+
+    /**
+     * 获取验证码接口，简单做，给uuid就行
+     *
+     * @param tag:"login" 手机号验证码的登录/注册功能
+     * @param tag:"bind" 手机号验证码，绑定社交账号功能，需校验手机号是否已绑定
+     */
+    @PostMapping("/code")
+    public ResponseResult getCode(String phone, String platform, String tag) {
+        if (StrUtil.isBlank(phone) || StrUtil.isBlank(platform)) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+        log.info("收到获取验证码请求: phone={}", phone);
+        String resultCode = socialLoginService.checkSocialBind(phone, platform, tag);
+        if (StrUtil.isBlank(resultCode)) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.SOCIAL_PHONE_BOUND_OTHER);
+        }
+        return ResponseResult.okResult(resultCode);
+    }
+}

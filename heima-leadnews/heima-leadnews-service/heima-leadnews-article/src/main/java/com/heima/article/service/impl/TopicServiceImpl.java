@@ -1,0 +1,34 @@
+package com.heima.article.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.heima.article.mapper.TopicMapper;
+import com.heima.article.service.TopicService;
+import com.heima.model.wemedia.pojos.WmTopic;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@Transactional
+@Slf4j
+public class TopicServiceImpl extends ServiceImpl<TopicMapper, WmTopic> implements TopicService {
+
+    /**
+     * 查询话题列表
+     * @param keyword 关键字
+     * @return
+     */
+    @Override
+    public List<WmTopic> findList(String keyword) {
+        LambdaQueryWrapper<WmTopic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WmTopic::getStatus, 1);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.like(WmTopic::getName, keyword.trim());
+        }
+        wrapper.orderByAsc(WmTopic::getSort);
+        return list(wrapper);
+    }
+}
