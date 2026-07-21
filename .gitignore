@@ -3,9 +3,12 @@ node_modules/
 
 # Build output
 dist/
+target/
 
 # Temp files
 .temp/
+_tmp_*
+*.tmp
 
 # Release builds
 releases/
@@ -21,6 +24,7 @@ plugins/
 .idea/
 *.swp
 *.swo
+*.iml
 
 # OS
 .DS_Store
@@ -29,3 +33,21 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# AI tools
+.claude/
+.codebuddy/
+.code-review-graph/
+.gemini/
+.qoder/
+.trae/
+.mcp.json
+opencode.jsonc
+
+# 技术文档类 md（参考文档，不纳入版本控制）
+参考资料/
+
+# 临时脚本和生成的静态文件
+generate_static.cjs
+publish_article.cjs
+article_*.html
