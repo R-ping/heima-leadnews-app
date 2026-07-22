@@ -1,0 +1,34 @@
+package com.heima.article.controller.v1;
+
+import com.heima.article.service.BrowseHistoryService;
+import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.user.pojos.ApUser;
+import com.heima.utils.thread.AppThreadLocalUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/browse-history")
+public class BrowseHistoryController {
+
+    @Autowired
+    private BrowseHistoryService browseHistoryService;
+
+    @GetMapping("/list")
+    public ResponseResult getHistoryList(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String keyword) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = user != null ? user.getId().longValue() : null;
+        return browseHistoryService.getHistoryList(userId, page, size, keyword);
+    }
+
+    @PostMapping("/clear")
+    public ResponseResult clearHistory() {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = user != null ? user.getId().longValue() : null;
+        browseHistoryService.clearHistory(userId);
+        return ResponseResult.okResult();
+    }
+}
