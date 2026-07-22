@@ -1,32 +1,57 @@
 import request from '@/common/article_request'
 
-const API_STATISTICS_NEWS = '/api/v1/statistics/news'
-const API_ARTICLES_INFO = '/api/v1/news/news'
-const API_ARTICLES_DELETE = '/api/v1/news/del_news'
-const API_SEARCHARTICELS = '/api/v1/news/list'
-const API_ARTICLES_UPDOWN = '/api/v1/news/down_or_up'
-
-// 获取图文统计数据
-export const getNewsStatistics = (params) => {
-  return request.get(API_STATISTICS_NEWS, { params })
+export const getArticleList = (params) => {
+  return request.get('/api/v1/article/manage/list', { params })
 }
 
-// 根据ID获取文章详情
-export const getArticleById = (articlesId) => {
-  return request.post(API_ARTICLES_INFO, { id: articlesId })
+export const getArticleStatistics = () => {
+  return request.get('/api/v1/article/manage/statistics')
 }
 
-// 删除文章
-export const deleteArticles = (data) => {
-  return request.delete(API_ARTICLES_DELETE, { data })
+export const deleteArticle = (id) => {
+  return request.post('/api/v1/article/manage/delete', { id })
 }
 
-// 检索文章
-export const searchArticle = (params) => {
-  return request.get(API_SEARCHARTICELS, { params })
+export const getDraftList = (params) => {
+  return request.get('/api/v1/draft/manage/list', { params })
 }
 
-// 文章上下架
-export const upDownArticle = (data) => {
-  return request.post(API_ARTICLES_UPDOWN, data)
+export const deleteDraft = (id) => {
+  return request.post('/api/v1/draft/manage/delete', { id })
+}
+
+export const getColumnList = (params) => {
+  return request.get('/api/v1/column/manage/list', { params })
+}
+
+export const getColumnStatistics = () => {
+  return request.get('/api/v1/column/manage/statistics')
+}
+
+export const createColumn = (data) => {
+  return request.post('/api/v1/column/manage/create', data)
+}
+
+export const updateColumn = (data) => {
+  return request.post('/api/v1/column/manage/update', data)
+}
+
+export const deleteColumn = (id) => {
+  return request.post('/api/v1/column/manage/delete', { id })
+}
+
+export const getPinsList = (params) => {
+  return request.get('/api/v1/pins/manage/list', { params })
+}
+
+export const getPinsStatistics = () => {
+  return request.get('/api/v1/pins/manage/statistics')
+}
+
+export const createPins = (data) => {
+  return request.post('/api/v1/pins/manage/create', data)
+}
+
+export const deletePins = (id) => {
+  return request.post('/api/v1/pins/manage/delete', { id })
 }

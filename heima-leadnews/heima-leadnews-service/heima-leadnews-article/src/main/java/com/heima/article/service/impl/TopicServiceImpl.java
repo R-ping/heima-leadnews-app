@@ -27,7 +27,7 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, ApTopic> implemen
         if (keyword != null && !keyword.trim().isEmpty()) {
             wrapper.like(ApTopic::getName, keyword.trim());
         }
-        wrapper.orderByAsc(ApTopic::getSortOrder);
+        wrapper.orderByAsc(ApTopic::getSort);
         return list(wrapper);
     }
 }

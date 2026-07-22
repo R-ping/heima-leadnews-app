@@ -157,6 +157,12 @@ public class ApArticle implements Serializable {
     private String authorImage;
 
     /**
+     * 是否删除 0 未删除 1 已删除
+     */
+    @TableField("is_deleted")
+    private Boolean isDeleted = false;
+
+    /**
      * 审核状态枚举
      */
     public enum Status {

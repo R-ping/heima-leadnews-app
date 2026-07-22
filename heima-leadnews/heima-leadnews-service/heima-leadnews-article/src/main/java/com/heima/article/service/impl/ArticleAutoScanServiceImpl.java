@@ -164,6 +164,9 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
     private void updateArticle(ApArticle article, byte status, String reason) {
         article.setStatus(status);
         article.setReason(reason);
+        if (status == Status.FAIL.getCode() && !article.getIsDeleted()) {
+            article.setIsDeleted(true);
+        }
         apArticleMapper.updateById(article);
     }
 }

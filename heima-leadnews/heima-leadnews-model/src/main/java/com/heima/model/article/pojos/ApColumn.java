@@ -10,8 +10,8 @@ import java.io.Serializable;
 import java.util.Date;
 
 @Data
-@TableName("ap_pins")
-public class ApPins implements Serializable {
+@TableName("ap_column")
+public class ApColumn implements Serializable {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
@@ -25,23 +25,20 @@ public class ApPins implements Serializable {
     @TableField("author_image")
     private String authorImage;
 
-    private String content;
+    private String title;
 
-    @TableField("image_urls")
-    private String imageUrls;
+    private String description;
 
-    @TableField("topic_tags")
-    private String topicTags;
+    @TableField("cover_image")
+    private String coverImage;
 
-    private Integer likes = 0;
+    @TableField("article_count")
+    private Integer articleCount = 0;
 
-    private Integer comment = 0;
-
-    private Integer share = 0;
+    @TableField("subscribe_count")
+    private Integer subscribeCount = 0;
 
     private Byte status;
-
-    private String reason;
 
     @TableField("is_deleted")
     private Boolean isDeleted = false;
@@ -49,8 +46,8 @@ public class ApPins implements Serializable {
     @TableField("created_time")
     private Date createdTime;
 
-    @TableField("publish_time")
-    private Date publishTime;
+    @TableField("updated_time")
+    private Date updatedTime;
 
     public enum Status {
         DRAFT((byte) 0),

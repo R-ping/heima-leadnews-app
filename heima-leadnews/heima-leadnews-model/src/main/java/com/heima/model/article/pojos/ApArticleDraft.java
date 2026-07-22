@@ -52,4 +52,10 @@ public class ApArticleDraft implements Serializable {
     private Date updatedTime;
 
     private Byte status;
+
+    /**
+     * 是否删除 0 未删除 1 已删除
+     */
+    @TableField("is_deleted")
+    private Boolean isDeleted = false;
 }
