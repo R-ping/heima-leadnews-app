@@ -11,6 +11,16 @@
                         <div class="user-intro">{{ userInfo.intro || '这个人很懒，什么都没有留下' }}</div>
                         <div class="user-stats-row">
                             <span class="stat-item">
+                                <span class="stat-num">{{ stats.likedCount }}</span>
+                                <span class="stat-text">文章被点赞</span>
+                            </span>
+                            <span class="stat-divider">·</span>
+                            <span class="stat-item">
+                                <span class="stat-num">{{ stats.readCount }}</span>
+                                <span class="stat-text">文章被阅读</span>
+                            </span>
+                            <span class="stat-divider">·</span>
+                            <span class="stat-item">
                                 <span class="stat-num">{{ stats.followCount }}</span>
                                 <span class="stat-text">关注</span>
                             </span>
@@ -21,13 +31,8 @@
                             </span>
                             <span class="stat-divider">·</span>
                             <span class="stat-item">
-                                <span class="stat-num">{{ stats.articleCount }}</span>
-                                <span class="stat-text">文章</span>
-                            </span>
-                            <span class="stat-divider">·</span>
-                            <span class="stat-item">
-                                <span class="stat-num">{{ stats.readCount }}</span>
-                                <span class="stat-text">阅读</span>
+                                <span class="stat-num">{{ stats.badgeCount }}</span>
+                                <span class="stat-text">获得徽章</span>
                             </span>
                         </div>
                     </div>
@@ -412,10 +417,11 @@ export default {
             stats: {
                 followCount: 0,
                 followerCount: 0,
-                articleCount: 0,
+                likedCount: 0,
                 readCount: '0',
                 collectionCount: 0,
-                tagCount: 0
+                tagCount: 0,
+                badgeCount: 0
             },
             levelInfo: {
                 dailyScore: 0,
@@ -477,10 +483,11 @@ export default {
                     this.stats = {
                         followCount: data.followCount || 0,
                         followerCount: data.followerCount || 0,
-                        articleCount: data.articleCount || 0,
+                        likedCount: data.likeCount || 0,
                         readCount: data.readCount || '0',
                         collectionCount: data.collectionCount || 0,
-                        tagCount: data.tagCount || 0
+                        tagCount: data.tagCount || 0,
+                        badgeCount: data.badgeCount || 0
                     }
                     this.levelInfo = {
                         dailyScore: data.dailyScore || 0,
