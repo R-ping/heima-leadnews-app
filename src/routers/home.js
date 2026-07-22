@@ -9,6 +9,9 @@ import OAuthCallback from '@/pages/oauth_callback/index'
 import User from '@/pages/user/index'
 import UserSettings from '@/pages/user/settings/index'
 import UserGrowth from '@/pages/user/growth/index'
+import UserCheckin from '@/pages/user/checkin/index'
+import UserCourses from '@/pages/user/courses/index'
+import UserHistory from '@/pages/user/history/index'
 import Notification from '@/pages/notification/index'
 import Pins from '@/pages/pins/index.vue'
 import PinsCircles from '@/pages/pins/circles.vue'
@@ -65,6 +68,18 @@ let routes = [
         path:'/user/growth',
         name:'user-growth',
         component:UserGrowth
+    },{
+        path:'/user/checkin',
+        name:'user-checkin',
+        component:UserCheckin
+    },{
+        path:'/user/courses',
+        name:'user-courses',
+        component:UserCourses
+    },{
+        path:'/user/history',
+        name:'user-history',
+        component:UserHistory
     },{
         path:'/notification',
         name:'notification',

@@ -100,6 +100,13 @@
                 </div>
                 <div 
                     class="tab-item" 
+                    :class="{ 'active': activeTab === 'boiling' }"
+                    @click="switchTab('boiling')"
+                >
+                    沸点
+                </div>
+                <div 
+                    class="tab-item" 
                     :class="{ 'active': activeTab === 'column' }"
                     @click="switchTab('column')"
                 >
@@ -107,10 +114,10 @@
                 </div>
                 <div 
                     class="tab-item" 
-                    :class="{ 'active': activeTab === 'boiling' }"
-                    @click="switchTab('boiling')"
+                    :class="{ 'active': activeTab === 'courses' }"
+                    @click="switchTab('courses')"
                 >
-                    沸点
+                    课程
                 </div>
                 <div 
                     class="tab-item" 
@@ -128,10 +135,10 @@
                 </div>
                 <div 
                     class="tab-item" 
-                    :class="{ 'active': activeTab === 'work' }"
-                    @click="switchTab('work')"
+                    :class="{ 'active': activeTab === 'likes' }"
+                    @click="switchTab('likes')"
                 >
-                    作品
+                    赞
                 </div>
             </div>
 
@@ -294,10 +301,36 @@
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'work'" class="tab-content">
+                <div v-if="activeTab === 'courses'" class="tab-content">
                     <div class="empty-state">
-                        <div class="empty-icon">🎨</div>
-                        <div class="empty-text">暂无作品</div>
+                        <div class="empty-icon">🎓</div>
+                        <div class="empty-text">暂无课程</div>
+                    </div>
+                </div>
+
+                <div v-if="activeTab === 'likes'" class="tab-content">
+                    <div class="follow-subtabs">
+                        <button class="subtab-btn" :class="{ 'active': likesSubtab === 'article' }" @click="likesSubtab = 'article'">文章</button>
+                        <button class="subtab-btn" :class="{ 'active': likesSubtab === 'pins' }" @click="likesSubtab = 'pins'">沸点</button>
+                    </div>
+                    <div v-if="likesSubtab === 'article'" class="article-list">
+                        <div v-if="likedArticles.length === 0" class="empty-state">
+                            <div class="empty-icon">👍</div>
+                            <div class="empty-text">暂无点赞的文章</div>
+                        </div>
+                        <div class="article-item" v-for="article in likedArticles" :key="article.id">
+                            <div class="article-info">
+                                <div class="article-title">{{ article.title }}</div>
+                                <div class="article-meta">
+                                    <span class="article-time">{{ article.time }}</span>
+                                    <span class="article-read">{{ article.readCount }}阅读</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="likesSubtab === 'pins'" class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <div class="empty-text">暂无点赞的沸点</div>
                     </div>
                 </div>
             </div>
@@ -356,6 +389,8 @@
 import HomeBar from '@/compoents/bars/home_bar'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
 import { toast } from '@/utils/toast'
+import { getUserStatistics } from '@/apis/user'
+import { getArticleList } from '@/apis/creator/content'
 
 export default {
     name: 'UserProfile',
@@ -365,69 +400,45 @@ export default {
             activeTab: 'dynamic',
             articleFilter: 'hot',
             followSubtab: 'following',
+            likesSubtab: 'article',
             showCreateColumn: false,
             showCollectionDetailModal: false,
             selectedCollection: null,
             userInfo: {
-                nickName: '程序员小站',
+                nickName: '',
                 avatar: '',
-                intro: '分享技术心得，记录成长历程'
+                intro: ''
             },
             stats: {
-                followCount: 4,
-                followerCount: 1,
-                articleCount: 5,
-                readCount: '12k',
-                collectionCount: 1,
+                followCount: 0,
+                followerCount: 0,
+                articleCount: 0,
+                readCount: '0',
+                collectionCount: 0,
                 tagCount: 0
             },
             levelInfo: {
-                dailyScore: 1250,
-                dailyLevel: 3,
-                dailyTitle: '中级掘友',
-                powerValue: 2300,
-                powerLevel: 4,
-                powerTitle: '高级创作者'
+                dailyScore: 0,
+                dailyLevel: 0,
+                dailyTitle: '',
+                powerValue: 0,
+                powerLevel: 0,
+                powerTitle: ''
             },
             columnForm: {
                 name: '',
                 desc: '',
                 cover: ''
             },
-            dynamicList: [
-                { id: 1, userAvatar: '', userName: '程序员小站', action: '关注了', target: '雨夜寻晴天', time: '2小时前' },
-                { id: 2, userAvatar: '', userName: '程序员小站', action: '关注了', target: '大前端历险记', time: '3小时前' },
-                { id: 3, userAvatar: '', userName: '程序员小站', action: '发布了文章', target: 'Vue3组合式API入门指南', time: '1天前' },
-                { id: 4, userAvatar: '', userName: '程序员小站', action: '关注了', target: '奋飛', time: '2天前' }
-            ],
-            articleList: [
-                { id: 1, title: 'Vue3组合式API入门指南', time: '2025-10-20', readCount: '3.2k', commentCount: 15 },
-                { id: 2, title: 'TypeScript高级类型技巧', time: '2025-10-18', readCount: '2.1k', commentCount: 8 },
-                { id: 3, title: 'React Hooks最佳实践', time: '2025-10-15', readCount: '1.8k', commentCount: 12 }
-            ],
+            dynamicList: [],
+            articleList: [],
             columnList: [],
-            collectionList: [
-                { 
-                    id: 1, 
-                    name: '前端学习笔记', 
-                    articleCount: 10,
-                    articles: [
-                        { id: 1, title: 'JavaScript基础', time: '2025-10-01', readCount: '1.2k' },
-                        { id: 2, title: 'CSS布局技巧', time: '2025-09-28', readCount: '800' }
-                    ]
-                }
-            ],
-            followingList: [
-                { id: 1, name: '雨夜寻晴天', avatar: '', intro: '全栈开发者' },
-                { id: 2, name: '大前端历险记', avatar: '', intro: '前端架构师' },
-                { id: 3, name: '奋飛', avatar: '', intro: '技术博主' },
-                { id: 4, name: 'qwfy', avatar: '', intro: '程序员' }
-            ],
-            followersList: [
-                { id: 1, name: '新来的小伙伴', avatar: '', intro: '前端新手' }
-            ],
+            collectionList: [],
+            followingList: [],
+            followersList: [],
             subscribedColumns: [],
-            followedTags: []
+            followedTags: [],
+            likedArticles: []
         }
     },
     computed: {
@@ -435,7 +446,76 @@ export default {
             return defaultAvatar
         }
     },
+    mounted() {
+        this.loadUserData()
+    },
     methods: {
+        async loadUserData() {
+            // Read URL params for tab navigation
+            if (this.$route.query.tab) {
+                this.activeTab = this.$route.query.tab
+            }
+            if (this.$route.query.subTab) {
+                this.followSubtab = this.$route.query.subTab
+            }
+
+            // Load user info from Vuex store
+            const storeUserInfo = this.$store.getters.userInfo
+            if (storeUserInfo) {
+                this.userInfo = {
+                    nickName: storeUserInfo.nickName || '',
+                    avatar: storeUserInfo.avatar || '',
+                    intro: storeUserInfo.intro || ''
+                }
+            }
+
+            // Fetch user statistics
+            try {
+                const statsRes = await getUserStatistics()
+                if (statsRes && statsRes.data) {
+                    const data = statsRes.data
+                    this.stats = {
+                        followCount: data.followCount || 0,
+                        followerCount: data.followerCount || 0,
+                        articleCount: data.articleCount || 0,
+                        readCount: data.readCount || '0',
+                        collectionCount: data.collectionCount || 0,
+                        tagCount: data.tagCount || 0
+                    }
+                    this.levelInfo = {
+                        dailyScore: data.dailyScore || 0,
+                        dailyLevel: data.dailyLevel || 0,
+                        dailyTitle: data.dailyTitle || '',
+                        powerValue: data.powerValue || 0,
+                        powerLevel: data.powerLevel || 0,
+                        powerTitle: data.powerTitle || ''
+                    }
+                }
+            } catch (e) {
+                // Keep default values when API fails
+            }
+
+            // Fetch articles when active tab is article
+            if (this.activeTab === 'article') {
+                this.fetchArticles()
+            }
+        },
+        async fetchArticles() {
+            try {
+                const res = await getArticleList({ authorId: this.userInfo.id || this.$store.getters.userInfo?.id })
+                if (res && res.data && res.data.list) {
+                    this.articleList = res.data.list.map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        time: item.createTime || item.createdAt || '',
+                        readCount: item.readCount || 0,
+                        commentCount: item.commentCount || 0
+                    }))
+                }
+            } catch (e) {
+                // Keep empty list when API fails
+            }
+        },
         switchTab(tab) {
             this.activeTab = tab
         },
