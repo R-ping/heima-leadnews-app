@@ -20,7 +20,7 @@
                     </div>
                     <div class="dropdown-diamond" @click.stop>
                         <span class="diamond-icon">&#xf219;</span>
-                        <span class="diamond-text">矿石: {{ diamondCount }}</span>
+                        <span class="diamond-text">矿石: {{ formattedDiamond }}</span>
                         <span class="diamond-arrow">&#xf105;</span>
                     </div>
                 </div>
@@ -31,7 +31,7 @@
                         <div class="level-progress-bar">
                             <div class="level-progress-fill" :style="{ width: levelPercent + '%' }"></div>
                         </div>
-                        <span class="level-text">{{ levelScore }}/{{ levelMax }}</span>
+                        <span class="level-text">{{ formattedLevelText }}</span>
                     </div>
                     <span class="level-arrow">&#xf105;</span>
                 </div>
@@ -130,6 +130,17 @@
                     return '/static/images/' + this.userInfo.avatar + '.png'
                 }
                 return ''
+            },
+            formattedDiamond() {
+                const count = parseFloat(this.diamondCount)
+                if (isNaN(count)) return '0'
+                if (count >= 1000) {
+                    return (count / 1000).toFixed(1) + 'k'
+                }
+                return String(Math.floor(count))
+            },
+            formattedLevelText() {
+                return this.levelScore + ' / ' + this.levelMax
             }
         },
         methods: {
