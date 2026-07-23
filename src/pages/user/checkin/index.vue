@@ -133,7 +133,7 @@
 </template>
 
 <script>
-import { doCheckIn, getCheckInRecords, getCheckInStats } from '@/apis/checkin'
+import { doCheckIn, getCheckInRecords, getCheckInStats, getCheckInTasks } from '@/apis/checkin'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -162,40 +162,7 @@ export default {
                 patchCardCount: 0
             },
             todaySigned: false,
-            tasks: [
-                {
-                    id: 1,
-                    icon: '📝',
-                    name: '首次成功发布文章（>400字）',
-                    description: '发布一篇超过400字的文章',
-                    reward: 10000,
-                    completed: true
-                },
-                {
-                    id: 2,
-                    icon: '💧',
-                    name: '首次成功发布沸点',
-                    description: '发布一条沸点动态',
-                    reward: 5000,
-                    completed: true
-                },
-                {
-                    id: 3,
-                    icon: '📖',
-                    name: '阅读文章',
-                    description: '阅读5篇文章',
-                    reward: 10,
-                    completed: false
-                },
-                {
-                    id: 4,
-                    icon: '💬',
-                    name: '发表评论',
-                    description: '发表3条评论',
-                    reward: 15,
-                    completed: false
-                }
-            ]
+            tasks: []
         }
     },
     computed: {
@@ -269,6 +236,7 @@ export default {
         async loadData() {
             await this.loadStats()
             await this.loadRecords()
+            await this.loadTasks()
         },
         async loadStats() {
             try {
@@ -282,13 +250,7 @@ export default {
                     this.todaySigned = data.todaySigned || false
                 }
             } catch (error) {
-                this.stats = {
-                    consecutiveDays: 5,
-                    totalDays: 1977,
-                    oreCount: 1977,
-                    patchCardCount: 0
-                }
-                this.todaySigned = false
+                // Keep default values when API fails
             }
         },
         async loadRecords() {
@@ -302,6 +264,16 @@ export default {
                 }
             } catch (error) {
                 this.signedDates = []
+            }
+        },
+        async loadTasks() {
+            try {
+                const res = await getCheckInTasks()
+                if (res && res.code === 200 && res.data) {
+                    this.tasks = res.data.list || res.data || []
+                }
+            } catch (error) {
+                // Keep empty tasks when API fails
             }
         },
         async handleCellClick(cell) {
