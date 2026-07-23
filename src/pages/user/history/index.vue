@@ -93,22 +93,7 @@ export default {
             historyList: [],
             currentPage: 1,
             pageSize: 10,
-            total: 0,
-            mockHistory: [
-                {
-                    date: '2024-01-15',
-                    items: [
-                        { id: 1, articleId: 101, articleTitle: 'Vue3 组合式 API 入门指南', authorName: '程序员小站', readCount: 3200, likeCount: 15, commentCount: 8, browseTime: '2024-01-15 14:30' },
-                        { id: 2, articleId: 102, articleTitle: 'TypeScript 高级类型技巧', authorName: '程序员小站', readCount: 2100, likeCount: 8, commentCount: 12, browseTime: '2024-01-15 10:15' }
-                    ]
-                },
-                {
-                    date: '2024-01-14',
-                    items: [
-                        { id: 3, articleId: 103, articleTitle: 'React Hooks 最佳实践', authorName: '前端达人', readCount: 1800, likeCount: 12, commentCount: 5, browseTime: '2024-01-14 16:45' }
-                    ]
-                }
-            ]
+            total: 0
         }
     },
     computed: {
@@ -131,31 +116,11 @@ export default {
                 if (res && res.code === 200 && res.data) {
                     this.historyList = res.data.list || []
                     this.total = res.data.total || 0
-                } else {
-                    this.useMockData()
                 }
             } catch (e) {
-                this.useMockData()
+                // Keep empty history when API fails
             } finally {
                 this.loading = false
-            }
-        },
-        useMockData() {
-            if (this.searchKeyword) {
-                const keyword = this.searchKeyword.toLowerCase()
-                this.historyList = this.mockHistory
-                    .map(group => ({
-                        date: group.date,
-                        items: group.items.filter(item =>
-                            item.articleTitle.toLowerCase().includes(keyword) ||
-                            item.authorName.toLowerCase().includes(keyword)
-                        )
-                    }))
-                    .filter(group => group.items.length > 0)
-                this.total = this.historyList.reduce((sum, g) => sum + g.items.length, 0)
-            } else {
-                this.historyList = this.mockHistory
-                this.total = this.mockHistory.reduce((sum, g) => sum + g.items.length, 0)
             }
         },
         onSearchInput() {
