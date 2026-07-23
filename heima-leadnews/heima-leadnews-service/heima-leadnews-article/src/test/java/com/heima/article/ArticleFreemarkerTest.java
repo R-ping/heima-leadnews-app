@@ -1,4 +1,4 @@
-package com.heima.article.test;
+package com.heima.article;
 
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;

@@ -5,6 +5,7 @@ import com.heima.apis.article.IArticleClient;
 import com.heima.article.service.ApArticleContentService;
 import com.heima.article.service.ApArticleEventService;
 import com.heima.article.service.ApArticleService;
+import com.heima.article.service.ArticleStatisticsService;
 import com.heima.article.service.ArticleTaskService;
 import com.heima.model.article.dtos.ArticleDto;
 import com.heima.model.article.pojos.ApArticle;
@@ -12,6 +13,7 @@ import com.heima.model.article.pojos.ApArticleContent;
 import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +34,9 @@ public class ArticleClient implements IArticleClient {
 
     @Autowired
     private ArticleTaskService articleTaskService;
+
+    @Autowired
+    private ArticleStatisticsService articleStatisticsService;
 
     @PostMapping("/api/v1/article/save")
     public ResponseResult saveArticle(@RequestBody ArticleDto dto, @RequestParam("executeTime") long executeTime) {
@@ -66,5 +71,15 @@ public class ArticleClient implements IArticleClient {
     public ResponseResult publishArticle(@RequestParam("articleId") Long articleId) {
         articleTaskService.publishArticle(articleId);
         return ResponseResult.okResult();
+    }
+
+    @PostMapping("/api/v1/article/list")
+    public List<ApArticle> listByAuthorId(@RequestBody ArticleDto dto) {
+        return apArticleService.listByAuthorId(dto);
+    }
+
+    @GetMapping("/api/v1/article/statistics")
+    public ResponseResult getStatistics(@RequestParam("userId") Long userId) {
+        return articleStatisticsService.getUserStatistics(userId);
     }
 }

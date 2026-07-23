@@ -2,9 +2,12 @@ package com.heima.apis.article.fallback;
 
 import com.heima.apis.article.IArticleClient;
 import com.heima.model.article.dtos.ArticleDto;
+import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
+import java.util.Collections;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -42,6 +45,16 @@ public class IArticleClientFallback implements IArticleClient {
     @Override
     public ResponseResult publishArticle(Long articleId) {
         return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"文章发布异常");
+    }
+
+    @Override
+    public List<ApArticle> listByAuthorId(ArticleDto dto) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public ResponseResult getStatistics(Long userId) {
+        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "获取用户统计数据异常");
     }
 
 }

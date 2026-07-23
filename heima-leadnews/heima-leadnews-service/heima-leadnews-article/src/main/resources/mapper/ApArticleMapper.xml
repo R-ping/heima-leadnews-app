@@ -12,7 +12,7 @@
         <result column="layout" property="layout"/>
         <result column="flag" property="flag"/>
         <result column="images" property="images"/>
-        <result column="labels" property="labels"/>
+        <result column="tags" property="tags"/>
         <result column="likes" property="likes"/>
         <result column="collection" property="collection"/>
         <result column="comment" property="comment"/>
@@ -34,7 +34,6 @@
         <where>
             and aac.is_delete != 1
             and aac.is_down != 1
-            <!-- loadmore -->
             <if test="type != null and type == 1">
                 and aa.publish_time <![CDATA[<]]> #{dto.minBehotTime}
             </if>

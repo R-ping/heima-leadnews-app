@@ -95,7 +95,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         article.setChannelId(draft.getChannelId());
         article.setLayout(draft.getLayout() != null ? draft.getLayout().byteValue() : (byte) 0);
         article.setImages(draft.getImages());
-        article.setLabels(draft.getLabels());
+        article.setTags(draft.getTags());
         article.setCreatedTime(new Date());
         article.setPublishTime(draft.getPublishTime() != null ? draft.getPublishTime() : new Date());
         article.setStatus(ApArticle.Status.SUBMIT.getCode()); // 审核中

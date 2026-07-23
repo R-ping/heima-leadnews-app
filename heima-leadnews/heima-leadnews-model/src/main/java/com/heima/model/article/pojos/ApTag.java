@@ -54,4 +54,10 @@ public class ApTag implements Serializable {
     @TableField("created_time")
     private Date createdTime;
 
+    @TableField("post_article_count")
+    private Integer postArticleCount;
+
+    @TableField("concern_user_count")
+    private Integer concernUserCount;
+
 }

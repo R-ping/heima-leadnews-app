@@ -2,8 +2,10 @@ package com.heima.apis.article;
 
 import com.heima.apis.article.fallback.IArticleClientFallback;
 import com.heima.model.article.dtos.ArticleDto;
+import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.common.dtos.ResponseResult;
+import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,4 +29,10 @@ public interface IArticleClient {
 
     @PostMapping("/api/v1/article/publish")
     public ResponseResult publishArticle(@RequestParam("articleId") Long articleId);
+
+    @PostMapping("/api/v1/article/list")
+    public List<ApArticle> listByAuthorId(@RequestBody ArticleDto dto);
+
+    @GetMapping("/api/v1/article/statistics")
+    public ResponseResult getStatistics(@RequestParam("userId") Long userId);
 }

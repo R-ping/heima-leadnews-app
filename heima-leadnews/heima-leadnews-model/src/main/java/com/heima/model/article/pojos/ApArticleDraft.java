@@ -4,10 +4,11 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
+import lombok.Data;
 
 @Data
 @TableName("ap_article_draft")
@@ -33,8 +34,8 @@ public class ApArticleDraft implements Serializable {
     private Short layout;
 
     private String images;
-
-    private String labels;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> tags;
 
     private String topic;
 

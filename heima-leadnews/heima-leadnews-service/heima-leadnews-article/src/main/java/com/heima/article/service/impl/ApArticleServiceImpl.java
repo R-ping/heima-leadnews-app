@@ -1,5 +1,7 @@
 package com.heima.article.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.heima.article.mapper.ApArticleConfigMapper;
@@ -47,6 +49,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
     private TransactionTemplate transactionTemplate;
     @Autowired
     private ApArticleEventMapper apArticleEventMapper;
+
     /**
      * 加载文章列表
      *
@@ -89,7 +92,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
      */
     @Override
     @Transactional
-    public ResponseResult saveArticle(ArticleDto dto,long executeTimeInterval) {
+    public ResponseResult saveArticle(ArticleDto dto, long executeTimeInterval) {
         //1.检查参数
         if (dto == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
@@ -124,14 +127,13 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
             throw new RuntimeException(e);
         }
         // 异步操作移到事务提交后，避免事务边界问题
-        articleFreemarkerService.buildHTMLAndSend(apArticle,"",executeTimeInterval);
+        articleFreemarkerService.buildHTMLAndSend(apArticle, "", executeTimeInterval);
         // 结果返回 文章的id
         return ResponseResult.okResult(apArticle.getId());
     }
 
     /**
      * 构建文章事件
-     * @return
      */
     private static ArticleEvent buildArticleEvent() {
         ArticleEvent event = new ArticleEvent();
@@ -162,6 +164,29 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
         updateScore.setId(message.getArticleId());
         updateScore.setScore(resultScore);
         updateById(updateScore);
+    }
+
+    @Override
+    public List<ApArticle> listByAuthorId(ArticleDto dto) {
+        // 构建查询条件
+        LambdaQueryWrapper<ApArticle> wrapper = new LambdaQueryWrapper<>();
+
+        // 固定条件：作者ID（如果必填）
+        wrapper.eq(dto.getAuthorId() != null, ApArticle::getAuthorId, dto.getAuthorId());
+
+        // 可选条件：频道ID
+        wrapper.eq(dto.getChannelId() != null, ApArticle::getChannelId, dto.getChannelId());
+
+        // 可选条件：JSON 标签重叠查询（修复点：将 List 转为 JSON 字符串）
+        if (dto.getTags() != null && !dto.getTags().isEmpty()) {
+            String tagsJson = JSON.toJSONString(dto.getTags()); // 得到 ["44","45"]
+            wrapper.apply("JSON_OVERLAPS(tags, {0})", tagsJson);
+        }
+
+        // 可选条件：删除状态
+        wrapper.eq(dto.getIsDeleted() != null, ApArticle::getIsDeleted, dto.getIsDeleted());
+
+        return list(wrapper);
     }
 
     /**

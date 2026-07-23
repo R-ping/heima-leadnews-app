@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * <p>
@@ -19,6 +23,9 @@ import java.util.Date;
 
 @Data
 @TableName("ap_article")
+@SuperBuilder
+@NoArgsConstructor       // 新增 — 保证 new ArticleDto() 能用
+@AllArgsConstructor      // 新增
 public class ApArticle implements Serializable {
 
     @TableId(value = "id",type = IdType.ASSIGN_ID)
@@ -54,7 +61,8 @@ public class ApArticle implements Serializable {
     private String channelName;
 
     /**
-     * 文章布局  0 无图文章   1 单图文章    2 多图文章
+     * 文章布局（封面）  1 无图文章
+     *     2 有图文章
      */
     private Byte layout;
 
@@ -70,8 +78,11 @@ public class ApArticle implements Serializable {
 
     /**
      * 标签
+     * 前端给 labels:["标签1","标签2"]
+     * 数据库存 labels:"标签1,标签2"
      */
-    private String labels;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> tags;
 
     /**
      * 点赞数量
