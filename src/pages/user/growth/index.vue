@@ -201,7 +201,7 @@ export default {
                     this.levelInfo = response.data
                 }
             } catch (error) {
-                this.loadMockLevelInfo()
+                // Keep default values when API fails
             }
         },
         async loadPermissions() {
@@ -211,7 +211,7 @@ export default {
                     this.permissions = this.mapPermissions(response.data)
                 }
             } catch (error) {
-                this.permissions = this.getMockPermissions()
+                // Keep empty permissions when API fails
             }
         },
         async loadTasks() {
@@ -221,7 +221,7 @@ export default {
                     this.tasks = this.mapTasks(response.data)
                 }
             } catch (error) {
-                this.tasks = this.getMockTasks()
+                // Keep empty tasks when API fails
             }
         },
         async handleCheckIn() {
@@ -269,38 +269,6 @@ export default {
                 default:
                     toast('任务功能开发中', 2)
             }
-        },
-        loadMockLevelInfo() {
-            this.levelInfo = {
-                dailyScore: 1250,
-                dailyLevel: 3,
-                dailyTitle: '中级掘友',
-                dailyDescription: '社区的中坚力量',
-                powerValue: 2300,
-                powerLevel: 4,
-                powerTitle: '高级创作者',
-                powerDescription: '创作经验丰富'
-            }
-        },
-        getMockPermissions() {
-            return [
-                { code: 'can_send_private_message', name: '私信权限', icon: '💬' },
-                { code: 'can_set_comment_permission', name: '评论区权限设置', icon: '🔒' },
-                { code: 'can_add_video', name: '添加视频', icon: '🎬' },
-                { code: 'can_add_2_tags', name: '2个标签', icon: '🏷️' },
-                { code: 'can_schedule_publish', name: '定时发布', icon: '⏰' },
-                { code: 'can_add_3_tags', name: '3个标签', icon: '🏷️🏷️' }
-            ]
-        },
-        getMockTasks() {
-            return [
-                { code: 'read_article', name: '阅读文章', icon: '📖', completedCount: 3, totalCount: 5, score: 2 },
-                { code: 'comment_article', name: '发表评论', icon: '💬', completedCount: 1, totalCount: 3, score: 5 },
-                { code: 'like_article', name: '点赞文章', icon: '👍', completedCount: 5, totalCount: 10, score: 1 },
-                { code: 'share_article', name: '分享文章', icon: '🔗', completedCount: 0, totalCount: 2, score: 3 },
-                { code: 'publish_article', name: '发布文章', icon: '✍️', completedCount: 0, totalCount: 1, score: 10 },
-                { code: 'follow_user', name: '关注用户', icon: '👤', completedCount: 2, totalCount: 3, score: 2 }
-            ]
         },
         mapPermissions(permissionCodes) {
             const permissionMap = {
