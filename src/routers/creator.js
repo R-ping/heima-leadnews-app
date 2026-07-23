@@ -72,6 +72,11 @@ let routes = [
                 component: () => import('@/pages/creator/material/material.vue')
             },
             {
+                path: 'data',
+                name: 'CreatorContentData',
+                component: () => import('@/pages/creator/data/index.vue')
+            },
+            {
                 path: 'fans',
                 name: 'CreatorFans',
                 component: () => import('@/pages/creator/fans/index.vue')
