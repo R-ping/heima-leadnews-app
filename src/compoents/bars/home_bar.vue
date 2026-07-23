@@ -230,7 +230,7 @@
             goToCollects() {
                 this.showUserDropdown = false
                 const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
-                this.$router.push('/user/' + userId + '?tab=collections')
+                this.$router.push('/user/' + userId + '?tab=collection')
             },
             handleMyDiscount() {
                 this.showUserDropdown = false

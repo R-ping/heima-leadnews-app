@@ -459,10 +459,27 @@ export default {
         async loadUserData() {
             // Read URL params for tab navigation
             if (this.$route.query.tab) {
-                this.activeTab = this.$route.query.tab
+                const tab = this.$route.query.tab
+                // Normalize tab name
+                const validTabs = ['dynamic', 'article', 'boiling', 'column', 'courses', 'collection', 'follow', 'likes']
+                if (validTabs.includes(tab)) {
+                    this.activeTab = tab
+                }
             }
             if (this.$route.query.subTab) {
-                this.followSubtab = this.$route.query.subTab
+                const subTab = this.$route.query.subTab
+                // Set the correct subTab based on the active tab
+                if (this.activeTab === 'follow') {
+                    const validFollowSubs = ['following', 'followers', 'columns', 'tags']
+                    if (validFollowSubs.includes(subTab)) {
+                        this.followSubtab = subTab
+                    }
+                } else if (this.activeTab === 'likes') {
+                    const validLikesSubs = ['article', 'pins']
+                    if (validLikesSubs.includes(subTab)) {
+                        this.likesSubtab = subTab
+                    }
+                }
             }
 
             // Load user info from Vuex store
