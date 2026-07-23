@@ -15,8 +15,8 @@ const  config = {
     urls:{
         // ==========  article (后端已实现)
         load:{url:'api/v1/article/load/',sv:'article'},
-        loadmore:{url:'api/v1/article/loadmore/',sv:'article'},
-        loadnew:{url:'api/v1/article/loadnew/',sv:'article'},
+        loadmore:{url:'api/v1/article/load/more',sv:'article'},
+        loadnew:{url:'api/v1/article/load/new',sv:'article'},
         article_info:{url:'api/v1/article/info',sv:'article'},
         article_content:{url:'api/v1/article/content',sv:'article'},
         // ==========  comment (article服务)

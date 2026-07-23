@@ -33,7 +33,7 @@ public class ArticleHomeController {
      * @param dto
      * @return
      */
-    @PostMapping("/loadmore/")
+    @PostMapping("/load/more")
     public ResponseResult loadmore(@RequestBody ArticleHomeDto dto){
         return apArticleService.load(dto, ArticleConstants.LOADTYPE_LOAD_MORE);
     }
@@ -43,7 +43,7 @@ public class ArticleHomeController {
      * @param dto
      * @return
      */
-    @PostMapping("/loadnew/")
+    @PostMapping("/load/new")
     public ResponseResult loadnew(@RequestBody ArticleHomeDto dto){
         return apArticleService.load(dto, ArticleConstants.LOADTYPE_LOAD_NEW);
     }

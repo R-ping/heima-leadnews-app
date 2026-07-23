@@ -24,6 +24,6 @@ public class UserStatisticsServiceImpl implements UserStatisticsService {
         }
 
         // 通过 Feign 远程调用 article 服务获取统计数据
-        return articleClient.getStatistics(currentUser.getId().longValue());
+        return articleClient.getStatisticsFeign(currentUser.getId().longValue());
     }
 }

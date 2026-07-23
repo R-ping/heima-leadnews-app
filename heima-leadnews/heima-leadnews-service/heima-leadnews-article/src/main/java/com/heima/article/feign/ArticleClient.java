@@ -78,8 +78,8 @@ public class ArticleClient implements IArticleClient {
         return apArticleService.listByAuthorId(dto);
     }
 
-    @GetMapping("/api/v1/article/statistics")
-    public ResponseResult getStatistics(@RequestParam("userId") Long userId) {
+    @GetMapping("/api/v1/article/feign/statistics")
+    public ResponseResult getStatisticsFeign(@RequestParam("userId") Long userId) {
         return articleStatisticsService.getUserStatistics(userId);
     }
 }

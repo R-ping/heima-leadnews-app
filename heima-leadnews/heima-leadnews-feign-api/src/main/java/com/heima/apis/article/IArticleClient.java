@@ -33,6 +33,6 @@ public interface IArticleClient {
     @PostMapping("/api/v1/article/list")
     public List<ApArticle> listByAuthorId(@RequestBody ArticleDto dto);
 
-    @GetMapping("/api/v1/article/statistics")
-    public ResponseResult getStatistics(@RequestParam("userId") Long userId);
+    @GetMapping("/api/v1/article/feign/statistics")
+    public ResponseResult getStatisticsFeign(@RequestParam("userId") Long userId);
 }

@@ -12,7 +12,7 @@
         <result column="layout" property="layout"/>
         <result column="flag" property="flag"/>
         <result column="images" property="images"/>
-        <result column="tags" property="tags"/>
+        <result column="tags" property="tags" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="likes" property="likes"/>
         <result column="collection" property="collection"/>
         <result column="comment" property="comment"/>

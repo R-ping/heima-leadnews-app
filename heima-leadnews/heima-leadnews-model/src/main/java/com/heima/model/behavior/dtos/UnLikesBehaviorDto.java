@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class UnLikesBehaviorDto {
     // 文章ID
-    @IdEncrypt
+//    @IdEncrypt
     Long articleId;
 
     /**

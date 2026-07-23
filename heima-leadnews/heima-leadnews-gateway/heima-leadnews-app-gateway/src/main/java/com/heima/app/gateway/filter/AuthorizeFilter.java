@@ -31,7 +31,7 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
             || path.contains("/using") || path.contains("/oauth2/code/")
             || path.contains("/token/refresh") || path.contains("/token/logout")
             || path.contains("/social_auth") || path.contains("/social_bind") || path.contains("/social_register")
-            || path.contains("api/v1/article")||path.contains("/login/code")) {
+            || path.contains("/load")||path.contains("/login/code")) {
 //        if(true){
             //放行
             return chain.filter(exchange);

@@ -53,7 +53,7 @@ public class IArticleClientFallback implements IArticleClient {
     }
 
     @Override
-    public ResponseResult getStatistics(Long userId) {
+    public ResponseResult getStatisticsFeign(Long userId) {
         return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "获取用户统计数据异常");
     }
 
