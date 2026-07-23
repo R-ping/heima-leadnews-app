@@ -1,32 +1,51 @@
 import request from '@/common/article_request'
 
-const API_FANS = '/api/v1/user_fans/list'
-const API_FOLLOWER_PORTRAIT = '/api/v1/user_fans/fans_portrait'
-const API_FANS_AVATAR = '/api/v1/user_fans/avatar'
-const API_CHANGE_FOLLOW_STATE = '/api/v1/user_fans/change_follow_state'
-const API_GET_FANS_STATISTIC = '/api/v1/statistics/fans'
-
-// 获取粉丝列表
-export const getFollowers = (params) => {
-  return request.get(API_FANS, { params })
-}
-
-// 获取粉丝画像数据
-export const getFollowersPortrait = (params) => {
-  return request.get(API_FOLLOWER_PORTRAIT, { params })
-}
-
-// 获取粉丝头像
-export const getFollowersAvatar = (params) => {
-  return request.get(API_FANS_AVATAR, { params })
-}
-
-// 改变粉丝关注状态
-export const changeFollowState = (data) => {
-  return request.post(API_CHANGE_FOLLOW_STATE, data)
-}
-
-// 获取粉丝统计数据
+/**
+ * 粉丝数据 - 统计概览（KPI指标）
+ */
 export const getFansStatistics = (params) => {
-  return request.get(API_GET_FANS_STATISTIC, { params })
+  return request.get('/api/v1/data/fans/statistics', { params })
+}
+
+/**
+ * 粉丝数据 - 趋势数据
+ */
+export const getFansTrend = (params) => {
+  return request.get('/api/v1/data/fans/trend', { params })
+}
+
+/**
+ * 粉丝数据 - 粉丝列表
+ */
+export const getFansList = (params) => {
+  return request.get('/api/v1/data/fans/list', { params })
+}
+
+/**
+ * 粉丝数据 - 关注/回关粉丝
+ */
+export const followFans = (userId) => {
+  return request.post('/api/v1/data/fans/follow', { userId })
+}
+
+/**
+ * 粉丝画像数据（info页使用）
+ */
+export const getFollowersPortrait = () => {
+  return request.get('/api/v1/data/fans/portrait')
+}
+
+/**
+ * 粉丝列表（旧版list页使用）
+ */
+export const getFollowers = (params) => {
+  return request.get('/api/v1/data/fans/list', { params })
+}
+
+export const getFollowersAvatar = (params) => {
+  return request.get('/api/v1/data/fans/avatars', { params })
+}
+
+export const changeFollowState = (data) => {
+  return request.post('/api/v1/data/fans/follow', data)
 }

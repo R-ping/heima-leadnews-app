@@ -14,7 +14,7 @@ export const MenuData = [
     icon: 'el-icon-s-data',
     children: [
       { title: '内容数据', path: '/creator/data' },
-      { title: '粉丝数据', path: '/creator/fans/index' }
+      { title: '粉丝数据', path: '/creator/fans' }
     ]
   },
   {
