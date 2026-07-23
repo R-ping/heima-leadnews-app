@@ -121,11 +121,6 @@ export default {
                 { key: 'purchased', label: '已购' },
                 { key: 'vip', label: 'VIP借阅' }
             ],
-            mockCourses: [
-                { id: 1, title: 'Vue.js 从入门到精通', coverImage: '', authorName: '张老师', progress: 60 },
-                { id: 2, title: 'Spring Boot 实战指南', coverImage: '', authorName: '李老师', progress: 30 },
-                { id: 3, title: '前端性能优化实战', coverImage: '', authorName: '王老师', progress: 0 }
-            ],
             defaultCover: '/static/images/avatar_head_1.png'
         }
     },
@@ -144,13 +139,11 @@ export default {
                 const res = await this.$http.get('/api/v1/course/my', {
                     params: { filter: this.activeFilter }
                 })
-                if (res && res.code === 200) {
+                if (res && res.code === 200 && res.data) {
                     this.courses = res.data.list || []
-                } else {
-                    this.courses = this.activeFilter !== 'vip' ? this.mockCourses : []
                 }
             } catch (e) {
-                this.courses = this.activeFilter !== 'vip' ? this.mockCourses : []
+                // Keep empty courses when API fails
             } finally {
                 this.loading = false
             }
