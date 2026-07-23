@@ -73,13 +73,81 @@
                             <span v-else class="header-avatar-default">&#xf007;</span>
                             <span class="header-username">{{ userName }}</span>
                             <div class="user-dropdown" v-if="showUserDropdown" @click.stop>
-                                <div class="dropdown-item user-info-item">
-                                    <span class="dropdown-label">{{ userName }}</span>
+                                <!-- 用户信息区 -->
+                                <div class="dropdown-user-section" @click="goToProfile">
+                                    <img v-if="userAvatar" class="dropdown-avatar" :src="userAvatar" alt="头像" />
+                                    <span v-else class="dropdown-avatar-icon">&#xf007;</span>
+                                    <div class="dropdown-user-info">
+                                        <div class="dropdown-username">{{ userName }}</div>
+                                        <div class="dropdown-user-level">{{ levelBadge }}</div>
+                                    </div>
+                                    <div class="dropdown-diamond" @click.stop>
+                                        <span class="diamond-icon">&#xf219;</span>
+                                        <span class="diamond-text">矿石: {{ formattedDiamond }}</span>
+                                        <span class="diamond-arrow">&#xf105;</span>
+                                    </div>
+                                </div>
+                                <!-- 等级进度条 -->
+                                <div class="dropdown-level-bar" @click="goToGrowth">
+                                    <div class="level-label">逐日等级 {{ levelBadge }}</div>
+                                    <div class="level-progress-wrap">
+                                        <div class="level-progress-bar">
+                                            <div class="level-progress-fill" :style="{ width: levelPercent + '%' }"></div>
+                                        </div>
+                                        <span class="level-text">{{ formattedLevelText }}</span>
+                                    </div>
+                                    <span class="level-arrow">&#xf105;</span>
+                                </div>
+                                <!-- 统计数据 -->
+                                <div class="dropdown-stats">
+                                    <div class="stat-item" @click="goToFollow">
+                                        <div class="stat-value">{{ stats.followCount }}</div>
+                                        <div class="stat-label">关注</div>
+                                    </div>
+                                    <div class="stat-item" @click="goToLikes">
+                                        <div class="stat-value">{{ stats.likeCount }}</div>
+                                        <div class="stat-label">赞过</div>
+                                    </div>
+                                    <div class="stat-item" @click="goToCollects">
+                                        <div class="stat-value">{{ stats.collectCount }}</div>
+                                        <div class="stat-label">收藏</div>
+                                    </div>
                                 </div>
                                 <div class="dropdown-divider"></div>
-                                <div class="dropdown-item logout-item" @click="handleLogout">
-                                    <span class="dropdown-icon">&#xf08b;</span>
-                                    <span class="dropdown-label">退出登录</span>
+                                <!-- 菜单项 -->
+                                <div class="dropdown-menu-section">
+                                    <div class="dropdown-item" @click="goToProfile">
+                                        <span class="dropdown-icon">&#xf007;</span>
+                                        <span class="dropdown-label">我的主页</span>
+                                    </div>
+                                    <div class="dropdown-item" @click="goToCheckin">
+                                        <span class="dropdown-icon">&#xf091;</span>
+                                        <span class="dropdown-label">成长福利</span>
+                                    </div>
+                                    <div class="dropdown-item" @click="goToCourses">
+                                        <span class="dropdown-icon">&#xf19c;</span>
+                                        <span class="dropdown-label">课程中心</span>
+                                    </div>
+                                    <div class="dropdown-item" @click="handleMyDiscount">
+                                        <span class="dropdown-icon">&#xf155;</span>
+                                        <span class="dropdown-label">我的优惠</span>
+                                    </div>
+                                    <div class="dropdown-item" @click="goToHistory">
+                                        <span class="dropdown-icon">&#xf02d;</span>
+                                        <span class="dropdown-label">我的足迹</span>
+                                    </div>
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <!-- 底部 -->
+                                <div class="dropdown-bottom-section">
+                                    <div class="dropdown-item" @click="goToSettings">
+                                        <span class="dropdown-icon">&#xf013;</span>
+                                        <span class="dropdown-label">我的设置</span>
+                                    </div>
+                                    <div class="dropdown-item logout-item" @click="handleLogout">
+                                        <span class="dropdown-icon">&#xf08b;</span>
+                                        <span class="dropdown-label">退出登录</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -200,17 +268,20 @@
         <!-- 移动端原有布局 -->
         <template v-else>
             <div class="router-body"><router-view/></div>
-            <div class="main-body"><Menu/></div>
+            <div class="app-open-btn" @click="handleAppOpen">
+                <span class="app-open-icon">&#xf3cd;</span>
+                <span class="app-open-text">App内打开</span>
+            </div>
         </template>
     </div>
 </template>
 
 <script>
-    import Menu from '@/compoents/menus/menu';
     import Utils from '@/utils/env';
     import { toast } from "@/utils/toast"
     import SearchApi from '@/apis/search/api'
     import { sanitizeHighlight } from '@/utils/sanitize'
+    import { getUserStatistics } from '@/apis/user'
 
     var SEARCH_HISTORY_KEY = 'HEIMA_SEARCH_HISTORY'
     var MAX_HISTORY_COUNT = 6
@@ -264,7 +335,7 @@
 
     export default {
         name: "HeiMaLayoutMain",
-        components: { Menu },
+        components: {},
         data() {
             return {
                 showUserDropdown: false,
@@ -276,6 +347,16 @@
                 _blurTimer: null,
                 currentCategory: 'comprehensive',
                 currentNav: 'home',
+                stats: {
+                    followCount: 0,
+                    likeCount: 0,
+                    collectCount: 0
+                },
+                diamondCount: '0',
+                levelBadge: 'ZR.1',
+                levelScore: 0,
+                levelMax: 150,
+                levelPercent: 0,
                 articleRankList: [
                     'Vue 3.5 新特性全面解析',
                     '2024 前端开发趋势报告',
@@ -313,6 +394,17 @@
                     return '/static/images/' + this.userInfo.avatar + '.png'
                 }
                 return ''
+            },
+            formattedDiamond() {
+                const count = parseFloat(this.diamondCount)
+                if (isNaN(count)) return '0'
+                if (count >= 1000) {
+                    return (count / 1000).toFixed(1) + 'k'
+                }
+                return String(Math.floor(count))
+            },
+            formattedLevelText() {
+                return this.levelScore + ' / ' + this.levelMax
             }
         },
         mounted() {
@@ -359,12 +451,87 @@
             showLogin() {
                 this.$store.dispatch('showLogin')
             },
+            handleAppOpen() {
+                toast('未发布App产品，敬请期待', 2)
+            },
             toggleUserDropdown() {
                 if (this.isLoggedIn) {
                     this.showUserDropdown = !this.showUserDropdown
+                    if (this.showUserDropdown) {
+                        this.loadUserStats()
+                    }
                 } else {
                     this.showLogin()
                 }
+            },
+            async loadUserStats() {
+                try {
+                    const res = await getUserStatistics()
+                    if (res && res.code === 200 && res.data) {
+                        const data = res.data
+                        this.stats.followCount = data.followCount || 0
+                        this.stats.likeCount = data.likeCount || 0
+                        this.stats.collectCount = data.collectCount || 0
+                        this.diamondCount = data.diamondCount || '0'
+                        if (data.levelInfo) {
+                            const li = data.levelInfo
+                            this.levelBadge = 'ZR.' + (li.dailyLevel || 1)
+                            this.levelScore = li.dailyScore || 0
+                            const levelMaxMap = { 1: 150, 2: 300, 3: 500, 4: 800, 5: 1200 }
+                            this.levelMax = levelMaxMap[li.dailyLevel] || 150
+                            const levelBaseMap = { 1: 0, 2: 150, 3: 300, 4: 500, 5: 800 }
+                            const base = levelBaseMap[li.dailyLevel] || 0
+                            const currentInLevel = this.levelScore - base
+                            this.levelPercent = Math.min(Math.round(currentInLevel / this.levelMax * 100), 100)
+                        }
+                    }
+                } catch (e) {
+                    // Silently fail, use defaults
+                }
+            },
+            goToProfile() {
+                this.showUserDropdown = false
+                const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+                this.$router.push('/user/' + userId)
+            },
+            goToSettings() {
+                this.showUserDropdown = false
+                this.$router.push('/user/settings')
+            },
+            goToGrowth() {
+                this.showUserDropdown = false
+                this.$router.push('/user/growth')
+            },
+            goToCheckin() {
+                this.showUserDropdown = false
+                this.$router.push('/user/checkin')
+            },
+            goToCourses() {
+                this.showUserDropdown = false
+                this.$router.push('/user/courses')
+            },
+            goToHistory() {
+                this.showUserDropdown = false
+                this.$router.push('/user/history')
+            },
+            goToFollow() {
+                this.showUserDropdown = false
+                const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+                this.$router.push('/user/' + userId + '?tab=follow&subTab=following')
+            },
+            goToLikes() {
+                this.showUserDropdown = false
+                const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+                this.$router.push('/user/' + userId + '?tab=likes&subTab=article')
+            },
+            goToCollects() {
+                this.showUserDropdown = false
+                const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+                this.$router.push('/user/' + userId + '?tab=collection')
+            },
+            handleMyDiscount() {
+                this.showUserDropdown = false
+                toast('我的优惠功能开发中', 2)
             },
             handleLogout() {
                 this.showUserDropdown = false
@@ -528,16 +695,39 @@
         width: 100%;
         height: 100%;
         min-height: 100vh;
-        padding-bottom: 120px;
+        padding-bottom: 100px;
         box-sizing: border-box;
     }
 
-    .main-body {
+    .app-open-btn {
         position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 28px;
+        background: linear-gradient(135deg, #1e80ff, #4096ff);
+        border-radius: 28px;
+        box-shadow: 0 4px 16px rgba(30, 128, 255, 0.4);
+        cursor: pointer;
         z-index: 99;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .app-open-btn:active {
+        transform: translateX(-50%) scale(0.95);
+        box-shadow: 0 2px 8px rgba(30, 128, 255, 0.3);
+    }
+    .app-open-icon {
+        font-family: fontawesome;
+        font-size: 22px;
+        color: #fff;
+    }
+    .app-open-text {
+        font-size: 16px;
+        color: #fff;
+        font-weight: 500;
     }
 
     /* ========== Web端样式 ========== */
@@ -547,7 +737,7 @@
             min-height: 100vh;
         }
 
-        .router-body, .main-body {
+        .router-body, .app-open-btn {
             display: none;
         }
 
@@ -911,11 +1101,163 @@
             right: 0;
             margin-top: 8PX;
             background-color: #ffffff;
-            border-radius: 6PX;
-            box-shadow: 0 4PX 16PX rgba(0,0,0,0.12);
-            min-width: 140PX;
+            border-radius: 16PX;
+            box-shadow: 0 8PX 32PX rgba(0,0,0,0.15);
+            width: 280PX;
             z-index: 200;
             overflow: hidden;
+        }
+
+        .dropdown-user-section {
+            display: flex;
+            align-items: center;
+            padding: 16PX 16PX 12PX;
+            cursor: pointer;
+            gap: 12PX;
+        }
+        .dropdown-user-section:hover {
+            background-color: #f7f8fa;
+        }
+        .dropdown-avatar {
+            width: 56PX;
+            height: 56PX;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2PX solid #1e80ff;
+        }
+        .dropdown-avatar-icon {
+            width: 56PX;
+            height: 56PX;
+            border-radius: 50%;
+            background: #e4e6eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: fontawesome;
+            font-size: 24PX;
+            color: #8a919f;
+        }
+        .dropdown-user-info {
+            flex: 1;
+        }
+        .dropdown-username {
+            font-size: 16PX;
+            font-weight: 600;
+            color: #252933;
+            margin-bottom: 4PX;
+        }
+        .dropdown-user-level {
+            font-size: 12PX;
+            color: #1e80ff;
+            background: #eaf2ff;
+            padding: 2PX 8PX;
+            border-radius: 4PX;
+            display: inline-block;
+        }
+        .dropdown-diamond {
+            display: flex;
+            align-items: center;
+            gap: 4PX;
+            padding: 4PX 10PX;
+            background: #fff7e6;
+            border-radius: 12PX;
+            cursor: pointer;
+        }
+        .dropdown-diamond .diamond-icon {
+            font-family: fontawesome;
+            font-size: 12PX;
+            color: #fa8c16;
+        }
+        .dropdown-diamond .diamond-text {
+            font-size: 12PX;
+            color: #fa8c16;
+        }
+        .dropdown-diamond .diamond-arrow {
+            font-family: fontawesome;
+            font-size: 12PX;
+            color: #fa8c16;
+        }
+
+        .dropdown-level-bar {
+            display: flex;
+            align-items: center;
+            padding: 8PX 16PX;
+            cursor: pointer;
+            gap: 8PX;
+            border-bottom: 1PX solid #f2f3f5;
+        }
+        .dropdown-level-bar:hover { background-color: #f7f8fa; }
+        .dropdown-level-bar .level-label {
+            font-size: 12PX;
+            color: #1e80ff;
+            white-space: nowrap;
+        }
+        .dropdown-level-bar .level-progress-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6PX;
+        }
+        .dropdown-level-bar .level-progress-bar {
+            flex: 1;
+            height: 6PX;
+            background: #e4e6eb;
+            border-radius: 3PX;
+            overflow: hidden;
+        }
+        .dropdown-level-bar .level-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1e80ff, #4096ff);
+            border-radius: 3PX;
+            transition: width 0.3s;
+        }
+        .dropdown-level-bar .level-text {
+            font-size: 11PX;
+            color: #8a919f;
+            white-space: nowrap;
+        }
+        .dropdown-level-bar .level-arrow {
+            font-family: fontawesome;
+            font-size: 14PX;
+            color: #8a919f;
+            margin-left: 4PX;
+        }
+
+        .dropdown-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 8PX 16PX 0;
+        }
+        .dropdown-stats .stat-item {
+            text-align: center;
+            cursor: pointer;
+            padding: 8PX 12PX;
+            border-radius: 8PX;
+        }
+        .dropdown-stats .stat-item:hover { background: #f7f8fa; }
+        .dropdown-stats .stat-value {
+            font-size: 18PX;
+            font-weight: 600;
+            color: #252933;
+        }
+        .dropdown-stats .stat-label {
+            font-size: 12PX;
+            color: #8a919f;
+            margin-top: 2PX;
+        }
+
+        .dropdown-divider {
+            height: 1PX;
+            background: #f2f3f5;
+            margin: 4PX 0;
+        }
+
+        .dropdown-menu-section {
+            padding: 4PX 0;
+        }
+
+        .dropdown-bottom-section {
+            padding: 4PX 0;
         }
 
         .dropdown-item {
@@ -929,20 +1271,6 @@
 
         .dropdown-item:hover {
             background-color: #f5f5f5;
-        }
-
-        .user-info-item {
-            cursor: default;
-            padding: 12PX 16PX;
-        }
-        .user-info-item:hover {
-            background-color: transparent;
-        }
-
-        .dropdown-divider {
-            height: 1PX;
-            background-color: #f0f0f0;
-            margin: 0;
         }
 
         .logout-item {
