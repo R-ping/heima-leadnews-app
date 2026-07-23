@@ -8,6 +8,18 @@ export const getArticleStatistics = () => {
   return request.get('/api/v1/article/manage/statistics')
 }
 
+export const getNewsStatistics = () => {
+  return request.get('/api/v1/article/manage/statistics')
+}
+
+export const searchArticle = (params) => {
+  return request.get('/api/v1/article/manage/search', { params })
+}
+
+export const getArticleById = (id) => {
+  return request.get('/api/v1/article/manage/detail', { params: { id } })
+}
+
 export const deleteArticle = (id) => {
   return request.post('/api/v1/article/manage/delete', { id })
 }
