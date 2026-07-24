@@ -2,8 +2,6 @@ package com.heima.article.service;
 
 import com.heima.model.common.dtos.ResponseResult;
 
-import java.util.Map;
-
 public interface BrowseHistoryService {
 
     /**
@@ -21,4 +19,12 @@ public interface BrowseHistoryService {
      * @param userId 用户ID
      */
     void clearHistory(Long userId);
+
+    /**
+     * 上报浏览记录，按 (userId, targetType, targetId) 去重
+     * @param userId 用户ID
+     * @param targetType 目标类型: 1-文章, 2-沸点, 3-课程, 4-专栏
+     * @param targetId 目标内容ID
+     */
+    ResponseResult reportBrowse(Long userId, Integer targetType, Long targetId);
 }

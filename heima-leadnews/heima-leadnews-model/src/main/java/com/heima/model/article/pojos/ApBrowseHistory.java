@@ -22,6 +22,9 @@ public class ApBrowseHistory implements Serializable {
     @TableField("article_id")
     private Long articleId;
 
+    @TableField("target_type")
+    private Integer targetType;
+
     @TableField("article_title")
     private String articleTitle;
 
@@ -31,9 +34,27 @@ public class ApBrowseHistory implements Serializable {
     @TableField("author_name")
     private String authorName;
 
+    @TableField("author_avatar")
+    private String authorAvatar;
+
+    @TableField("summary")
+    private String summary;
+
+    @TableField("read_count")
+    private Integer readCount;
+
+    @TableField("like_count")
+    private Integer likeCount;
+
+    @TableField("comment_count")
+    private Integer commentCount;
+
     @TableField("browse_time")
     private Date browseTime;
 
     @TableField("is_deleted")
     private Boolean isDeleted;
+
+    @TableField("deleted_at")
+    private Date deletedAt;
 }

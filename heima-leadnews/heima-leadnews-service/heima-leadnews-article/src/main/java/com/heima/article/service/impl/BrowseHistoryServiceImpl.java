@@ -9,6 +9,7 @@ import com.heima.article.mapper.ApBrowseHistoryMapper;
 import com.heima.article.service.BrowseHistoryService;
 import com.heima.model.article.pojos.ApBrowseHistory;
 import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.common.enums.AppHttpCodeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +51,40 @@ public class BrowseHistoryServiceImpl extends ServiceImpl<ApBrowseHistoryMapper,
         LambdaUpdateWrapper<ApBrowseHistory> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ApBrowseHistory::getUserId, userId);
         wrapper.set(ApBrowseHistory::getIsDeleted, true);
+        wrapper.set(ApBrowseHistory::getDeletedAt, new Date());
         update(wrapper);
+    }
+
+    @Override
+    public ResponseResult reportBrowse(Long userId, Integer targetType, Long targetId) {
+        if (userId == null || targetType == null || targetId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+
+        // 查找是否存在同一用户的相同类型和内容的浏览记录（未删除）
+        LambdaQueryWrapper<ApBrowseHistory> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApBrowseHistory::getUserId, userId);
+        wrapper.eq(ApBrowseHistory::getTargetType, targetType);
+        wrapper.eq(ApBrowseHistory::getArticleId, targetId);
+        wrapper.eq(ApBrowseHistory::getIsDeleted, false);
+        ApBrowseHistory existing = getOne(wrapper);
+
+        if (existing != null) {
+            // 已存在，更新浏览时间
+            existing.setBrowseTime(new Date());
+            updateById(existing);
+        } else {
+            // 不存在，插入新记录
+            ApBrowseHistory record = new ApBrowseHistory();
+            record.setUserId(userId);
+            record.setTargetType(targetType);
+            record.setArticleId(targetId);
+            record.setBrowseTime(new Date());
+            record.setIsDeleted(false);
+            save(record);
+        }
+
+        return ResponseResult.okResult();
     }
 
     /**
@@ -66,9 +100,15 @@ public class BrowseHistoryServiceImpl extends ServiceImpl<ApBrowseHistoryMapper,
 
             Map<String, Object> item = new HashMap<>();
             item.put("id", record.getId());
+            item.put("targetType", record.getTargetType());
             item.put("articleId", record.getArticleId());
             item.put("articleTitle", record.getArticleTitle());
             item.put("authorName", record.getAuthorName());
+            item.put("authorAvatar", record.getAuthorAvatar());
+            item.put("summary", record.getSummary());
+            item.put("readCount", record.getReadCount());
+            item.put("likeCount", record.getLikeCount());
+            item.put("commentCount", record.getCommentCount());
             item.put("browseTime", record.getBrowseTime());
             dateMap.get(dateKey).add(item);
         }

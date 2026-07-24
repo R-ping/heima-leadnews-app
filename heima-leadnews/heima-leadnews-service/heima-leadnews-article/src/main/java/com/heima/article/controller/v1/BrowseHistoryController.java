@@ -7,6 +7,8 @@ import com.heima.utils.thread.AppThreadLocalUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/browse-history")
 public class BrowseHistoryController {
@@ -30,5 +32,14 @@ public class BrowseHistoryController {
         Long userId = user != null ? user.getId().longValue() : null;
         browseHistoryService.clearHistory(userId);
         return ResponseResult.okResult();
+    }
+
+    @PostMapping("/report")
+    public ResponseResult reportBrowse(@RequestBody Map<String, Object> params) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = user != null ? user.getId().longValue() : null;
+        Integer targetType = (Integer) params.get("targetType");
+        Long targetId = params.get("targetId") != null ? Long.valueOf(params.get("targetId").toString()) : null;
+        return browseHistoryService.reportBrowse(userId, targetType, targetId);
     }
 }
