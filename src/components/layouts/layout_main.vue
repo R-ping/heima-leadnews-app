@@ -72,84 +72,27 @@
                             <img v-if="userAvatar" class="header-avatar" :src="userAvatar" alt="头像"/>
                             <span v-else class="header-avatar-default">&#xf007;</span>
                             <span class="header-username">{{ userName }}</span>
-                            <div class="user-dropdown" v-if="showUserDropdown" @click.stop>
-                                <!-- 用户信息区 -->
-                                <div class="dropdown-user-section" @click="goToProfile">
-                                    <img v-if="userAvatar" class="dropdown-avatar" :src="userAvatar" alt="头像" />
-                                    <span v-else class="dropdown-avatar-icon">&#xf007;</span>
-                                    <div class="dropdown-user-info">
-                                        <div class="dropdown-username">{{ userName }}</div>
-                                        <div class="dropdown-user-level">{{ levelBadge }}</div>
-                                    </div>
-                                    <div class="dropdown-diamond" @click.stop>
-                                        <span class="diamond-icon">&#xf219;</span>
-                                        <span class="diamond-text">矿石: {{ formattedDiamond }}</span>
-                                        <span class="diamond-arrow">&#xf105;</span>
-                                    </div>
-                                </div>
-                                <!-- 等级进度条 -->
-                                <div class="dropdown-level-bar" @click="goToGrowth">
-                                    <div class="level-label">逐日等级 {{ levelBadge }}</div>
-                                    <div class="level-progress-wrap">
-                                        <div class="level-progress-bar">
-                                            <div class="level-progress-fill" :style="{ width: levelPercent + '%' }"></div>
-                                        </div>
-                                        <span class="level-text">{{ formattedLevelText }}</span>
-                                    </div>
-                                    <span class="level-arrow">&#xf105;</span>
-                                </div>
-                                <!-- 统计数据 -->
-                                <div class="dropdown-stats">
-                                    <div class="stat-item" @click="goToFollow">
-                                        <div class="stat-value">{{ stats.followCount }}</div>
-                                        <div class="stat-label">关注</div>
-                                    </div>
-                                    <div class="stat-item" @click="goToLikes">
-                                        <div class="stat-value">{{ stats.likeCount }}</div>
-                                        <div class="stat-label">赞过</div>
-                                    </div>
-                                    <div class="stat-item" @click="goToCollects">
-                                        <div class="stat-value">{{ stats.collectCount }}</div>
-                                        <div class="stat-label">收藏</div>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <!-- 菜单项 -->
-                                <div class="dropdown-menu-section">
-                                    <div class="dropdown-item" @click="goToProfile">
-                                        <span class="dropdown-icon">&#xf007;</span>
-                                        <span class="dropdown-label">我的主页</span>
-                                    </div>
-                                    <div class="dropdown-item" @click="goToCheckin">
-                                        <span class="dropdown-icon">&#xf091;</span>
-                                        <span class="dropdown-label">成长福利</span>
-                                    </div>
-                                    <div class="dropdown-item" @click="goToCourses">
-                                        <span class="dropdown-icon">&#xf19c;</span>
-                                        <span class="dropdown-label">课程中心</span>
-                                    </div>
-                                    <div class="dropdown-item" @click="handleMyDiscount">
-                                        <span class="dropdown-icon">&#xf155;</span>
-                                        <span class="dropdown-label">我的优惠</span>
-                                    </div>
-                                    <div class="dropdown-item" @click="goToHistory">
-                                        <span class="dropdown-icon">&#xf02d;</span>
-                                        <span class="dropdown-label">我的足迹</span>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <!-- 底部 -->
-                                <div class="dropdown-bottom-section">
-                                    <div class="dropdown-item" @click="goToSettings">
-                                        <span class="dropdown-icon">&#xf013;</span>
-                                        <span class="dropdown-label">我的设置</span>
-                                    </div>
-                                    <div class="dropdown-item logout-item" @click="handleLogout">
-                                        <span class="dropdown-icon">&#xf08b;</span>
-                                        <span class="dropdown-label">退出登录</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <UserDropdown
+                                v-if="showUserDropdown"
+                                :userAvatar="userAvatar"
+                                :userName="userName"
+                                :levelBadge="levelBadge"
+                                :formattedDiamond="formattedDiamond"
+                                :levelPercent="levelPercent"
+                                :formattedLevelText="formattedLevelText"
+                                :stats="stats"
+                                @go-profile="goToProfile"
+                                @go-growth="goToGrowth"
+                                @go-follow="goToFollow"
+                                @go-likes="goToLikes"
+                                @go-collects="goToCollects"
+                                @go-checkin="goToCheckin"
+                                @go-courses="goToCourses"
+                                @go-history="goToHistory"
+                                @my-discount="handleMyDiscount"
+                                @go-settings="goToSettings"
+                                @logout="handleLogout"
+                            />
                         </div>
                     </div>
                 </div>
@@ -282,6 +225,7 @@
     import SearchApi from '@/apis/search/api'
     import { sanitizeHighlight } from '@/utils/sanitize'
     import { getUserStatistics } from '@/apis/user'
+    import UserDropdown from '@/components/bars/UserDropdown.vue'
 
     var SEARCH_HISTORY_KEY = 'HEIMA_SEARCH_HISTORY'
     var MAX_HISTORY_COUNT = 6
@@ -335,7 +279,7 @@
 
     export default {
         name: "HeiMaLayoutMain",
-        components: {},
+        components: { UserDropdown },
         data() {
             return {
                 showUserDropdown: false,
@@ -1093,207 +1037,6 @@
 
         .header-user {
             position: relative;
-        }
-
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 8PX;
-            background-color: #ffffff;
-            border-radius: 16PX;
-            box-shadow: 0 8PX 32PX rgba(0,0,0,0.15);
-            width: 280PX;
-            z-index: 200;
-            overflow: hidden;
-        }
-
-        .dropdown-user-section {
-            display: flex;
-            align-items: center;
-            padding: 16PX 16PX 12PX;
-            cursor: pointer;
-            gap: 12PX;
-        }
-        .dropdown-user-section:hover {
-            background-color: #f7f8fa;
-        }
-        .dropdown-avatar {
-            width: 56PX;
-            height: 56PX;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2PX solid #1e80ff;
-        }
-        .dropdown-avatar-icon {
-            width: 56PX;
-            height: 56PX;
-            border-radius: 50%;
-            background: #e4e6eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: fontawesome;
-            font-size: 24PX;
-            color: #8a919f;
-        }
-        .dropdown-user-info {
-            flex: 1;
-        }
-        .dropdown-username {
-            font-size: 16PX;
-            font-weight: 600;
-            color: #252933;
-            margin-bottom: 4PX;
-        }
-        .dropdown-user-level {
-            font-size: 12PX;
-            color: #1e80ff;
-            background: #eaf2ff;
-            padding: 2PX 8PX;
-            border-radius: 4PX;
-            display: inline-block;
-        }
-        .dropdown-diamond {
-            display: flex;
-            align-items: center;
-            gap: 4PX;
-            padding: 4PX 10PX;
-            background: #fff7e6;
-            border-radius: 12PX;
-            cursor: pointer;
-        }
-        .dropdown-diamond .diamond-icon {
-            font-family: fontawesome;
-            font-size: 12PX;
-            color: #fa8c16;
-        }
-        .dropdown-diamond .diamond-text {
-            font-size: 12PX;
-            color: #fa8c16;
-        }
-        .dropdown-diamond .diamond-arrow {
-            font-family: fontawesome;
-            font-size: 12PX;
-            color: #fa8c16;
-        }
-
-        .dropdown-level-bar {
-            display: flex;
-            align-items: center;
-            padding: 8PX 16PX;
-            cursor: pointer;
-            gap: 8PX;
-            border-bottom: 1PX solid #f2f3f5;
-        }
-        .dropdown-level-bar:hover { background-color: #f7f8fa; }
-        .dropdown-level-bar .level-label {
-            font-size: 12PX;
-            color: #1e80ff;
-            white-space: nowrap;
-        }
-        .dropdown-level-bar .level-progress-wrap {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 6PX;
-        }
-        .dropdown-level-bar .level-progress-bar {
-            flex: 1;
-            height: 6PX;
-            background: #e4e6eb;
-            border-radius: 3PX;
-            overflow: hidden;
-        }
-        .dropdown-level-bar .level-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1e80ff, #4096ff);
-            border-radius: 3PX;
-            transition: width 0.3s;
-        }
-        .dropdown-level-bar .level-text {
-            font-size: 11PX;
-            color: #8a919f;
-            white-space: nowrap;
-        }
-        .dropdown-level-bar .level-arrow {
-            font-family: fontawesome;
-            font-size: 14PX;
-            color: #8a919f;
-            margin-left: 4PX;
-        }
-
-        .dropdown-stats {
-            display: flex;
-            justify-content: space-around;
-            padding: 8PX 16PX 0;
-        }
-        .dropdown-stats .stat-item {
-            text-align: center;
-            cursor: pointer;
-            padding: 8PX 12PX;
-            border-radius: 8PX;
-        }
-        .dropdown-stats .stat-item:hover { background: #f7f8fa; }
-        .dropdown-stats .stat-value {
-            font-size: 18PX;
-            font-weight: 600;
-            color: #252933;
-        }
-        .dropdown-stats .stat-label {
-            font-size: 12PX;
-            color: #8a919f;
-            margin-top: 2PX;
-        }
-
-        .dropdown-divider {
-            height: 1PX;
-            background: #f2f3f5;
-            margin: 4PX 0;
-        }
-
-        .dropdown-menu-section {
-            padding: 4PX 0;
-        }
-
-        .dropdown-bottom-section {
-            padding: 4PX 0;
-        }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 10PX 16PX;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            gap: 8PX;
-        }
-
-        .dropdown-item:hover {
-            background-color: #f5f5f5;
-        }
-
-        .logout-item {
-            color: #ff4d4f;
-        }
-        .logout-item:hover {
-            background-color: #fff2f0;
-        }
-
-        .dropdown-icon {
-            font-family: fontawesome;
-            font-size: 14PX;
-            width: 16PX;
-            text-align: center;
-        }
-
-        .dropdown-label {
-            font-size: 14PX;
-            color: #333;
-            flex: 1;
-        }
-        .logout-item .dropdown-label {
-            color: #ff4d4f;
         }
 
         .desktop-container {
