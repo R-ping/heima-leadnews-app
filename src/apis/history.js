@@ -7,3 +7,7 @@ export const getBrowseHistory = (params) => {
 export const clearBrowseHistory = () => {
   return request.post('/api/v1/browse-history/clear')
 }
+
+export const reportBrowse = (data) => {
+  return request.post('/api/v1/browse-history/report', data)
+}

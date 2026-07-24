@@ -2,27 +2,31 @@
     <div class="history-page">
         <div class="art-top"><HomeBar /></div>
         <div class="history-content">
+            <!-- 标题栏卡片 -->
             <div class="history-toolbar">
-                <div class="toolbar-left">
+                <div class="toolbar-title">浏览记录</div>
+                <div class="toolbar-actions">
                     <div class="search-box">
                         <i class="search-icon">&#xf002;</i>
                         <input
                             type="text"
                             class="search-input"
                             v-model="searchKeyword"
-                            placeholder="搜索浏览记录"
+                            placeholder="搜索标题关键词"
                             @input="onSearchInput"
                         />
                         <i v-if="searchKeyword" class="clear-icon" @click="clearSearch">&#xf00d;</i>
                     </div>
+                    <button class="clear-btn" @click="handleClearAll">清空</button>
                 </div>
-                <button class="clear-btn" @click="handleClearAll">清空记录</button>
             </div>
 
+            <!-- 列表区域 -->
             <div class="history-list" v-loading="loading">
                 <div v-if="groupedHistory.length === 0 && !loading" class="empty-state">
-                    <span class="empty-icon">&#xf02d;</span>
+                    <i class="empty-icon">&#xf187;</i>
                     <span class="empty-text">暂无浏览记录</span>
+                    <button class="empty-btn" @click="goHome">去首页逛逛</button>
                 </div>
                 <div v-for="group in groupedHistory" :key="group.date" class="history-group">
                     <div class="date-header">{{ group.date }}</div>
@@ -31,29 +35,23 @@
                             v-for="item in group.items"
                             :key="item.id"
                             class="article-item"
-                            @click="goToArticle(item.articleId)"
+                            @click="goToArticle(item.articleId, item.targetType)"
                         >
                             <div class="article-main">
-                                <span class="type-badge">文章</span>
+                                <span class="type-badge">{{ typeLabel(item.targetType) }}</span>
                                 <div class="article-info">
                                     <div class="article-title">{{ item.articleTitle }}</div>
+                                    <div v-if="item.summary" class="article-summary">{{ item.summary }}</div>
                                     <div class="article-meta">
                                         <span class="article-author">{{ item.authorName }}</span>
                                         <span class="meta-divider">·</span>
                                         <span class="article-stat">
-                                            <i class="stat-icon">&#xf06e;</i>
                                             {{ formatCount(item.readCount) }} 阅读
                                         </span>
                                         <span class="meta-divider">·</span>
-                                        <span class="article-stat">
-                                            <i class="stat-icon">&#xf164;</i>
-                                            {{ formatCount(item.likeCount) }}
-                                        </span>
+                                        <span class="article-stat">{{ formatCount(item.likeCount) }} 点赞</span>
                                         <span class="meta-divider">·</span>
-                                        <span class="article-stat">
-                                            <i class="stat-icon">&#xf075;</i>
-                                            {{ formatCount(item.commentCount) }}
-                                        </span>
+                                        <span class="article-stat">{{ formatCount(item.commentCount) }} 评论</span>
                                     </div>
                                 </div>
                             </div>
@@ -63,6 +61,7 @@
                 </div>
             </div>
 
+            <!-- 分页 -->
             <div class="pagination-wrap" v-if="total > pageSize">
                 <el-pagination
                     background
@@ -74,6 +73,15 @@
                 />
             </div>
         </div>
+
+        <!-- 确认弹窗 -->
+        <ConfirmModal
+            v-if="showClearModal"
+            title="确定清空浏览记录吗？"
+            content="浏览记录清除后无法恢复"
+            @confirm="doClearAll"
+            @cancel="showClearModal = false"
+        />
     </div>
 </template>
 
@@ -81,10 +89,11 @@
 import HomeBar from '@/compoents/bars/home_bar'
 import { toast } from '@/utils/toast'
 import { getBrowseHistory, clearBrowseHistory } from '@/apis/history'
+import ConfirmModal from '@/components/common/ConfirmModal'
 
 export default {
     name: 'UserHistory',
-    components: { HomeBar },
+    components: { HomeBar, ConfirmModal },
     data() {
         return {
             loading: false,
@@ -93,12 +102,24 @@ export default {
             historyList: [],
             currentPage: 1,
             pageSize: 10,
-            total: 0
+            total: 0,
+            showClearModal: false
         }
     },
     computed: {
         groupedHistory() {
-            return this.historyList
+            const groups = {}
+            this.historyList.forEach((item) => {
+                const date = this.formatDate(item.browseTime)
+                if (!groups[date]) {
+                    groups[date] = []
+                }
+                groups[date].push(item)
+            })
+            return Object.keys(groups).map((date) => ({
+                date,
+                items: groups[date]
+            }))
         }
     },
     methods: {
@@ -116,9 +137,12 @@ export default {
                 if (res && res.code === 200 && res.data) {
                     this.historyList = res.data.list || []
                     this.total = res.data.total || 0
+                } else {
+                    const msg = (res && res.message) || '加载失败'
+                    toast(msg, 2)
                 }
             } catch (e) {
-                // Keep empty history when API fails
+                // Keep existing data when API fails
             } finally {
                 this.loading = false
             }
@@ -138,37 +162,50 @@ export default {
             this.loadHistory()
         },
         handleClearAll() {
-            this.$confirm('确定要清空所有浏览记录吗？', '提示', {
-                type: 'warning'
-            }).then(() => {
-                this.doClearAll()
-            }).catch(() => {})
+            this.showClearModal = true
         },
         async doClearAll() {
+            this.showClearModal = false
             try {
                 const res = await clearBrowseHistory()
                 if (res && res.code === 200) {
                     toast('已清空浏览记录', 2)
+                    this.historyList = []
+                    this.total = 0
+                    this.currentPage = 1
                 } else {
-                    toast('清空记录失败', 2)
+                    const msg = (res && res.message) || '清空记录失败'
+                    toast(msg, 2)
                 }
             } catch (e) {
                 toast('清空记录失败', 2)
             }
-            this.historyList = []
-            this.total = 0
-            this.currentPage = 1
         },
         onPageChange(page) {
             this.currentPage = page
             this.loadHistory()
             window.scrollTo({ top: 0, behavior: 'smooth' })
         },
-        goToArticle(articleId) {
-            this.$router.push('/article/' + articleId)
+        goToArticle(articleId, type) {
+            if (type === 2) {
+                this.$router.push('/boiling/' + articleId)
+            } else if (type === 3) {
+                this.$router.push('/course/' + articleId)
+            } else if (type === 4) {
+                this.$router.push('/column/' + articleId)
+            } else {
+                this.$router.push('/article/' + articleId)
+            }
+        },
+        goHome() {
+            this.$router.push('/')
+        },
+        typeLabel(type) {
+            const map = { 1: '文章', 2: '沸点', 3: '课程', 4: '专栏' }
+            return map[type] || '文章'
         },
         formatCount(count) {
-            if (!count) return '0'
+            if (!count && count !== 0) return '0'
             if (count >= 10000) {
                 return (count / 1000).toFixed(1) + 'k'
             }
@@ -179,6 +216,14 @@ export default {
             const parts = time.split(' ')
             if (parts.length >= 2) {
                 return parts[1].substring(0, 5)
+            }
+            return time
+        },
+        formatDate(time) {
+            if (!time) return ''
+            const parts = time.split(' ')
+            if (parts.length >= 1) {
+                return parts[0]
             }
             return time
         }
@@ -195,11 +240,9 @@ export default {
 </script>
 
 <style lang="less" scoped>
-@import '../../../styles/common';
-
 .history-page {
     min-height: 100vh;
-    background: #f7f8fa;
+    background: #F5F7FA;
 }
 
 .history-content {
@@ -208,6 +251,7 @@ export default {
     padding: 24px;
 }
 
+// 标题栏卡片
 .history-toolbar {
     display: flex;
     justify-content: space-between;
@@ -216,34 +260,39 @@ export default {
     padding: 16px 20px;
     background: #fff;
     border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.toolbar-left {
-    flex: 1;
+.toolbar-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1A1A1A;
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .search-box {
     position: relative;
     display: flex;
     align-items: center;
-    width: 280px;
+    width: 200px;
     height: 36px;
-    background: #f7f8fa;
-    border: 1px solid #e4e6eb;
+    border: 1px solid #E4E6EB;
     border-radius: 6px;
     padding: 0 12px;
     transition: border-color 0.2s;
     &:focus-within {
-        border-color: #1e80ff;
-        background: #fff;
+        border-color: #1E80FF;
     }
 }
 
 .search-icon {
     font-family: fontawesome;
     font-size: 14px;
-    color: #8a919f;
+    color: #8A919F;
     margin-right: 8px;
     flex-shrink: 0;
 }
@@ -255,15 +304,16 @@ export default {
     font-size: 14px;
     color: #252933;
     outline: none;
+    width: 100%;
     &::placeholder {
-        color: #c4c9d1;
+        color: #C4C9D1;
     }
 }
 
 .clear-icon {
     font-family: fontawesome;
     font-size: 12px;
-    color: #8a919f;
+    color: #8A919F;
     cursor: pointer;
     flex-shrink: 0;
     padding: 2px;
@@ -274,20 +324,20 @@ export default {
 
 .clear-btn {
     padding: 8px 20px;
-    border: 1px solid #ff4d4f;
+    border: 1px solid #FF4D4F;
     border-radius: 6px;
     background: #fff;
-    color: #ff4d4f;
+    color: #FF4D4F;
     font-size: 14px;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
     &:hover {
-        background: #fff2f0;
-        border-color: #ff7875;
+        background: #FFF2F0;
     }
 }
 
+// 列表区域
 .history-list {
     min-height: 300px;
 }
@@ -298,7 +348,7 @@ export default {
 
 .date-header {
     padding: 12px 20px;
-    background: #f2f3f5;
+    background: #F2F3F5;
     border-radius: 8px 8px 0 0;
     font-size: 14px;
     font-weight: 600;
@@ -316,21 +366,20 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid #f2f3f5;
+    border-bottom: 1px solid #F2F3F5;
     cursor: pointer;
     transition: background-color 0.2s;
     &:last-child {
         border-bottom: none;
     }
     &:hover {
-        background-color: #f7f8fa;
+        background-color: #F7F8FA;
     }
 }
 
 .article-main {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
     flex: 1;
     min-width: 0;
 }
@@ -338,13 +387,13 @@ export default {
 .type-badge {
     display: inline-block;
     padding: 2px 10px;
-    background: #1e80ff;
-    color: #fff;
+    background: #F0F2F5;
+    color: #666;
     font-size: 12px;
     border-radius: 4px;
     white-space: nowrap;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-right: 12px;
 }
 
 .article-info {
@@ -356,51 +405,56 @@ export default {
     font-size: 15px;
     font-weight: 500;
     color: #252933;
-    margin-bottom: 8px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     &:hover {
-        color: #1e80ff;
+        color: #1E80FF;
     }
+}
+
+.article-summary {
+    font-size: 13px;
+    color: #999;
+    margin-top: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .article-meta {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0;
     font-size: 13px;
-    color: #8a919f;
+    color: #8A919F;
+    margin-top: 6px;
 }
 
 .article-author {
-    color: #515767;
+    color: #8A919F;
 }
 
 .meta-divider {
     margin: 0 8px;
-    color: #c4c9d1;
+    color: #C4C9D1;
 }
 
 .article-stat {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-}
-
-.stat-icon {
-    font-family: fontawesome;
-    font-size: 12px;
 }
 
 .article-time {
     font-size: 13px;
-    color: #8a919f;
+    color: #8A919F;
     flex-shrink: 0;
     margin-left: 16px;
 }
 
+// 空状态
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -414,27 +468,51 @@ export default {
 .empty-icon {
     font-family: fontawesome;
     font-size: 48px;
-    color: #c4c9d1;
+    color: #C4C9D1;
     margin-bottom: 16px;
+    font-style: normal;
 }
 
 .empty-text {
     font-size: 14px;
-    color: #8a919f;
+    color: #8A919F;
 }
 
+.empty-btn {
+    margin-top: 16px;
+    padding: 8px 24px;
+    background: #1E80FF;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    &:hover {
+        background: #1A6FD9;
+    }
+}
+
+// 分页
 .pagination-wrap {
     display: flex;
     justify-content: center;
     padding: 24px 0;
 }
 
+// 响应式
 @media screen and (max-width: 768px) {
     .history-content {
         padding: 16px;
     }
     .history-toolbar {
         flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    .toolbar-actions {
+        flex-direction: column;
+        width: 100%;
         gap: 12px;
     }
     .search-box {

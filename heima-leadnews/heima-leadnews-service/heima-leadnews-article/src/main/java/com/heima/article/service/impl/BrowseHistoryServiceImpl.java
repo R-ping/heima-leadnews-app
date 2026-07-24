@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -35,10 +34,25 @@ public class BrowseHistoryServiceImpl extends ServiceImpl<ApBrowseHistoryMapper,
         IPage<ApBrowseHistory> pageResult = page(new Page<>(page, size), wrapper);
 
         List<ApBrowseHistory> records = pageResult.getRecords();
-        List<Map<String, Object>> groupedList = groupByDate(records);
+        List<Map<String, Object>> flatList = new ArrayList<>();
+        for (ApBrowseHistory record : records) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", record.getId());
+            item.put("targetType", record.getTargetType());
+            item.put("articleId", record.getArticleId());
+            item.put("articleTitle", record.getArticleTitle());
+            item.put("authorName", record.getAuthorName());
+            item.put("authorAvatar", record.getAuthorAvatar());
+            item.put("summary", record.getSummary());
+            item.put("readCount", record.getReadCount());
+            item.put("likeCount", record.getLikeCount());
+            item.put("commentCount", record.getCommentCount());
+            item.put("browseTime", record.getBrowseTime());
+            flatList.add(item);
+        }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("list", groupedList);
+        result.put("list", flatList);
         result.put("total", pageResult.getTotal());
         result.put("page", page);
         result.put("size", size);
@@ -85,42 +99,5 @@ public class BrowseHistoryServiceImpl extends ServiceImpl<ApBrowseHistoryMapper,
         }
 
         return ResponseResult.okResult();
-    }
-
-    /**
-     * 将浏览记录按日期分组
-     */
-    private List<Map<String, Object>> groupByDate(List<ApBrowseHistory> records) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Map<String, List<Map<String, Object>>> dateMap = new LinkedHashMap<>();
-
-        for (ApBrowseHistory record : records) {
-            String dateKey = sdf.format(record.getBrowseTime());
-            dateMap.computeIfAbsent(dateKey, k -> new ArrayList<>());
-
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", record.getId());
-            item.put("targetType", record.getTargetType());
-            item.put("articleId", record.getArticleId());
-            item.put("articleTitle", record.getArticleTitle());
-            item.put("authorName", record.getAuthorName());
-            item.put("authorAvatar", record.getAuthorAvatar());
-            item.put("summary", record.getSummary());
-            item.put("readCount", record.getReadCount());
-            item.put("likeCount", record.getLikeCount());
-            item.put("commentCount", record.getCommentCount());
-            item.put("browseTime", record.getBrowseTime());
-            dateMap.get(dateKey).add(item);
-        }
-
-        List<Map<String, Object>> groupedList = new ArrayList<>();
-        for (Map.Entry<String, List<Map<String, Object>>> entry : dateMap.entrySet()) {
-            Map<String, Object> group = new HashMap<>();
-            group.put("date", entry.getKey());
-            group.put("items", entry.getValue());
-            groupedList.add(group);
-        }
-
-        return groupedList;
     }
 }
