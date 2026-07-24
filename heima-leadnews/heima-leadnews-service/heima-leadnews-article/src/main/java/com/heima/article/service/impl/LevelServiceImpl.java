@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+import static com.heima.article.constants.LevelScoreConstants.*;
+
 @Slf4j
 @Service
 public class LevelServiceImpl implements LevelService {
@@ -32,49 +34,6 @@ public class LevelServiceImpl implements LevelService {
 
     @Autowired
     private ApUserPermissionMapper userPermissionMapper;
-
-    private static final int DAILY_SCORE_LIMIT = 200;
-
-    private static final Map<String, Integer> ACTION_SCORE_MAP = new HashMap<>();
-    static {
-        ACTION_SCORE_MAP.put("daily_login", 10);
-        ACTION_SCORE_MAP.put("article_read", 2);
-        ACTION_SCORE_MAP.put("comment_article", 2);
-        ACTION_SCORE_MAP.put("comment_pin", 2);
-        ACTION_SCORE_MAP.put("like_article", 1);
-        ACTION_SCORE_MAP.put("like_pin", 1);
-        ACTION_SCORE_MAP.put("share", 3);
-        ACTION_SCORE_MAP.put("follow_user", 4);
-        ACTION_SCORE_MAP.put("publish_article", 8);
-        ACTION_SCORE_MAP.put("publish_pins", 2);
-        ACTION_SCORE_MAP.put("daily_checkin", 2);
-        ACTION_SCORE_MAP.put("upload_avatar", 1);
-        ACTION_SCORE_MAP.put("collect_article", 1);
-        ACTION_SCORE_MAP.put("browse_article", 0);
-        ACTION_SCORE_MAP.put("browse_course", 0);
-    }
-
-    private static final Map<String, Integer> DAILY_ACTION_LIMIT = new HashMap<>();
-    static {
-        DAILY_ACTION_LIMIT.put("publish_article", 2);
-        DAILY_ACTION_LIMIT.put("publish_pins", 2);
-        DAILY_ACTION_LIMIT.put("comment_article", 5);
-        DAILY_ACTION_LIMIT.put("comment_pin", 5);
-        DAILY_ACTION_LIMIT.put("like_article", 10);
-        DAILY_ACTION_LIMIT.put("like_pin", 10);
-        DAILY_ACTION_LIMIT.put("follow_user", 2);
-        DAILY_ACTION_LIMIT.put("daily_checkin", 1);
-        DAILY_ACTION_LIMIT.put("upload_avatar", 1);
-        DAILY_ACTION_LIMIT.put("collect_article", 2);
-        DAILY_ACTION_LIMIT.put("browse_article", 10);
-        DAILY_ACTION_LIMIT.put("browse_course", 10);
-        DAILY_ACTION_LIMIT.put("daily_login", 2);
-    }
-
-    private static final Map<String, Integer> POWER_ACTION_LIMIT = new HashMap<>();
-    static {
-        POWER_ACTION_LIMIT.put("publish_article", 2);
-    }
 
     @Override
     public ApUserLevel getUserLevel(Long userId) {
