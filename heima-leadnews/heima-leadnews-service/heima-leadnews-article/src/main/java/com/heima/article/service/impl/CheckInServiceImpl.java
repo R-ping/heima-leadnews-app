@@ -132,6 +132,33 @@ public class CheckInServiceImpl implements CheckInService {
         return result;
     }
 
+    @Override
+    public Map<String, Object> getCheckInTasks(Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> tasks = new ArrayList<>();
+
+        Map<String, Object> task1 = new HashMap<>();
+        task1.put("id", 1);
+        task1.put("name", "首次成功发布文章（>400字）");
+        task1.put("description", "发布一篇超过400字的文章");
+        task1.put("reward", 10000);
+        task1.put("icon", "📝");
+        task1.put("completed", true);
+        tasks.add(task1);
+
+        Map<String, Object> task2 = new HashMap<>();
+        task2.put("id", 2);
+        task2.put("name", "首次成功发布沸点");
+        task2.put("description", "发布第一条沸点");
+        task2.put("reward", 5000);
+        task2.put("icon", "💧");
+        task2.put("completed", true);
+        tasks.add(task2);
+
+        result.put("list", tasks);
+        return result;
+    }
+
     /**
      * 计算连续签到天数（从昨天开始往前数，直到遇到中断）
      */

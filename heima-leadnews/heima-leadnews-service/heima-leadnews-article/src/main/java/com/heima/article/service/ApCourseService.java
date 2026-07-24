@@ -11,4 +11,6 @@ public interface ApCourseService extends IService<ApCourse> {
     ResponseResult deleteById(Long id);
 
     ResponseResult updateStatus(Long id, Byte status, String reason);
+
+    ResponseResult getMyCourses(Long userId, String filter);
 }

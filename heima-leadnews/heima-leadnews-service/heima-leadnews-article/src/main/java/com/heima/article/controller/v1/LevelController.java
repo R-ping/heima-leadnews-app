@@ -1,6 +1,7 @@
 package com.heima.article.controller.v1;
 
 import com.heima.article.service.LevelService;
+import com.heima.model.article.pojos.ApLevelConfig;
 import com.heima.model.article.pojos.ApUserLevel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -80,5 +81,11 @@ public class LevelController {
             @RequestParam Integer powerChange) {
         Map<String, Object> result = levelService.calculatePowerWithLimit(userId, articleId, changeType, powerChange);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/configs")
+    public ResponseEntity<List<ApLevelConfig>> getLevelConfigs(@RequestParam(defaultValue = "1") Integer levelType) {
+        List<ApLevelConfig> configs = levelService.getLevelConfigs(levelType);
+        return ResponseEntity.ok(configs);
     }
 }

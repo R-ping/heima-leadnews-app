@@ -1,5 +1,6 @@
 package com.heima.article.service;
 
+import com.heima.model.article.pojos.ApLevelConfig;
 import com.heima.model.article.pojos.ApUserLevel;
 
 import java.util.List;
@@ -26,4 +27,6 @@ public interface LevelService {
     Map<String, Object> recordActionWithLimit(Long userId, String actionType, String actionDetail);
 
     Map<String, Object> getTodayTaskProgress(Long userId);
+
+    List<ApLevelConfig> getLevelConfigs(Integer levelType);
 }

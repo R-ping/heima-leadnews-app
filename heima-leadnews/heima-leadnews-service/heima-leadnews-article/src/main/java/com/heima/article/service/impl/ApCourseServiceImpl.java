@@ -13,6 +13,10 @@ import com.heima.model.common.enums.AppHttpCodeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 @Slf4j
 public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> implements ApCourseService {
@@ -70,5 +74,23 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
         }
         
         return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR);
+    }
+
+    @Override
+    public ResponseResult getMyCourses(Long userId, String filter) {
+        LambdaQueryWrapper<ApCourse> queryWrapper = new LambdaQueryWrapper<>();
+
+        if ("purchased".equals(filter)) {
+            queryWrapper.eq(ApCourse::getStatus, 1);
+        } else if ("vip".equals(filter)) {
+            queryWrapper.eq(ApCourse::getStatus, 2);
+        }
+
+        queryWrapper.orderByDesc(ApCourse::getCreatedTime);
+        List<ApCourse> list = list(queryWrapper);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        return ResponseResult.okResult(result);
     }
 }

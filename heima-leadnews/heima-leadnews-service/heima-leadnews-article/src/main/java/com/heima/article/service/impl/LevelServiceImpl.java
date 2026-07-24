@@ -546,6 +546,14 @@ public class LevelServiceImpl implements LevelService {
         }
     }
 
+    @Override
+    public List<ApLevelConfig> getLevelConfigs(Integer levelType) {
+        LambdaQueryWrapper<ApLevelConfig> query = new LambdaQueryWrapper<>();
+        query.eq(ApLevelConfig::getLevelType, levelType);
+        query.orderByAsc(ApLevelConfig::getLevelValue);
+        return levelConfigMapper.selectList(query);
+    }
+
     private void revokePermission(Long userId, String permissionCode) {
         LambdaQueryWrapper<ApUserPermission> query = new LambdaQueryWrapper<>();
         query.eq(ApUserPermission::getUserId, userId);

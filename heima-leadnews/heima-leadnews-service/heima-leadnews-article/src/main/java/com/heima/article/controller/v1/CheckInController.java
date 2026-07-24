@@ -51,4 +51,12 @@ public class CheckInController {
         Map<String, Object> result = checkInService.getCheckInStats(userId);
         return ResponseResult.okResult(result);
     }
+
+    @GetMapping("/tasks")
+    public ResponseResult getCheckInTasks() {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = Long.valueOf(user.getId());
+        Map<String, Object> result = checkInService.getCheckInTasks(userId);
+        return ResponseResult.okResult(result);
+    }
 }

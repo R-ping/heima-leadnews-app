@@ -26,4 +26,6 @@ public interface CheckInService {
      * @return 统计信息，包含 consecutiveDays, totalDays, totalPoints
      */
     Map<String, Object> getCheckInStats(Long userId);
+
+    Map<String, Object> getCheckInTasks(Long userId);
 }
