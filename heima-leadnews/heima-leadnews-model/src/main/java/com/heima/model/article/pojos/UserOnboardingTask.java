@@ -10,27 +10,22 @@ import java.io.Serializable;
 import java.util.Date;
 
 @Data
-@TableName("ap_check_in")
-public class ApCheckIn implements Serializable {
-
+@TableName("user_onboarding_tasks")
+public class UserOnboardingTask implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
-
     @TableField("user_id")
     private Long userId;
-
-    @TableField("check_in_date")
-    private Date checkInDate;
-
-    @TableField("reward_points")
-    private Integer rewardPoints;
-
-    @TableField("is_retroactive")
-    private Integer isRetroactive;
-
-    @TableField("consecutive_days")
-    private Integer consecutiveDays;
-
+    @TableField("task_type")
+    private String taskType;
+    @TableField("status")
+    private Integer status;
+    @TableField("condition_value")
+    private Integer conditionValue;
+    @TableField("reward_ore")
+    private Integer rewardOre;
+    @TableField("complete_time")
+    private Date completeTime;
     @TableField("created_time")
     private Date createdTime;
 }

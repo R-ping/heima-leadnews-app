@@ -9,6 +9,30 @@
         </div>
 
         <div class="checkin-content">
+            <!-- User Info Bar -->
+            <div class="user-info-bar">
+                <div class="user-info-section">
+                    <span class="user-nickname">{{ dashboard.user.name || '用户' }}</span>
+                    <span class="user-level-badge">{{ dashboard.user.level || 'JY.1' }}</span>
+                </div>
+                <span class="info-separator">|</span>
+                <div class="user-info-section">
+                    <span class="info-value">{{ dashboard.stats.consecutive || 0 }}</span>
+                    <span class="info-label">连续签到天数</span>
+                </div>
+                <span class="info-separator">|</span>
+                <div class="user-info-section">
+                    <span class="info-value">{{ dashboard.stats.total || 0 }}</span>
+                    <span class="info-label">累计签到天数</span>
+                </div>
+                <span class="info-separator">|</span>
+                <div class="user-info-section ore-section">
+                    <span class="info-value ore-value">{{ dashboard.stats.ore || 0 }}</span>
+                    <span class="ore-icon">&#xf06d;</span>
+                    <span class="ore-question">&#xf059;</span>
+                </div>
+            </div>
+
             <!-- Sub Tabs -->
             <div class="sub-tabs">
                 <div
@@ -19,25 +43,6 @@
                     @click="switchTab(tab)"
                 >
                     {{ tab.label }}
-                </div>
-            </div>
-
-            <!-- Stats Cards -->
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-value">{{ stats.consecutiveDays }}</div>
-                    <div class="stat-label">连续签到</div>
-                    <div class="stat-unit">天</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ stats.totalDays }}</div>
-                    <div class="stat-label">累计签到</div>
-                    <div class="stat-unit">天</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ stats.oreCount }}</div>
-                    <div class="stat-label">当前矿石</div>
-                    <div class="stat-unit"></div>
                 </div>
             </div>
 
@@ -67,19 +72,16 @@
                                 v-for="(cell, index) in calendarCells"
                                 :key="index"
                                 class="calendar-cell"
-                                :class="{
-                                    'is-empty': cell.isEmpty,
-                                    'is-today': cell.isToday,
-                                    'is-signed': cell.isSigned,
-                                    'is-future': cell.isFuture
-                                }"
+                                :class="cellClass(cell)"
                                 @click="handleCellClick(cell)"
                             >
                                 <template v-if="!cell.isEmpty">
-                                    <span class="cell-date">{{ cell.date }}</span>
-                                    <span v-if="cell.isSigned && cell.reward" class="cell-reward">
+                                    <span class="cell-date">{{ cell.day }}</span>
+                                    <span v-if="cell.status === 'SIGNED' && cell.reward" class="cell-reward">
                                         +{{ cell.reward }}
                                     </span>
+                                    <span v-if="cell.status === 'MISSED'" class="cell-missed-label">补签</span>
+                                    <span v-if="cell.extraLabel" class="cell-extra-label">{{ cell.extraLabel }}</span>
                                 </template>
                             </div>
                         </div>
@@ -93,47 +95,84 @@
                         <span class="month-arrow" @click="nextMonth">&#xf105;</span>
                     </div>
                     <div class="today-btn" @click="goToday">今天</div>
-                    <div class="patch-info">
+                    <div class="patch-card-info">
                         <span class="patch-label">补签卡</span>
-                        <span class="patch-count">{{ stats.patchCardCount || 0 }}张</span>
+                        <span class="patch-count">{{ dashboard.cards.retroactive || 0 }}张</span>
+                    </div>
+                    <div class="qr-code-area">
+                        <div class="qr-placeholder">&#xf029;</div>
+                        <div class="qr-text">扫描右侧二维码</div>
+                        <div class="qr-text">分享给好友</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Task List -->
+            <!-- Bottom Sections -->
+            <div class="bottom-sections">
+                <div class="bottom-section section-notice">
+                    <div class="section-title">掘金公告</div>
+                    <div class="notice-list">
+                        <div class="notice-item">
+                            <span class="notice-name">公益计划</span>
+                            <span class="notice-link">了解详情 &#xf105;</span>
+                        </div>
+                        <div class="notice-item">
+                            <span class="notice-name">游戏入口调整</span>
+                            <span class="notice-link">了解详情 &#xf105;</span>
+                        </div>
+                        <div class="notice-item">
+                            <span class="notice-link">捐赠详情 &#xf105;</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-section section-exchange">
+                    <div class="section-title">点石成金</div>
+                    <div class="exchange-content">
+                        <div class="exchange-desc">用矿石兑换公益基金</div>
+                        <div class="exchange-btn">去兑换</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Tasks Section -->
             <div class="tasks-section">
                 <div class="tasks-header">
                     <span class="tasks-title">我的任务</span>
+                    <span class="tasks-question-icon">&#xf059;</span>
                 </div>
                 <div class="tasks-list">
                     <div
-                        v-for="task in tasks"
+                        v-for="task in dashboard.tasks"
                         :key="task.id"
                         class="task-item"
                     >
-                        <div class="task-icon">{{ task.icon }}</div>
                         <div class="task-info">
                             <div class="task-name">{{ task.name }}</div>
                             <div class="task-desc">{{ task.description }}</div>
                         </div>
                         <div class="task-reward">
-                            {{ task.completed ? '已完成' : ('奖励矿石 ' + task.reward) }}
+                            +{{ task.reward }} 矿石
                         </div>
                         <div
                             class="task-status"
-                            :class="{ completed: task.completed }"
+                            :class="{ completed: task.status === 'completed' }"
                         >
-                            {{ task.completed ? '已完成' : '去完成' }}
+                            {{ task.status === 'completed' ? '已完成' : '去完成' }}
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="checkin-footer">
+                用户协议 · 法律声明 &copy;{{ new Date().getFullYear() }} 稀土掘金
             </div>
         </div>
     </div>
 </template>
 
 <script>
-import { doCheckIn, getCheckInRecords, getCheckInStats, getCheckInTasks } from '@/apis/checkin'
+import { getDashboard, doCheckIn, doRetroactive, getCheckInRecords } from '@/apis/checkin'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -151,18 +190,17 @@ export default {
             weekDays: ['日', '一', '二', '三', '四', '五', '六'],
             currentYear: new Date().getFullYear(),
             currentMonth: new Date().getMonth() + 1,
-            today: new Date().getDate(),
             todayYear: new Date().getFullYear(),
             todayMonth: new Date().getMonth() + 1,
-            signedDates: [],
-            stats: {
-                consecutiveDays: 0,
-                totalDays: 0,
-                oreCount: 0,
-                patchCardCount: 0
-            },
-            todaySigned: false,
-            tasks: []
+            today: new Date().getDate(),
+            dashboard: {
+                user: { name: '', level: '' },
+                todayStatus: 'NORMAL',
+                stats: { consecutive: 0, total: 0, ore: 0 },
+                cards: { retroactive: 0 },
+                calendar: [],
+                tasks: []
+            }
         }
     },
     computed: {
@@ -170,10 +208,6 @@ export default {
             const cells = []
             const firstDay = new Date(this.currentYear, this.currentMonth - 1, 1).getDay()
             const totalDays = new Date(this.currentYear, this.currentMonth, 0).getDate()
-
-            const isCurrentMonth =
-                this.currentYear === this.todayYear &&
-                this.currentMonth === this.todayMonth
 
             // 填充前置空白格
             for (let i = 0; i < firstDay; i++) {
@@ -183,21 +217,17 @@ export default {
             // 填充日期格
             for (let d = 1; d <= totalDays; d++) {
                 const dateStr = this.formatDateStr(d)
-                const signedInfo = this.signedDates.find(
-                    s => s.date === dateStr || s.day === d
+                const match = this.dashboard.calendar.find(
+                    item => item.date === dateStr
                 )
-                const isFuture = isCurrentMonth
-                    ? d > this.today
-                    : (this.currentYear > this.todayYear ||
-                        (this.currentYear === this.todayYear && this.currentMonth > this.todayMonth))
 
                 cells.push({
                     isEmpty: false,
-                    date: d,
-                    isToday: isCurrentMonth && d === this.today,
-                    isSigned: !!signedInfo,
-                    isFuture: isFuture,
-                    reward: signedInfo ? signedInfo.reward : null
+                    day: d,
+                    date: dateStr,
+                    status: match ? match.status : this.getDefaultStatus(d),
+                    reward: match ? match.reward : null,
+                    extraLabel: match ? match.extra_label : null
                 })
             }
 
@@ -205,7 +235,7 @@ export default {
         }
     },
     mounted() {
-        this.loadData()
+        this.loadDashboard()
     },
     methods: {
         goBack() {
@@ -233,24 +263,53 @@ export default {
                 return
             }
         },
-        async loadData() {
-            await this.loadStats()
-            await this.loadRecords()
-            await this.loadTasks()
+        getDefaultStatus(d) {
+            const isCurrentMonth =
+                this.currentYear === this.todayYear &&
+                this.currentMonth === this.todayMonth
+            if (isCurrentMonth && d === this.today) {
+                return 'NORMAL'
+            }
+            const cellDate = new Date(this.currentYear, this.currentMonth - 1, d)
+            const todayDate = new Date(this.todayYear, this.todayMonth - 1, this.today)
+            if (cellDate > todayDate) {
+                return 'FUTURE'
+            }
+            return 'MISSED'
         },
-        async loadStats() {
+        cellClass(cell) {
+            if (cell.isEmpty) return 'is-empty'
+            const map = {
+                SIGNED: 'is-signed',
+                MISSED: 'is-missed',
+                NORMAL: 'is-today',
+                FUTURE: 'is-future'
+            }
+            return map[cell.status] || ''
+        },
+        async loadDashboard() {
             try {
-                const res = await getCheckInStats()
+                const res = await getDashboard()
                 if (res && res.code === 200 && res.data) {
                     const data = res.data
-                    this.stats.consecutiveDays = data.consecutiveDays || 0
-                    this.stats.totalDays = data.totalDays || 0
-                    this.stats.oreCount = data.oreCount || 0
-                    this.stats.patchCardCount = data.patchCardCount || 0
-                    this.todaySigned = data.todaySigned || false
+                    this.dashboard.user = {
+                        name: data.user && data.user.name ? data.user.name : '用户',
+                        level: data.user && data.user.level ? data.user.level : 'JY.1'
+                    }
+                    this.dashboard.todayStatus = data.todayStatus || 'NORMAL'
+                    this.dashboard.stats = {
+                        consecutive: data.stats && data.stats.consecutive != null ? data.stats.consecutive : 0,
+                        total: data.stats && data.stats.total != null ? data.stats.total : 0,
+                        ore: data.stats && data.stats.ore != null ? data.stats.ore : 0
+                    }
+                    this.dashboard.cards = {
+                        retroactive: data.cards && data.cards.retroactive != null ? data.cards.retroactive : 0
+                    }
+                    this.dashboard.calendar = data.calendar || []
+                    this.dashboard.tasks = data.tasks || []
                 }
             } catch (error) {
-                // Keep default values when API fails
+                toast('加载数据失败，请稍后重试', 2)
             }
         },
         async loadRecords() {
@@ -260,48 +319,59 @@ export default {
                     month: this.currentMonth
                 })
                 if (res && res.code === 200 && res.data) {
-                    this.signedDates = res.data.records || res.data || []
+                    const records = res.data.records || res.data || []
+                    this.dashboard.calendar = records.map(r => ({
+                        date: r.date,
+                        status: r.status,
+                        reward: r.reward,
+                        extra_label: r.extra_label
+                    }))
                 }
             } catch (error) {
-                this.signedDates = []
-            }
-        },
-        async loadTasks() {
-            try {
-                const res = await getCheckInTasks()
-                if (res && res.code === 200 && res.data) {
-                    this.tasks = res.data.list || res.data || []
-                }
-            } catch (error) {
-                // Keep empty tasks when API fails
+                // Keep current calendar data on error
             }
         },
         async handleCellClick(cell) {
-            if (cell.isEmpty || cell.isFuture) return
-            if (cell.isSigned) {
+            if (cell.isEmpty) return
+            if (cell.status === 'FUTURE') return
+
+            if (cell.status === 'SIGNED') {
                 toast('该日期已签到', 2)
                 return
             }
-            if (!cell.isToday) {
-                toast('只能对今天进行签到', 2)
-                return
-            }
-            if (this.todaySigned) {
-                toast('今日已签到', 2)
-                return
-            }
-            try {
-                const res = await doCheckIn()
-                if (res && res.code === 200) {
-                    const reward = res.data && res.data.reward ? res.data.reward : 10
-                    this.todaySigned = true
-                    toast('签到成功！+' + reward + ' 矿石', 2)
-                    await this.loadData()
-                } else {
-                    toast(res && res.message ? res.message : '签到失败', 2)
+
+            if (cell.status === 'MISSED') {
+                if (this.dashboard.cards.retroactive <= 0) {
+                    toast('没有补签卡了', 2)
+                    return
                 }
-            } catch (error) {
-                toast('签到失败，请稍后重试', 2)
+                try {
+                    const res = await doRetroactive(cell.date)
+                    if (res && res.code === 200) {
+                        toast('补签成功', 2)
+                        await this.loadDashboard()
+                    } else {
+                        toast(res && res.message ? res.message : '补签失败', 2)
+                    }
+                } catch (error) {
+                    toast('补签失败，请稍后重试', 2)
+                }
+                return
+            }
+
+            if (cell.status === 'NORMAL') {
+                try {
+                    const res = await doCheckIn()
+                    if (res && res.code === 200) {
+                        const reward = res.data && res.data.reward ? res.data.reward : 10
+                        toast('签到成功！+' + reward + ' 矿石', 2)
+                        await this.loadDashboard()
+                    } else {
+                        toast(res && res.message ? res.message : '签到失败', 2)
+                    }
+                } catch (error) {
+                    toast('签到失败，请稍后重试', 2)
+                }
             }
         },
         prevMonth() {
@@ -385,10 +455,84 @@ export default {
     padding: 0 24px 24px;
 }
 
+// User Info Bar
+.user-info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border-radius: 0 0 12px 12px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.user-info-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.user-nickname {
+    font-size: 15px;
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+.user-level-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fa8c16, #ffc069);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.info-separator {
+    color: #e8e8e8;
+    font-size: 14px;
+}
+
+.info-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fa8c16;
+}
+
+.info-label {
+    font-size: 13px;
+    color: #999;
+}
+
+.ore-section {
+    .ore-value {
+        font-size: 18px;
+    }
+
+    .ore-icon {
+        font-family: fontawesome;
+        font-size: 16px;
+        color: #fa8c16;
+    }
+
+    .ore-question {
+        font-family: fontawesome;
+        font-size: 14px;
+        color: #ccc;
+        cursor: pointer;
+        margin-left: 2px;
+    }
+}
+
+// Sub Tabs
 .sub-tabs {
     display: flex;
     background: #fff;
-    border-radius: 0 0 12px 12px;
+    border-radius: 12px;
     padding: 0 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     margin-bottom: 16px;
@@ -424,39 +568,7 @@ export default {
     }
 }
 
-.stats-row {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
-}
-
-.stat-card {
-    flex: 1;
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px 24px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: #fa8c16;
-}
-
-.stat-label {
-    font-size: 14px;
-    color: #666;
-}
-
-.stat-unit {
-    font-size: 14px;
-    color: #999;
-}
-
+// Calendar Section
 .calendar-section {
     display: flex;
     gap: 16px;
@@ -531,22 +643,8 @@ export default {
     transition: background-color 0.2s;
     position: relative;
 
-    &:hover:not(.is-empty):not(.is-future) {
-        background: #f0f5ff;
-    }
-
     &.is-empty {
         cursor: default;
-    }
-
-    &.is-today {
-        background: #1e80ff;
-        border-radius: 50%;
-
-        .cell-date {
-            color: #fff;
-            font-weight: 600;
-        }
     }
 
     &.is-signed {
@@ -554,15 +652,45 @@ export default {
 
         .cell-date {
             color: #fff;
+            font-weight: 600;
         }
 
         .cell-reward {
             color: #fff;
         }
+
+        .cell-extra-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
     }
 
-    &.is-signed.is-today {
-        background: #52c41a;
+    &.is-missed {
+        background: #f5f5f5;
+
+        .cell-date {
+            color: #999;
+        }
+
+        .cell-missed-label {
+            color: #1e80ff;
+        }
+    }
+
+    &.is-today {
+        background: #1e80ff;
+
+        .cell-date {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .cell-extra-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        &:hover {
+            background: #4096ff;
+        }
     }
 
     &.is-future {
@@ -571,6 +699,14 @@ export default {
         .cell-date {
             color: #ccc;
         }
+    }
+
+    &:hover:not(.is-empty):not(.is-future):not(.is-missed) {
+        opacity: 0.85;
+    }
+
+    &.is-missed:hover {
+        background: #e8e8e8;
     }
 }
 
@@ -587,6 +723,19 @@ export default {
     font-weight: 500;
 }
 
+.cell-missed-label {
+    font-size: 11px;
+    color: #1e80ff;
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+.cell-extra-label {
+    font-size: 10px;
+    margin-top: 1px;
+}
+
+// Calendar Right
 .calendar-right {
     width: 120px;
     flex-shrink: 0;
@@ -643,24 +792,129 @@ export default {
     }
 }
 
-.patch-info {
+.patch-card-info {
     text-align: center;
-    font-size: 13px;
-    color: #666;
 }
 
 .patch-label {
     display: block;
-    color: #999;
     font-size: 12px;
+    color: #999;
     margin-bottom: 4px;
 }
 
 .patch-count {
+    font-size: 14px;
     color: #1e80ff;
     font-weight: 500;
 }
 
+.qr-code-area {
+    text-align: center;
+    padding: 8px;
+    border: 1px dashed #e8e8e8;
+    border-radius: 8px;
+    width: 100%;
+}
+
+.qr-placeholder {
+    font-family: fontawesome;
+    font-size: 40px;
+    color: #ccc;
+    margin-bottom: 6px;
+}
+
+.qr-text {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.5;
+}
+
+// Bottom Sections
+.bottom-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.bottom-section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+}
+
+.notice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notice-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f3f5;
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.notice-name {
+    font-size: 14px;
+    color: #1a1a1a;
+}
+
+.notice-link {
+    font-size: 13px;
+    color: #1e80ff;
+    cursor: pointer;
+    font-family: fontawesome;
+
+    &:hover {
+        opacity: 0.8;
+    }
+}
+
+.exchange-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 0;
+}
+
+.exchange-desc {
+    font-size: 14px;
+    color: #666;
+}
+
+.exchange-btn {
+    padding: 10px 32px;
+    background: linear-gradient(135deg, #fa8c16, #ffc069);
+    color: #fff;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.85;
+    }
+}
+
+// Tasks Section
 .tasks-section {
     background: #fff;
     border-radius: 12px;
@@ -670,6 +924,8 @@ export default {
 }
 
 .tasks-header {
+    display: flex;
+    align-items: center;
     margin-bottom: 16px;
 }
 
@@ -677,6 +933,14 @@ export default {
     font-size: 16px;
     font-weight: 600;
     color: #1a1a1a;
+}
+
+.tasks-question-icon {
+    font-family: fontawesome;
+    font-size: 16px;
+    color: #ccc;
+    margin-left: 8px;
+    cursor: pointer;
 }
 
 .tasks-list {
@@ -694,13 +958,6 @@ export default {
     &:last-child {
         border-bottom: none;
     }
-}
-
-.task-icon {
-    font-size: 24px;
-    width: 40px;
-    text-align: center;
-    flex-shrink: 0;
 }
 
 .task-info {
@@ -752,9 +1009,35 @@ export default {
     }
 }
 
+// Footer
+.checkin-footer {
+    text-align: center;
+    font-size: 12px;
+    color: #ccc;
+    padding: 16px 0;
+}
+
+// Responsive
 @media screen and (max-width: 768px) {
     .checkin-content {
         padding: 0 12px 12px;
+    }
+
+    .user-info-bar {
+        padding: 12px 16px;
+        gap: 8px;
+    }
+
+    .user-info-section {
+        gap: 4px;
+    }
+
+    .info-value {
+        font-size: 16px;
+    }
+
+    .info-label {
+        font-size: 12px;
     }
 
     .sub-tabs {
@@ -766,11 +1049,6 @@ export default {
         padding: 14px 12px;
         font-size: 13px;
         white-space: nowrap;
-    }
-
-    .stats-row {
-        flex-direction: column;
-        gap: 8px;
     }
 
     .calendar-section {
@@ -796,6 +1074,7 @@ export default {
         width: 100%;
         flex-direction: row;
         justify-content: space-between;
+        flex-wrap: wrap;
     }
 
     .calendar-cell {
@@ -806,8 +1085,13 @@ export default {
         font-size: 13px;
     }
 
-    .cell-reward {
+    .cell-reward,
+    .cell-missed-label {
         font-size: 10px;
+    }
+
+    .bottom-sections {
+        grid-template-columns: 1fr;
     }
 
     .task-item {

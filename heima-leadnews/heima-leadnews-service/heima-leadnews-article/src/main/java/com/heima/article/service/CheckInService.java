@@ -28,4 +28,19 @@ public interface CheckInService {
     Map<String, Object> getCheckInStats(Long userId);
 
     Map<String, Object> getCheckInTasks(Long userId);
+
+    /**
+     * 获取签到仪表盘聚合数据
+     * @param userId 用户ID
+     * @return 包含用户信息、今日状态、统计、补签卡、日历、任务等聚合数据
+     */
+    Map<String, Object> getDashboard(Long userId);
+
+    /**
+     * 补签
+     * @param userId 用户ID
+     * @param missedDate 补签日期 (yyyy-MM-dd)
+     * @return 补签结果
+     */
+    Map<String, Object> doRetroactive(Long userId, String missedDate);
 }

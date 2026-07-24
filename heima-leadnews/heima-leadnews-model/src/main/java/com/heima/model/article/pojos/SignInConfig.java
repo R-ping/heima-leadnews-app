@@ -7,30 +7,24 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
-@TableName("ap_check_in")
-public class ApCheckIn implements Serializable {
-
+@TableName("sign_in_config")
+public class SignInConfig implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
-
-    @TableField("user_id")
-    private Long userId;
-
-    @TableField("check_in_date")
-    private Date checkInDate;
-
-    @TableField("reward_points")
-    private Integer rewardPoints;
-
-    @TableField("is_retroactive")
-    private Integer isRetroactive;
-
-    @TableField("consecutive_days")
-    private Integer consecutiveDays;
-
+    @TableField("day_of_month")
+    private Integer dayOfMonth;
+    @TableField("base_reward")
+    private Integer baseReward;
+    @TableField("bonus_multiplier")
+    private BigDecimal bonusMultiplier;
+    @TableField("extra_label")
+    private String extraLabel;
+    @TableField("is_active")
+    private Integer isActive;
     @TableField("created_time")
     private Date createdTime;
 }

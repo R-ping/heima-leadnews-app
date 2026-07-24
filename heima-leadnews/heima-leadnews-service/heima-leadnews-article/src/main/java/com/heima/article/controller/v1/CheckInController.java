@@ -6,6 +6,7 @@ import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,11 +21,27 @@ public class CheckInController {
     @Autowired
     private CheckInService checkInService;
 
-    @GetMapping("/do")
+    @PostMapping("/do")
     public ResponseResult doCheckIn() {
         ApUser user = AppThreadLocalUtil.getUser();
         Long userId = Long.valueOf(user.getId());
         Map<String, Object> result = checkInService.doCheckIn(userId);
+        return ResponseResult.okResult(result);
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseResult getDashboard() {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = Long.valueOf(user.getId());
+        Map<String, Object> result = checkInService.getDashboard(userId);
+        return ResponseResult.okResult(result);
+    }
+
+    @PostMapping("/retroactive")
+    public ResponseResult doRetroactive(@RequestParam String missedDate) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = Long.valueOf(user.getId());
+        Map<String, Object> result = checkInService.doRetroactive(userId, missedDate);
         return ResponseResult.okResult(result);
     }
 

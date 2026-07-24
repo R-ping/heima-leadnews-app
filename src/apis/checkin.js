@@ -1,7 +1,15 @@
 import request from '@/common/article_request'
 
+export const getDashboard = () => {
+  return request.get('/api/v1/checkin/dashboard')
+}
+
 export const doCheckIn = () => {
-  return request.get('/api/v1/checkin/do')
+  return request.post('/api/v1/checkin/do')
+}
+
+export const doRetroactive = (missedDate) => {
+  return request.post('/api/v1/checkin/retroactive', null, { params: { missedDate } })
 }
 
 export const getCheckInRecords = (params) => {
