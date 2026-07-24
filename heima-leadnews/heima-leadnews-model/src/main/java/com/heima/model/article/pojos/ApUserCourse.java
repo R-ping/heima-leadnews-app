@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
@@ -33,4 +34,22 @@ public class ApUserCourse implements Serializable {
 
     @TableField("created_time")
     private Date createdTime;
+
+    @TableField("access_type")
+    private Integer accessType;
+
+    @TableField("borrow_expire_at")
+    private Date borrowExpireAt;
+
+    @TableField("progress")
+    private BigDecimal progress;
+
+    @TableField("last_learn_chapter_id")
+    private Long lastLearnChapterId;
+
+    @TableField("last_learn_at")
+    private Date lastLearnAt;
+
+    @TableField("is_trial")
+    private Integer isTrial;
 }

@@ -45,4 +45,14 @@ public class CourseController {
         Long userId = user != null ? user.getId().longValue() : null;
         return apCourseService.getMyCourses(userId, filter);
     }
+
+    @PostMapping("/progress")
+    public ResponseResult updateProgress(@RequestBody Map<String, Object> params) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = user != null ? user.getId().longValue() : null;
+        Long courseId = params.get("courseId") != null ? Long.parseLong(params.get("courseId").toString()) : null;
+        Long chapterId = params.get("chapterId") != null ? Long.parseLong(params.get("chapterId").toString()) : null;
+        Boolean isCompleted = params.get("isCompleted") != null ? Boolean.parseBoolean(params.get("isCompleted").toString()) : null;
+        return apCourseService.updateProgress(userId, courseId, chapterId, isCompleted);
+    }
 }

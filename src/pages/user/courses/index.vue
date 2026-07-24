@@ -21,34 +21,14 @@
                 </div>
             </div>
 
-            <!-- 视图切换 -->
-            <div class="toolbar">
-                <div class="view-toggle">
-                    <span
-                        class="toggle-btn"
-                        :class="{ active: viewMode === 'grid' }"
-                        @click="viewMode = 'grid'"
-                    >
-                        &#xf00a;
-                    </span>
-                    <span
-                        class="toggle-btn"
-                        :class="{ active: viewMode === 'list' }"
-                        @click="viewMode = 'list'"
-                    >
-                        &#xf03a;
-                    </span>
-                </div>
-            </div>
-
             <!-- 空状态：VIP借阅无数据 -->
             <div v-if="activeFilter === 'vip' && courses.length === 0 && !loading" class="empty-state">
                 <p class="empty-text">你还未借阅过任何课程～快去课程首页看看吧～！</p>
                 <button class="empty-btn" @click="$router.push('/course')">前往课程首页</button>
             </div>
 
-            <!-- 网格视图 -->
-            <div v-else-if="viewMode === 'grid' && courses.length > 0" class="course-grid">
+            <!-- 全部 tab：网格视图 -->
+            <div v-else-if="activeFilter === 'all' && courses.length > 0" class="course-grid">
                 <div
                     v-for="course in courses"
                     :key="course.id"
@@ -71,8 +51,8 @@
                 </div>
             </div>
 
-            <!-- 列表视图 -->
-            <div v-else-if="viewMode === 'list' && courses.length > 0" class="course-list">
+            <!-- 已购 / VIP借阅 tab：列表视图 -->
+            <div v-else-if="activeFilter !== 'all' && courses.length > 0" class="course-list">
                 <div
                     v-for="course in courses"
                     :key="course.id"
@@ -84,13 +64,25 @@
                     </div>
                     <div class="list-info">
                         <div class="list-title">{{ course.title }}</div>
-                        <div class="list-author">{{ course.authorName }}</div>
+                        <div class="list-meta">
+                            <span class="list-author">{{ course.authorName }}</span>
+                            <span class="list-date" v-if="course.lastLearnAt">{{ formatDate(course.lastLearnAt) }}</span>
+                        </div>
                         <div class="list-progress" v-if="course.progress !== undefined">
                             <div class="progress-bar">
                                 <div class="progress-fill" :style="{ width: course.progress + '%' }"></div>
                             </div>
                             <span class="progress-text">{{ course.progress }}%</span>
                         </div>
+                    </div>
+                    <div class="list-action" @click.stop>
+                        <button
+                            class="action-btn"
+                            :class="course.isTrial ? 'trial' : 'continue'"
+                            @click="goToDetail(course.id)"
+                        >
+                            {{ course.isTrial ? '试学' : '继续学习' }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -106,6 +98,7 @@
 <script>
 import HomeBar from '@/compoents/bars/home_bar'
 import { toast } from '@/utils/toast'
+import request from '@/common/article_request'
 
 export default {
     name: 'UserCourses',
@@ -113,7 +106,6 @@ export default {
     data() {
         return {
             activeFilter: 'all',
-            viewMode: 'grid',
             courses: [],
             loading: false,
             filterTabs: [
@@ -136,7 +128,7 @@ export default {
         async loadCourses() {
             this.loading = true
             try {
-                const res = await this.$http.get('/api/v1/course/my', {
+                const res = await request.get('/api/v1/course/my', {
                     params: { filter: this.activeFilter }
                 })
                 if (res && res.code === 200 && res.data) {
@@ -150,6 +142,15 @@ export default {
         },
         goToDetail(courseId) {
             this.$router.push('/course/' + courseId)
+        },
+        formatDate(dateStr) {
+            if (!dateStr) return ''
+            const d = new Date(dateStr)
+            if (isNaN(d.getTime())) return dateStr
+            const year = d.getFullYear()
+            const month = String(d.getMonth() + 1).padStart(2, '0')
+            const day = String(d.getDate()).padStart(2, '0')
+            return year + '-' + month + '-' + day
         }
     }
 }
@@ -203,6 +204,9 @@ export default {
     background: #fff;
     padding: 0 24px;
     border-bottom: 1px solid #f0f2f5;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
 }
 
 .filter-tab {
@@ -232,48 +236,6 @@ export default {
             background: #1e80ff;
             border-radius: 1px;
         }
-    }
-}
-
-.toolbar {
-    display: flex;
-    justify-content: flex-end;
-    background: #fff;
-    padding: 12px 24px;
-    border-radius: 0 0 16px 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    margin-bottom: 24px;
-}
-
-.view-toggle {
-    display: flex;
-    gap: 4px;
-    background: #f4f5f7;
-    border-radius: 6px;
-    padding: 3px;
-}
-
-.toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 28px;
-    font-family: fontawesome;
-    font-size: 16px;
-    color: #8a919f;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-
-    &:hover {
-        color: #1e80ff;
-    }
-
-    &.active {
-        background: #fff;
-        color: #1e80ff;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 }
 
@@ -387,8 +349,8 @@ export default {
 }
 
 .list-cover {
-    width: 80px;
-    height: 56px;
+    width: 120px;
+    height: 68px;
     border-radius: 6px;
     overflow: hidden;
     flex-shrink: 0;
@@ -417,16 +379,69 @@ export default {
     white-space: nowrap;
 }
 
+.list-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
 .list-author {
     font-size: 13px;
     color: #8c8c8c;
-    margin-bottom: 6px;
+}
+
+.list-date {
+    font-size: 12px;
+    color: #bfbfbf;
 }
 
 .list-progress {
     display: flex;
     align-items: center;
     gap: 8px;
+    max-width: 260px;
+}
+
+.list-action {
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+.action-btn {
+    padding: 6px 20px;
+    border: 1px solid #1e80ff;
+    border-radius: 16px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #fff;
+    color: #1e80ff;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #1e80ff;
+        color: #fff;
+    }
+
+    &.trial {
+        border-color: #52c41a;
+        color: #52c41a;
+
+        &:hover {
+            background: #52c41a;
+            color: #fff;
+        }
+    }
+
+    &.continue {
+        border-color: #1e80ff;
+        color: #1e80ff;
+
+        &:hover {
+            background: #1e80ff;
+            color: #fff;
+        }
+    }
 }
 
 .empty-state {
@@ -489,16 +504,25 @@ export default {
 
     .filter-tabs {
         padding: 0 16px;
-    }
-
-    .toolbar {
-        padding: 10px 16px;
         border-radius: 0 0 12px 12px;
     }
 
+    .list-item {
+        padding: 12px 16px;
+    }
+
     .list-cover {
-        width: 60px;
-        height: 42px;
+        width: 80px;
+        height: 50px;
+    }
+
+    .list-action {
+        margin-left: 8px;
+    }
+
+    .action-btn {
+        padding: 4px 12px;
+        font-size: 12px;
     }
 
     .empty-state {

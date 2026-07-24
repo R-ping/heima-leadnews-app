@@ -27,4 +27,10 @@ public class ApCourseReadingProgress implements Serializable {
 
     @TableField("last_read_at")
     private Date lastReadAt;
+
+    @TableField("is_completed")
+    private Integer isCompleted;
+
+    @TableField("completed_at")
+    private Date completedAt;
 }

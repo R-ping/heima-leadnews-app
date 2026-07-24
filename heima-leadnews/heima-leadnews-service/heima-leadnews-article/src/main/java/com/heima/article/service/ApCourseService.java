@@ -13,4 +13,6 @@ public interface ApCourseService extends IService<ApCourse> {
     ResponseResult updateStatus(Long id, Byte status, String reason);
 
     ResponseResult getMyCourses(Long userId, String filter);
+
+    ResponseResult updateProgress(Long userId, Long courseId, Long chapterId, Boolean isCompleted);
 }
