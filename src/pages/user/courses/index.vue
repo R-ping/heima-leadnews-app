@@ -29,62 +29,22 @@
 
             <!-- 全部 tab：网格视图 -->
             <div v-else-if="activeFilter === 'all' && courses.length > 0" class="course-grid">
-                <div
+                <CourseGridCard
                     v-for="course in courses"
                     :key="course.id"
-                    class="course-card"
+                    :course="course"
                     @click="goToDetail(course.id)"
-                >
-                    <div class="card-cover">
-                        <img :src="course.coverImage || defaultCover" alt="封面" />
-                    </div>
-                    <div class="card-info">
-                        <div class="card-title">{{ course.title }}</div>
-                        <div class="card-author">{{ course.authorName }}</div>
-                        <div class="card-progress" v-if="course.progress !== undefined">
-                            <div class="progress-bar">
-                                <div class="progress-fill" :style="{ width: course.progress + '%' }"></div>
-                            </div>
-                            <span class="progress-text">{{ course.progress }}%</span>
-                        </div>
-                    </div>
-                </div>
+                />
             </div>
 
             <!-- 已购 / VIP借阅 tab：列表视图 -->
             <div v-else-if="activeFilter !== 'all' && courses.length > 0" class="course-list">
-                <div
+                <CourseListItem
                     v-for="course in courses"
                     :key="course.id"
-                    class="list-item"
+                    :course="course"
                     @click="goToDetail(course.id)"
-                >
-                    <div class="list-cover">
-                        <img :src="course.coverImage || defaultCover" alt="封面" />
-                    </div>
-                    <div class="list-info">
-                        <div class="list-title">{{ course.title }}</div>
-                        <div class="list-meta">
-                            <span class="list-author">{{ course.authorName }}</span>
-                            <span class="list-date" v-if="course.lastLearnAt">{{ formatDate(course.lastLearnAt) }}</span>
-                        </div>
-                        <div class="list-progress" v-if="course.progress !== undefined">
-                            <div class="progress-bar">
-                                <div class="progress-fill" :style="{ width: course.progress + '%' }"></div>
-                            </div>
-                            <span class="progress-text">{{ course.progress }}%</span>
-                        </div>
-                    </div>
-                    <div class="list-action" @click.stop>
-                        <button
-                            class="action-btn"
-                            :class="course.isTrial ? 'trial' : 'continue'"
-                            @click="goToDetail(course.id)"
-                        >
-                            {{ course.isTrial ? '试学' : '继续学习' }}
-                        </button>
-                    </div>
-                </div>
+                />
             </div>
 
             <!-- 其他筛选无数据 -->
@@ -97,12 +57,13 @@
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
-import { toast } from '@/utils/toast'
+import CourseGridCard from './components/CourseGridCard.vue'
+import CourseListItem from './components/CourseListItem.vue'
 import request from '@/common/article_request'
 
 export default {
     name: 'UserCourses',
-    components: { HomeBar },
+    components: { HomeBar, CourseGridCard, CourseListItem },
     data() {
         return {
             activeFilter: 'all',
@@ -112,8 +73,7 @@ export default {
                 { key: 'all', label: '全部' },
                 { key: 'purchased', label: '已购' },
                 { key: 'vip', label: 'VIP借阅' }
-            ],
-            defaultCover: '/static/images/avatar_head_1.png'
+            ]
         }
     },
     mounted() {
@@ -142,15 +102,6 @@ export default {
         },
         goToDetail(courseId) {
             this.$router.push('/course/' + courseId)
-        },
-        formatDate(dateStr) {
-            if (!dateStr) return ''
-            const d = new Date(dateStr)
-            if (isNaN(d.getTime())) return dateStr
-            const year = d.getFullYear()
-            const month = String(d.getMonth() + 1).padStart(2, '0')
-            const day = String(d.getDate()).padStart(2, '0')
-            return year + '-' + month + '-' + day
         }
     }
 }
@@ -240,208 +191,18 @@ export default {
 }
 
 .course-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-}
-
-.course-card {
-    background: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-
-    &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    }
-}
-
-.card-cover {
-    width: 100%;
-    height: 160px;
-    background: #f5f7fa;
-    overflow: hidden;
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-}
-
-.card-info {
-    padding: 12px 16px;
-}
-
-.card-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: #1a1a1a;
-    line-height: 1.4;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-.card-author {
-    font-size: 13px;
-    color: #8c8c8c;
-    margin-bottom: 8px;
-}
-
-.card-progress {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.progress-bar {
-    flex: 1;
-    height: 4px;
-    background: #e8e8e8;
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: #1e80ff;
-    border-radius: 2px;
-    transition: width 0.3s;
-}
-
-.progress-text {
-    font-size: 12px;
-    color: #666;
-    flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
 }
 
 .course-list {
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    overflow: hidden;
-}
-
-.list-item {
-    display: flex;
-    align-items: center;
-    padding: 16px 24px;
-    cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
-    transition: background-color 0.2s;
-
-    &:last-child {
-        border-bottom: none;
-    }
-
-    &:hover {
-        background: #f8fafc;
-    }
-}
-
-.list-cover {
-    width: 120px;
-    height: 68px;
-    border-radius: 6px;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: #f0f2f5;
-    margin-right: 16px;
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-}
-
-.list-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.list-title {
-    font-size: 15px;
-    font-weight: 500;
-    color: #1a1a1a;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.list-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 6px;
-}
-
-.list-author {
-    font-size: 13px;
-    color: #8c8c8c;
-}
-
-.list-date {
-    font-size: 12px;
-    color: #bfbfbf;
-}
-
-.list-progress {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    max-width: 260px;
-}
-
-.list-action {
-    flex-shrink: 0;
-    margin-left: 16px;
-}
-
-.action-btn {
-    padding: 6px 20px;
-    border: 1px solid #1e80ff;
-    border-radius: 16px;
-    font-size: 13px;
-    cursor: pointer;
-    background: #fff;
-    color: #1e80ff;
-    transition: all 0.2s;
-
-    &:hover {
-        background: #1e80ff;
-        color: #fff;
-    }
-
-    &.trial {
-        border-color: #52c41a;
-        color: #52c41a;
-
-        &:hover {
-            background: #52c41a;
-            color: #fff;
-        }
-    }
-
-    &.continue {
-        border-color: #1e80ff;
-        color: #1e80ff;
-
-        &:hover {
-            background: #1e80ff;
-            color: #fff;
-        }
-    }
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
 }
 
 .empty-state {
@@ -505,24 +266,6 @@ export default {
     .filter-tabs {
         padding: 0 16px;
         border-radius: 0 0 12px 12px;
-    }
-
-    .list-item {
-        padding: 12px 16px;
-    }
-
-    .list-cover {
-        width: 80px;
-        height: 50px;
-    }
-
-    .list-action {
-        margin-left: 8px;
-    }
-
-    .action-btn {
-        padding: 4px 12px;
-        font-size: 12px;
     }
 
     .empty-state {

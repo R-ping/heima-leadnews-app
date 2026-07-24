@@ -30,43 +30,13 @@
     </div>
 
     <div class="course-list">
-      <div 
-        v-for="course in courseList" 
+      <CourseCard
+        v-for="course in courseList"
         :key="course.id"
-        class="course-card"
+        :course="course"
+        :category-name="getCategoryName(course.categoryId)"
         @click="goToDetail(course.id)"
-      >
-        <div class="course-cover">
-          <img :src="course.coverImage || '/static/images/avatar_head_1.png'" alt="课程封面" />
-          <div class="course-category">{{ getCategoryName(course.categoryId) }}</div>
-        </div>
-        <div class="course-info">
-          <div class="course-title">{{ course.title }}</div>
-          <div class="course-subtitle">{{ course.subtitle }}</div>
-          <div class="course-author">
-            <img :src="course.authorAvatar || '/static/images/avatar_head_1.png'" class="author-avatar" />
-            <span class="author-name">{{ course.authorName }}</span>
-          </div>
-          <div class="course-stats">
-            <span class="stat-item">
-              <span class="stat-icon">&#xf02d;</span>
-              <span class="stat-text">{{ course.chapterCount }}节</span>
-            </span>
-            <span class="stat-item">
-              <span class="stat-icon">&#xf0c0;</span>
-              <span class="stat-text">{{ course.studyCount }}人学习</span>
-            </span>
-            <span class="stat-item">
-              <span class="stat-icon">&#xf017;</span>
-              <span class="stat-text">{{ course.estimatedHours }}h</span>
-            </span>
-          </div>
-          <div class="course-price">
-            <span class="current-price">¥{{ course.price }}</span>
-            <span class="original-price" v-if="course.originalPrice > course.price">¥{{ course.originalPrice }}</span>
-          </div>
-        </div>
-      </div>
+      />
     </div>
 
     <div class="loading-more" v-if="loading">
@@ -81,10 +51,12 @@
 </template>
 
 <script>
-import { toast } from "@/utils/toast"
+import CourseCard from './components/CourseCard.vue'
+import { mockCourses } from './data.js'
 
 export default {
   name: 'CoursePage',
+  components: { CourseCard },
   data() {
     return {
       categories: [
@@ -139,130 +111,7 @@ export default {
       this.loading = true
 
       setTimeout(() => {
-        const mockData = [
-          {
-            id: 1,
-            title: 'Vue3 完全指南',
-            subtitle: '从零开始掌握 Vue3 组合式 API',
-            coverImage: '/static/images/avatar_head_1.png',
-            authorId: 1,
-            authorName: '张三',
-            authorAvatar: '',
-            price: 49.00,
-            originalPrice: 99.00,
-            categoryId: 2,
-            chapterCount: 8,
-            studyCount: 1256,
-            estimatedHours: 8.5
-          },
-          {
-            id: 2,
-            title: 'Spring Boot 实战',
-            subtitle: '构建企业级后端服务',
-            coverImage: '/static/images/avatar_head_2.png',
-            authorId: 2,
-            authorName: '李四',
-            authorAvatar: '',
-            price: 69.00,
-            originalPrice: 129.00,
-            categoryId: 1,
-            chapterCount: 12,
-            studyCount: 2341,
-            estimatedHours: 15.0
-          },
-          {
-            id: 3,
-            title: 'Python 数据分析',
-            subtitle: '从入门到精通',
-            coverImage: '/static/images/avatar_head_3.png',
-            authorId: 3,
-            authorName: '王五',
-            authorAvatar: '',
-            price: 39.00,
-            originalPrice: 79.00,
-            categoryId: 5,
-            chapterCount: 10,
-            studyCount: 892,
-            estimatedHours: 10.0
-          },
-          {
-            id: 4,
-            title: 'React Native 跨平台开发',
-            subtitle: '一套代码构建多端应用',
-            coverImage: '/static/images/avatar_head_4.png',
-            authorId: 4,
-            authorName: '赵六',
-            authorAvatar: '',
-            price: 59.00,
-            originalPrice: 109.00,
-            categoryId: 3,
-            chapterCount: 9,
-            studyCount: 567,
-            estimatedHours: 12.0
-          },
-          {
-            id: 5,
-            title: 'TypeScript 完全手册',
-            subtitle: '类型安全的 JavaScript',
-            coverImage: '/static/images/avatar_head_5.png',
-            authorId: 5,
-            authorName: '孙七',
-            authorAvatar: '',
-            price: 29.00,
-            originalPrice: 59.00,
-            categoryId: 2,
-            chapterCount: 6,
-            studyCount: 1890,
-            estimatedHours: 6.0
-          },
-          {
-            id: 6,
-            title: 'Docker 容器化实战',
-            subtitle: '容器技术从入门到实践',
-            coverImage: '/static/images/avatar_head_6.png',
-            authorId: 6,
-            authorName: '周八',
-            authorAvatar: '',
-            price: 35.00,
-            originalPrice: 69.00,
-            categoryId: 6,
-            chapterCount: 7,
-            studyCount: 789,
-            estimatedHours: 7.5
-          },
-          {
-            id: 7,
-            title: '算法与数据结构',
-            subtitle: '程序员必备核心技能',
-            coverImage: '/static/images/avatar_head_7.png',
-            authorId: 7,
-            authorName: '吴九',
-            authorAvatar: '',
-            price: 59.00,
-            originalPrice: 99.00,
-            categoryId: 1,
-            chapterCount: 15,
-            studyCount: 3210,
-            estimatedHours: 20.0
-          },
-          {
-            id: 8,
-            title: '代码整洁之道',
-            subtitle: '写出高质量代码的艺术',
-            coverImage: '/static/images/avatar_head_8.png',
-            authorId: 8,
-            authorName: '郑十',
-            authorAvatar: '',
-            price: 25.00,
-            originalPrice: 49.00,
-            categoryId: 7,
-            chapterCount: 5,
-            studyCount: 456,
-            estimatedHours: 4.0
-          }
-        ]
-
-        let filteredData = mockData
+        let filteredData = mockCourses
         if (this.currentCategory !== 0) {
           filteredData = filteredData.filter(c => c.categoryId === this.currentCategory)
         }
@@ -383,135 +232,6 @@ export default {
   gap: 16px;
 }
 
-.course-card {
-  background-color: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.course-card:hover {
-  transform: translateY(-2px);
-}
-
-.course-cover {
-  position: relative;
-  width: 100%;
-  padding-top: 60%;
-  background-color: #f4f5f7;
-}
-
-.course-cover img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.course-category {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 2px 8px;
-  background-color: rgba(0,0,0,0.5);
-  color: #fff;
-  font-size: 12px;
-  border-radius: 4px;
-}
-
-.course-info {
-  padding: 12px;
-}
-
-.course-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #252933;
-  line-height: 1.4;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.course-subtitle {
-  font-size: 12px;
-  color: #8a919f;
-  line-height: 1.4;
-  margin-bottom: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.course-author {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.author-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.author-name {
-  font-size: 12px;
-  color: #8a919f;
-}
-
-.course-stats {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stat-icon {
-  font-family: fontawesome;
-  font-size: 12px;
-  color: #c0c4cc;
-}
-
-.stat-text {
-  font-size: 12px;
-  color: #8a919f;
-}
-
-.course-price {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.current-price {
-  font-size: 16px;
-  font-weight: 700;
-  color: #F53F3F;
-}
-
-.original-price {
-  font-size: 12px;
-  color: #c0c4cc;
-  text-decoration: line-through;
-}
-
 .loading-more, .no-more {
   display: flex;
   justify-content: center;
@@ -560,10 +280,6 @@ export default {
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     padding: 20px 24px;
-  }
-
-  .course-cover {
-    padding-top: 56%;
   }
 }
 
