@@ -212,9 +212,21 @@
                 </div>
 
                 <div v-if="activeTab === 'boiling'" class="tab-content">
-                    <div class="empty-state">
+                    <div v-if="boilingList.length === 0" class="empty-state">
                         <div class="empty-icon">💧</div>
                         <div class="empty-text">暂无沸点</div>
+                    </div>
+                    <div v-else class="article-list">
+                        <div class="article-item" v-for="item in boilingList" :key="item.id">
+                            <div class="article-info">
+                                <div class="article-title">{{ item.content || item.title }}</div>
+                                <div class="article-meta">
+                                    <span class="article-time">{{ item.createTime || item.createdAt }}</span>
+                                    <span class="article-read">{{ item.likeCount || 0 }}赞</span>
+                                    <span class="article-comment">{{ item.commentCount || 0 }}评论</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -395,7 +407,8 @@ import HomeBar from '@/compoents/bars/home_bar'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
 import { toast } from '@/utils/toast'
 import { getUserStatistics } from '@/apis/user'
-import { getArticleList } from '@/apis/creator/content'
+import { getArticleList, getColumnList, getPinsList } from '@/apis/creator/content'
+import { getFollowers } from '@/apis/creator/fans'
 
 export default {
     name: 'UserProfile',
@@ -438,6 +451,7 @@ export default {
             },
             dynamicList: [],
             articleList: [],
+            boilingList: [],
             columnList: [],
             collectionList: [],
             followingList: [],
@@ -495,7 +509,7 @@ export default {
             // Fetch user statistics
             try {
                 const statsRes = await getUserStatistics()
-                if (statsRes && statsRes.data) {
+                if (statsRes && statsRes.code === 200 && statsRes.data) {
                     const data = statsRes.data
                     this.stats = {
                         followCount: data.followCount || 0,
@@ -506,28 +520,50 @@ export default {
                         tagCount: data.tagCount || 0,
                         badgeCount: data.badgeCount || 0
                     }
-                    this.levelInfo = {
-                        dailyScore: data.dailyScore || 0,
-                        dailyLevel: data.dailyLevel || 0,
-                        dailyTitle: data.dailyTitle || '',
-                        powerValue: data.powerValue || 0,
-                        powerLevel: data.powerLevel || 0,
-                        powerTitle: data.powerTitle || ''
+                    // levelInfo is a nested object in the response
+                    if (data.levelInfo) {
+                        this.levelInfo = {
+                            dailyScore: data.levelInfo.dailyScore || 0,
+                            dailyLevel: data.levelInfo.dailyLevel || 0,
+                            dailyTitle: data.levelInfo.dailyTitle || '',
+                            powerValue: data.levelInfo.powerValue || 0,
+                            powerLevel: data.levelInfo.powerLevel || 0,
+                            powerTitle: data.levelInfo.powerTitle || ''
+                        }
                     }
                 }
             } catch (e) {
                 // Keep default values when API fails
             }
 
-            // Fetch articles when active tab is article
-            if (this.activeTab === 'article') {
-                this.fetchArticles()
+            // Load content based on active tab
+            this.loadTabContent()
+        },
+        async loadTabContent() {
+            switch (this.activeTab) {
+                case 'article':
+                    this.fetchArticles()
+                    break
+                case 'column':
+                    this.fetchColumns()
+                    break
+                case 'boiling':
+                    this.fetchPins()
+                    break
+                case 'follow':
+                    this.fetchFollowData()
+                    break
+                case 'collection':
+                    this.fetchCollections()
+                    break
+                default:
+                    break
             }
         },
         async fetchArticles() {
             try {
-                const res = await getArticleList({ authorId: this.userInfo.id || this.$store.getters.userInfo?.id })
-                if (res && res.data && res.data.list) {
+                const res = await getArticleList({ authorId: this.$store.getters.userInfo?.id })
+                if (res && res.code === 200 && res.data && res.data.list) {
                     this.articleList = res.data.list.map(item => ({
                         id: item.id,
                         title: item.title,
@@ -540,8 +576,56 @@ export default {
                 // Keep empty list when API fails
             }
         },
+        async fetchColumns() {
+            try {
+                const res = await getColumnList()
+                if (res && res.code === 200 && res.data && res.data.list) {
+                    this.columnList = res.data.list.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        desc: item.description || '',
+                        cover: item.cover || defaultAvatar,
+                        articleCount: item.articleCount || 0
+                    }))
+                }
+            } catch (e) {
+                // Keep empty list when API fails
+            }
+        },
+        async fetchPins() {
+            try {
+                const res = await getPinsList()
+                if (res && res.code === 200 && res.data && res.data.list) {
+                    this.boilingList = res.data.list
+                }
+            } catch (e) {
+                // Keep empty list when API fails
+            }
+        },
+        async fetchFollowData() {
+            try {
+                // Fetch followers
+                const followersRes = await getFollowers()
+                if (followersRes && followersRes.code === 200 && followersRes.data) {
+                    const list = followersRes.data.list || followersRes.data || []
+                    this.followersList = list.map(item => ({
+                        id: item.id || item.userId,
+                        name: item.name || item.nickname || '',
+                        avatar: item.avatar || '',
+                        intro: item.intro || ''
+                    }))
+                }
+            } catch (e) {
+                // Keep empty list when API fails
+            }
+        },
+        async fetchCollections() {
+            // Collections are tracked via the collectCount in statistics
+            // The actual collection list would need a dedicated API
+        },
         switchTab(tab) {
             this.activeTab = tab
+            this.loadTabContent()
         },
         goToSettings() {
             this.$router.push('/user/settings')
