@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="courses-page">
         <div class="art-top"><HomeBar/></div>
         <div class="courses-content">
@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import HomeBar from '@/compoents/bars/home_bar'
+import HomeBar from '@/components/bars/home_bar'
 import { toast } from '@/utils/toast'
 import request from '@/common/article_request'
 

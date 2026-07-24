@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="bar_bg">
         <Search type="search"
                 autofocus="autofocus"
@@ -15,7 +15,7 @@
 </template>
 
 <script>
-    import Search from '@/compoents/inputs/search';
+    import Search from '@/components/inputs/search';
     export default {
         name: "search_top_bar",
         components: {Search},

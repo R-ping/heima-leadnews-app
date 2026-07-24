@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="settings-page">
         <div class="art-top"><HomeBar/></div>
         <div class="settings-content">
@@ -411,7 +411,7 @@
 </template>
 
 <script>
-import HomeBar from '@/compoents/bars/home_bar'
+import HomeBar from '@/components/bars/home_bar'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
 import { toast } from '@/utils/toast'
 

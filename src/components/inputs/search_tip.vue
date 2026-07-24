@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="body">
         <div class="content">
             <template v-for=" item in data">
@@ -9,7 +9,7 @@
 </template>
 
 <script>
-    import TipCell from '@/compoents/cells/search_2'
+    import TipCell from '@/components/cells/search_2'
     export default {
         components:{TipCell},
         props:{

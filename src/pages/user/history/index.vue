@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="history-page">
         <div class="art-top"><HomeBar /></div>
         <div class="history-content">
@@ -86,7 +86,7 @@
 </template>
 
 <script>
-import HomeBar from '@/compoents/bars/home_bar'
+import HomeBar from '@/components/bars/home_bar'
 import { toast } from '@/utils/toast'
 import { getBrowseHistory, clearBrowseHistory } from '@/apis/history'
 import ConfirmModal from '@/components/common/ConfirmModal'

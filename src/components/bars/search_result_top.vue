@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="bar_bg">
         <!-- 品牌标识 -->
         <div class="brand" @click="home">
@@ -23,7 +23,7 @@
 </template>
 
 <script>
-    import Search from '@/compoents/inputs/search';
+    import Search from '@/components/inputs/search';
     import Utils from '@/utils/env';
     export default {
         name: "search_top_bar",

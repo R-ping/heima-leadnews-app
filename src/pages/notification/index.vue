@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="notification-page">
         <div class="art-top"><HomeBar/></div>
         <div class="notification-content">
@@ -191,7 +191,7 @@
 </template>
 
 <script>
-import HomeBar from '@/compoents/bars/home_bar'
+import HomeBar from '@/components/bars/home_bar'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
 import { toast } from '@/utils/toast'
 

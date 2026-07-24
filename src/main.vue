@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="wrapper">
     <router-view></router-view>
     <transition name="login-fade">
@@ -12,8 +12,8 @@
 
 <script>
   import util from "@/utils/font"
-  import LoginModal from "@/compoents/login_modal.vue"
-  import SocialBindModal from "@/compoents/social_bind_modal.vue"
+  import LoginModal from "@/components/login_modal.vue"
+  import SocialBindModal from "@/components/social_bind_modal.vue"
 
 export default {
   name: 'HeiMa-App',

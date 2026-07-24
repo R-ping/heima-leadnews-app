@@ -55,13 +55,13 @@
 </template>
 
 <script>
-    import Home_Bar from "@/compoents/bars/search_result_top"
-    import WxcTabPage from "@/compoents/tabs/home_tabs"
+    import Home_Bar from "@/components/bars/search_result_top"
+    import WxcTabPage from "@/components/tabs/home_tabs"
     import Utils from '@/utils/env'
     import { toast } from "@/utils/toast"
-    import Item0 from '../../compoents/cells/article_0.vue'
-    import Item1 from '../../compoents/cells/article_1.vue'
-    import Item3 from '../../compoents/cells/article_3.vue'
+    import Item0 from '../../components/cells/article_0.vue'
+import Item1 from '../../components/cells/article_1.vue'
+import Item3 from '../../components/cells/article_3.vue'
     import Config from './config'
     import Api from '@/apis/search_result/api'
 

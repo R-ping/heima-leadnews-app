@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="bar_bg">
         <span class="bar-icon menu-icon">&#xf0c9;</span>
         <Search class="search-comp" type="search" @onClick="onClick" :icon="icon" :height="56" :left-width="15" :right-width="15" placeholder="搜索文章"/>
@@ -92,7 +92,7 @@
 </template>
 
 <script>
-    import Search from '@/compoents/inputs/search_buttion';
+    import Search from '@/components/inputs/search_buttion';
     import { toast } from "@/utils/toast"
     import { getUserStatistics } from '@/apis/user'
 

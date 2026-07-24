@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="art-page">
         <div class="art-top"><TopBar @onSubmit="doSearch" @onInput="onInput"/></div>
         <div class="scroller" :style="{'height':scrollerHeight}" show-scrollbar="true">
@@ -22,9 +22,9 @@
 </template>
 
 <script>
-    import TopBar from '@/compoents/bars/search_top'
-    import SearchHistory from '@/compoents/cells/search_0'
-    import SearchTip from '@/compoents/inputs/search_tip'
+    import TopBar from '@/components/bars/search_top'
+    import SearchHistory from '@/components/cells/search_0'
+    import SearchTip from '@/components/inputs/search_tip'
     import Api from '@/apis/search/api'
     import Utils from '@/utils/env'
     import { toast, confirmDialog } from "@/utils/toast"

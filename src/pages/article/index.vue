@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="art-page" :class="{ 'immersive': isImmersive }">
         <div class="art-top"><HomeBar/></div>
         
@@ -150,8 +150,8 @@
 </template>
 
 <script>
-    import HomeBar from '@/compoents/bars/home_bar'
-    import Button from '@/compoents/buttons/button'
+    import HomeBar from '@/components/bars/home_bar'
+    import Button from '@/components/buttons/button'
     import CommentList from '@/components/comments/CommentList'
     import CommentInput from '@/components/comments/CommentInput'
     import Api from '@/apis/article/api'

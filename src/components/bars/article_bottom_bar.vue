@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="bar_bg">
         <Search icon="" rightWidth=25 placeholder="写评论" />
         <span class="icon">&#xf075;</span>
@@ -8,7 +8,7 @@
 </template>
 
 <script>
-    import Search from '@/compoents/inputs/search';
+    import Search from '@/components/inputs/search';
     export default {
         name: "article_bottom_bar",
         components: {Search},

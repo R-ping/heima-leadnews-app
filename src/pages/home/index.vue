@@ -86,12 +86,12 @@
 </template>
 
 <script>
-  import Home_Bar from "@/compoents/bars/home_bar"
-  import WxcTabPage from "@/compoents/tabs/home_tabs"
+  import Home_Bar from "@/components/bars/home_bar"
+  import WxcTabPage from "@/components/tabs/home_tabs"
   import Utils from '@/utils/env'
-  import Item0 from '../../compoents/cells/article_0.vue'
-  import Item1 from '../../compoents/cells/article_1.vue'
-  import Item3 from '../../compoents/cells/article_3.vue'
+  import Item0 from '../../components/cells/article_0.vue'
+import Item1 from '../../components/cells/article_1.vue'
+import Item3 from '../../components/cells/article_3.vue'
   import Config from './config'
   import Api from '@/apis/home/api'
   import { toast } from "@/utils/toast"
