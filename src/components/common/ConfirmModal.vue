@@ -25,7 +25,7 @@ export default {
         },
         confirmText: {
             type: String,
-            default: '确定清空'
+            default: '确定'
         },
         cancelText: {
             type: String,

@@ -142,7 +142,7 @@ export default {
                     toast(msg, 2)
                 }
             } catch (e) {
-                // Keep existing data when API fails
+                console.error('Failed to load browse history:', e)
             } finally {
                 this.loading = false
             }
@@ -207,25 +207,45 @@ export default {
         formatCount(count) {
             if (!count && count !== 0) return '0'
             if (count >= 10000) {
+                return (count / 10000).toFixed(1) + 'w'
+            }
+            if (count >= 1000) {
                 return (count / 1000).toFixed(1) + 'k'
             }
             return count.toString()
         },
         formatTime(time) {
             if (!time) return ''
-            const parts = time.split(' ')
-            if (parts.length >= 2) {
-                return parts[1].substring(0, 5)
+            try {
+                const d = new Date(time)
+                if (isNaN(d.getTime())) {
+                    const parts = time.split(' ')
+                    if (parts.length >= 2) return parts[1].substring(0, 5)
+                    return time
+                }
+                const h = String(d.getHours()).padStart(2, '0')
+                const m = String(d.getMinutes()).padStart(2, '0')
+                return `${h}:${m}`
+            } catch {
+                return time
             }
-            return time
         },
         formatDate(time) {
             if (!time) return ''
-            const parts = time.split(' ')
-            if (parts.length >= 1) {
-                return parts[0]
+            try {
+                const d = new Date(time)
+                if (isNaN(d.getTime())) {
+                    const parts = time.split(' ')
+                    if (parts.length >= 1) return parts[0]
+                    return time
+                }
+                const y = d.getFullYear()
+                const m = String(d.getMonth() + 1).padStart(2, '0')
+                const day = String(d.getDate()).padStart(2, '0')
+                return `${y}-${m}-${day}`
+            } catch {
+                return time
             }
-            return time
         }
     },
     mounted() {

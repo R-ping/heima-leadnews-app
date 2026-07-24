@@ -2,6 +2,7 @@ package com.heima.article.controller.v1;
 
 import com.heima.article.service.BrowseHistoryService;
 import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,14 +23,20 @@ public class BrowseHistoryController {
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String keyword) {
         ApUser user = AppThreadLocalUtil.getUser();
-        Long userId = user != null ? user.getId().longValue() : null;
+        if (user == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+        Long userId = user.getId().longValue();
         return browseHistoryService.getHistoryList(userId, page, size, keyword);
     }
 
     @PostMapping("/clear")
     public ResponseResult clearHistory() {
         ApUser user = AppThreadLocalUtil.getUser();
-        Long userId = user != null ? user.getId().longValue() : null;
+        if (user == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+        Long userId = user.getId().longValue();
         browseHistoryService.clearHistory(userId);
         return ResponseResult.okResult();
     }
@@ -37,8 +44,11 @@ public class BrowseHistoryController {
     @PostMapping("/report")
     public ResponseResult reportBrowse(@RequestBody Map<String, Object> params) {
         ApUser user = AppThreadLocalUtil.getUser();
-        Long userId = user != null ? user.getId().longValue() : null;
-        Integer targetType = (Integer) params.get("targetType");
+        if (user == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+        Long userId = user.getId().longValue();
+        Integer targetType = params.get("targetType") != null ? Integer.valueOf(params.get("targetType").toString()) : null;
         Long targetId = params.get("targetId") != null ? Long.valueOf(params.get("targetId").toString()) : null;
         return browseHistoryService.reportBrowse(userId, targetType, targetId);
     }
