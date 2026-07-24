@@ -90,6 +90,7 @@ import HomeBar from '@/components/bars/home_bar'
 import { toast } from '@/utils/toast'
 import { getBrowseHistory, clearBrowseHistory } from '@/apis/history'
 import ConfirmModal from '@/components/common/ConfirmModal'
+import { formatCount, formatTime, formatDate } from '@/utils/format'
 
 export default {
     name: 'UserHistory',
@@ -204,49 +205,9 @@ export default {
             const map = { 1: '文章', 2: '沸点', 3: '课程', 4: '专栏' }
             return map[type] || '文章'
         },
-        formatCount(count) {
-            if (!count && count !== 0) return '0'
-            if (count >= 10000) {
-                return (count / 10000).toFixed(1) + 'w'
-            }
-            if (count >= 1000) {
-                return (count / 1000).toFixed(1) + 'k'
-            }
-            return count.toString()
-        },
-        formatTime(time) {
-            if (!time) return ''
-            try {
-                const d = new Date(time)
-                if (isNaN(d.getTime())) {
-                    const parts = time.split(' ')
-                    if (parts.length >= 2) return parts[1].substring(0, 5)
-                    return time
-                }
-                const h = String(d.getHours()).padStart(2, '0')
-                const m = String(d.getMinutes()).padStart(2, '0')
-                return `${h}:${m}`
-            } catch {
-                return time
-            }
-        },
-        formatDate(time) {
-            if (!time) return ''
-            try {
-                const d = new Date(time)
-                if (isNaN(d.getTime())) {
-                    const parts = time.split(' ')
-                    if (parts.length >= 1) return parts[0]
-                    return time
-                }
-                const y = d.getFullYear()
-                const m = String(d.getMonth() + 1).padStart(2, '0')
-                const day = String(d.getDate()).padStart(2, '0')
-                return `${y}-${m}-${day}`
-            } catch {
-                return time
-            }
-        }
+        formatCount,
+        formatTime,
+        formatDate
     },
     mounted() {
         this.loadHistory()
