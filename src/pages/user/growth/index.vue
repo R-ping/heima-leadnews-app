@@ -5,7 +5,10 @@
                 <span class="back-icon">&#xf060;</span>
             </div>
             <div class="header-title">成长等级</div>
-            <div class="header-right"></div>
+            <div class="header-right">
+                <span class="header-link" @click="showDevTip('掘友分明细')">掘友分明细</span>
+                <span class="header-link" @click="showDevTip('等级规则')">等级规则</span>
+            </div>
         </div>
 
         <div class="growth-content">
@@ -44,7 +47,7 @@
                                 class="milestone-dot"
                                 :class="{ active: node.levelValue <= levelInfo.dailyLevel }"
                             ></div>
-                            <div class="milestone-label">ZR.{{ node.levelValue }}</div>
+                            <div class="milestone-label">JY{{ node.levelValue }}</div>
                             <div class="milestone-score">{{ node.minScore }}</div>
                         </div>
                     </div>
@@ -102,7 +105,7 @@
                         <div class="check-in-icon">📅</div>
                         <div class="check-in-info">
                             <div class="check-in-title">每日签到</div>
-                            <div class="check-in-desc">签到获得 10 逐日分</div>
+                            <div class="check-in-desc">签到获得 2 逐日分</div>
                         </div>
                     </div>
                     <button
@@ -208,6 +211,15 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+
+            <!-- 底部信息 -->
+            <div class="growth-footer">
+                <span>用户协议</span>
+                <span class="footer-sep">·</span>
+                <span>法律声明</span>
+                <span class="footer-sep">·</span>
+                <span>&copy;2026 稀土掘金</span>
             </div>
         </div>
     </div>
@@ -580,6 +592,18 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.header-right {
+    width: auto;
+    gap: 16px;
+}
+
+.header-link {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-left: 16px;
+    cursor: pointer;
 }
 
 .back-icon {
@@ -1144,6 +1168,19 @@ export default {
     padding: 4px 10px;
     background: #fff;
     border-radius: 12px;
+}
+
+// ===== 底部信息 =====
+.growth-footer {
+    text-align: center;
+    padding: 24px 0;
+    font-size: 12px;
+    color: #B0B0B0;
+}
+
+.footer-sep {
+    margin: 0 8px;
+    color: #D9D9D9;
 }
 
 // ===== 响应式 =====

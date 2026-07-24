@@ -33,29 +33,42 @@ public class LevelServiceImpl implements LevelService {
     @Autowired
     private ApUserPermissionMapper userPermissionMapper;
 
-    private static final int DAILY_SCORE_LIMIT = 100;
+    private static final int DAILY_SCORE_LIMIT = 200;
 
     private static final Map<String, Integer> ACTION_SCORE_MAP = new HashMap<>();
     static {
         ACTION_SCORE_MAP.put("daily_login", 10);
         ACTION_SCORE_MAP.put("article_read", 2);
-        ACTION_SCORE_MAP.put("comment", 5);
-        ACTION_SCORE_MAP.put("like", 1);
+        ACTION_SCORE_MAP.put("comment_article", 2);
+        ACTION_SCORE_MAP.put("comment_pin", 2);
+        ACTION_SCORE_MAP.put("like_article", 1);
+        ACTION_SCORE_MAP.put("like_pin", 1);
         ACTION_SCORE_MAP.put("share", 3);
-        ACTION_SCORE_MAP.put("follow", 2);
+        ACTION_SCORE_MAP.put("follow_user", 4);
         ACTION_SCORE_MAP.put("publish_article", 8);
-        ACTION_SCORE_MAP.put("publish_pins", 8);
+        ACTION_SCORE_MAP.put("publish_pins", 2);
         ACTION_SCORE_MAP.put("daily_checkin", 2);
+        ACTION_SCORE_MAP.put("upload_avatar", 1);
+        ACTION_SCORE_MAP.put("collect_article", 1);
+        ACTION_SCORE_MAP.put("browse_article", 0);
+        ACTION_SCORE_MAP.put("browse_course", 0);
     }
 
     private static final Map<String, Integer> DAILY_ACTION_LIMIT = new HashMap<>();
     static {
         DAILY_ACTION_LIMIT.put("publish_article", 2);
         DAILY_ACTION_LIMIT.put("publish_pins", 2);
-        DAILY_ACTION_LIMIT.put("comment", 5);
-        DAILY_ACTION_LIMIT.put("like", 10);
-        DAILY_ACTION_LIMIT.put("follow", 2);
+        DAILY_ACTION_LIMIT.put("comment_article", 5);
+        DAILY_ACTION_LIMIT.put("comment_pin", 5);
+        DAILY_ACTION_LIMIT.put("like_article", 10);
+        DAILY_ACTION_LIMIT.put("like_pin", 10);
+        DAILY_ACTION_LIMIT.put("follow_user", 2);
         DAILY_ACTION_LIMIT.put("daily_checkin", 1);
+        DAILY_ACTION_LIMIT.put("upload_avatar", 1);
+        DAILY_ACTION_LIMIT.put("collect_article", 2);
+        DAILY_ACTION_LIMIT.put("browse_article", 10);
+        DAILY_ACTION_LIMIT.put("browse_course", 10);
+        DAILY_ACTION_LIMIT.put("daily_login", 2);
     }
 
     private static final Map<String, Integer> POWER_ACTION_LIMIT = new HashMap<>();
@@ -444,21 +457,41 @@ public class LevelServiceImpl implements LevelService {
 
         Map<String, String> taskNameMap = new HashMap<>();
         taskNameMap.put("daily_checkin", "每日签到");
+        taskNameMap.put("upload_avatar", "上传头像");
+        taskNameMap.put("daily_login", "移动端登录");
         taskNameMap.put("publish_article", "发布文章");
         taskNameMap.put("publish_pins", "发布沸点");
-        taskNameMap.put("comment", "发表评论");
-        taskNameMap.put("like", "点赞");
-        taskNameMap.put("follow", "关注用户");
+        taskNameMap.put("comment_article", "评论文章");
+        taskNameMap.put("comment_pin", "评论沸点");
+        taskNameMap.put("like_article", "点赞文章");
+        taskNameMap.put("like_pin", "点赞沸点");
+        taskNameMap.put("collect_article", "收藏文章");
+        taskNameMap.put("follow_user", "关注用户");
+        taskNameMap.put("browse_article", "浏览文章");
+        taskNameMap.put("browse_course", "浏览课程");
+        taskNameMap.put("be_followed", "被关注");
+        taskNameMap.put("pin_liked", "沸点获赞");
+        taskNameMap.put("article_liked", "文章获赞");
 
         Map<String, String> taskIconMap = new HashMap<>();
         taskIconMap.put("daily_checkin", "check-circle");
+        taskIconMap.put("upload_avatar", "camera");
+        taskIconMap.put("daily_login", "smartphone");
         taskIconMap.put("publish_article", "edit");
         taskIconMap.put("publish_pins", "message-circle");
-        taskIconMap.put("comment", "message-square");
-        taskIconMap.put("like", "heart");
-        taskIconMap.put("follow", "user-plus");
+        taskIconMap.put("comment_article", "message-square");
+        taskIconMap.put("comment_pin", "message-circle");
+        taskIconMap.put("like_article", "heart");
+        taskIconMap.put("like_pin", "thumbs-up");
+        taskIconMap.put("collect_article", "star");
+        taskIconMap.put("follow_user", "user-plus");
+        taskIconMap.put("browse_article", "book-open");
+        taskIconMap.put("browse_course", "play-circle");
+        taskIconMap.put("be_followed", "users");
+        taskIconMap.put("pin_liked", "award");
+        taskIconMap.put("article_liked", "trending-up");
 
-        String[] actionTypes = {"daily_checkin", "publish_article", "publish_pins", "comment", "like", "follow"};
+        String[] actionTypes = {"daily_checkin", "upload_avatar", "daily_login", "publish_article", "publish_pins", "comment_article", "comment_pin", "like_article", "like_pin", "collect_article", "follow_user", "browse_article", "browse_course", "be_followed", "pin_liked", "article_liked"};
 
         for (String actionType : actionTypes) {
             Map<String, Object> task = new HashMap<>();
@@ -477,7 +510,12 @@ public class LevelServiceImpl implements LevelService {
             task.put("current", current);
             task.put("max", max);
             task.put("score", score);
-            task.put("completed", current >= max);
+
+            if (max == null) {
+                task.put("completed", false);
+            } else {
+                task.put("completed", current >= max);
+            }
 
             tasks.add(task);
         }
