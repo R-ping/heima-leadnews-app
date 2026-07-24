@@ -70,5 +70,20 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/minio-static/, '/leadnews')
       }
     }
+  },
+  build: {
+    // 目标现代浏览器，减少 polyfill 体积
+    target: 'es2015',
+    // chunk 大小警告阈值上调（动态导入后单个 chunk 可能仍较大）
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'vuex'],
+          'element-ui': ['element-ui'],
+          'echarts': ['echarts']
+        }
+      }
+    }
   }
 })

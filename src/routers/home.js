@@ -1,23 +1,25 @@
-﻿// ============  主页路由MODEL  ==================
+// ============  主页路由MODEL  ==================
+// 布局组件（app shell）保持静态导入，避免首屏闪烁
 import Layout from '@/components/layouts/layout_main'
-import Home from '@/pages/home/index'
-import Article from '@/pages/article/index'
-import Search from '@/pages/search/index'
-import Screen from '@/pages/load_screen/index'
-import SearchResult from '@/pages/search_result/index'
-import OAuthCallback from '@/pages/oauth_callback/index'
-import User from '@/pages/user/index'
-import UserSettings from '@/pages/user/settings/index'
-import UserGrowth from '@/pages/user/growth/index'
-import UserCheckin from '@/pages/user/checkin/index'
-import UserCourses from '@/pages/user/courses/index'
-import UserHistory from '@/pages/user/history/index'
-import Notification from '@/pages/notification/index'
-import Pins from '@/pages/pins/index.vue'
-import PinsCircles from '@/pages/pins/circles.vue'
-import Course from '@/pages/course/index.vue'
-import CourseDetail from '@/pages/course/detail.vue'
-import CourseRead from '@/pages/course/read.vue'
+// 路由组件全部使用动态导入，实现按需加载
+const Home = () => import('@/pages/home/index')
+const Article = () => import('@/pages/article/index')
+const Search = () => import('@/pages/search/index')
+const Screen = () => import('@/pages/load_screen/index')
+const SearchResult = () => import('@/pages/search_result/index')
+const OAuthCallback = () => import('@/pages/oauth_callback/index')
+const User = () => import('@/pages/user/index')
+const UserSettings = () => import('@/pages/user/settings/index')
+const UserGrowth = () => import('@/pages/user/growth/index')
+const UserCheckin = () => import('@/pages/user/checkin/index')
+const UserCourses = () => import('@/pages/user/courses/index')
+const UserHistory = () => import('@/pages/user/history/index')
+const Notification = () => import('@/pages/notification/index')
+const Pins = () => import('@/pages/pins/index.vue')
+const PinsCircles = () => import('@/pages/pins/circles.vue')
+const Course = () => import('@/pages/course/index.vue')
+const CourseDetail = () => import('@/pages/course/detail.vue')
+const CourseRead = () => import('@/pages/course/read.vue')
 
 let routes = [
     {
