@@ -1,6 +1,6 @@
-﻿<template>
+<template>
     <div class="settings-page">
-        <div class="art-top"><HomeBar/></div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
         <div class="settings-content">
             <div class="settings-sidebar">
                 <div 
@@ -61,59 +61,138 @@
                     <div class="settings-card">
                         <div class="card-header">基本信息</div>
                         <div class="card-body">
+                            <!-- 头像上传 -->
                             <div class="avatar-upload-section">
-                                <img :src="userInfo.avatar || defaultAvatar" class="current-avatar" alt="avatar">
+                                <img :src="profileForm.avatarUrl || defaultAvatar" class="current-avatar" alt="avatar">
                                 <div class="avatar-actions">
-                                    <button class="edit-btn primary" @click="showAvatarUpload = true">上传头像</button>
-                                    <span class="avatar-hint">格式: 支持JPG、PNG、JPEG | 大小: 5M以内</span>
+                                    <button class="edit-btn primary" @click="triggerAvatarUpload">上传头像</button>
+                                    <input type="file" ref="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" @change="handleAvatarFileChange">
+                                    <span class="avatar-hint">格式: 支持JPG、PNG、WebP | 大小: 5M以内</span>
                                 </div>
                             </div>
-                            <el-form label-position="top" style="margin-top: 24px;">
-                                <el-form-item label="用户名" required>
-                                    <el-input placeholder="请输入用户名" v-model="profileForm.nickName"></el-input>
-                                    <span class="input-hint">5/20</span>
-                                </el-form-item>
-                                <el-form-item label="开始工作" required>
-                                    <el-date-picker v-model="profileForm.startWork" type="month" placeholder="选择年月"></el-date-picker>
-                                </el-form-item>
-                                <el-form-item label="职业方向" required>
-                                    <el-select v-model="profileForm.jobDirection" placeholder="请选择">
-                                        <el-option label="后端开发" value="backend"></el-option>
-                                        <el-option label="前端开发" value="frontend"></el-option>
-                                        <el-option label="移动端开发" value="mobile"></el-option>
-                                        <el-option label="人工智能" value="ai"></el-option>
-                                        <el-option label="产品经理" value="product"></el-option>
-                                    </el-select>
-                                </el-form-item>
-                                <el-form-item label="职位">
-                                    <el-input placeholder="请输入你的职位" v-model="profileForm.position"></el-input>
-                                    <span class="input-hint">0/50</span>
-                                </el-form-item>
-                                <el-form-item label="公司">
-                                    <el-input placeholder="请输入你的公司" v-model="profileForm.company"></el-input>
-                                    <span class="input-hint">0/50</span>
-                                </el-form-item>
-                                <el-form-item label="个人主页">
-                                    <el-input placeholder="请输入你的个人主页" v-model="profileForm.homepage"></el-input>
-                                    <span class="input-hint">0/100</span>
-                                </el-form-item>
-                                <el-form-item label="个人介绍">
-                                    <el-input type="textarea" placeholder="请填写职业技能、擅长的事情、兴趣爱好等" v-model="profileForm.intro" :rows="4"></el-input>
-                                    <span class="input-hint">0/100</span>
-                                </el-form-item>
-                                <el-form-item label="兴趣标签管理">
-                                    <div class="interest-tags">
-                                        <span class="interest-tag" v-for="tag in profileForm.tags" :key="tag">
-                                            {{ tag }}
-                                            <span class="remove-tag" @click="removeInterestTag(tag)">×</span>
-                                        </span>
-                                        <input type="text" class="add-tag-input" placeholder="添加标签" v-model="newTag" @keyup.enter="addInterestTag">
+                            
+                            <div class="profile-form">
+                                <!-- 用户名 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">用户名 <span class="required">*</span></label>
+                                    <div class="form-input-wrap">
+                                        <input class="form-input" v-model="profileForm.username" placeholder="请输入用户名" maxlength="20" />
+                                        <span class="input-hint">{{ profileForm.username.length }}/20</span>
                                     </div>
-                                </el-form-item>
-                                <el-form-item>
-                                    <el-button type="primary" @click="saveProfile">保存</el-button>
-                                </el-form-item>
-                            </el-form>
+                                </div>
+                                
+                                <!-- 开始工作 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">开始工作</label>
+                                    <div class="form-input-wrap">
+                                        <input class="form-input" type="month" v-model="profileForm.careerStartDate" />
+                                    </div>
+                                </div>
+                                
+                                <!-- 职业方向 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">职业方向 <span class="required">*</span></label>
+                                    <div class="form-input-wrap">
+                                        <select class="form-select" v-model="profileForm.careerDirection">
+                                            <option value="">请选择</option>
+                                            <option value="backend">后端开发</option>
+                                            <option value="frontend">前端开发</option>
+                                            <option value="mobile">移动端开发</option>
+                                            <option value="ai">人工智能</option>
+                                            <option value="product">产品经理</option>
+                                            <option value="devops">运维</option>
+                                            <option value="test">测试</option>
+                                            <option value="data">数据分析</option>
+                                            <option value="design">设计师</option>
+                                            <option value="other">其他</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- 职位 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">职位</label>
+                                    <div class="form-input-wrap">
+                                        <input class="form-input" v-model="profileForm.position" placeholder="请输入你的职位" maxlength="50" />
+                                        <span class="input-hint">{{ (profileForm.position || '').length }}/50</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 公司 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">公司</label>
+                                    <div class="form-input-wrap">
+                                        <input class="form-input" v-model="profileForm.company" placeholder="请输入你的公司" maxlength="50" />
+                                        <span class="input-hint">{{ (profileForm.company || '').length }}/50</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 个人主页 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">个人主页</label>
+                                    <div class="form-input-wrap">
+                                        <input class="form-input" v-model="profileForm.website" placeholder="请输入你的个人主页" maxlength="100" />
+                                        <span class="input-hint">{{ (profileForm.website || '').length }}/100</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 个人介绍 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">个人介绍</label>
+                                    <div class="form-input-wrap">
+                                        <textarea class="form-textarea" v-model="profileForm.bio" placeholder="请填写职业技能、擅长的事情、兴趣爱好等" maxlength="100" rows="4"></textarea>
+                                        <span class="input-hint">{{ (profileForm.bio || '').length }}/100</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 兴趣标签 -->
+                                <div class="form-item-row">
+                                    <label class="form-label">兴趣标签 <span class="required">*</span></label>
+                                    <div class="form-input-wrap">
+                                        <div class="tag-selector">
+                                            <!-- 分类导航 -->
+                                            <div class="tag-categories">
+                                                <span 
+                                                    v-for="group in profileForm.tagGroups" 
+                                                    :key="group.categoryCode"
+                                                    class="tag-category"
+                                                    :class="{ active: activeTagCategory === group.categoryCode }"
+                                                    @click="activeTagCategory = group.categoryCode"
+                                                >{{ group.categoryName }}</span>
+                                            </div>
+                                            <!-- 标签池 -->
+                                            <div class="tag-pool">
+                                                <span 
+                                                    v-for="tag in currentCategoryTags" 
+                                                    :key="tag.id"
+                                                    class="tag-option"
+                                                    :class="{ selected: profileForm.selectedTagIds.includes(tag.id) }"
+                                                    @click="toggleTag(tag.id)"
+                                                >{{ tag.tagName }}</span>
+                                            </div>
+                                        </div>
+                                        <!-- 已选标签 -->
+                                        <div class="selected-tags" v-if="profileForm.selectedTagIds.length > 0">
+                                            <span class="selected-label">已选：</span>
+                                            <span 
+                                                v-for="tagId in profileForm.selectedTagIds" 
+                                                :key="tagId"
+                                                class="selected-tag"
+                                            >{{ getTagName(tagId) }}<span class="remove-tag" @click="toggleTag(tagId)">×</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 保存按钮 -->
+                                <div class="form-item-row">
+                                    <label class="form-label"></label>
+                                    <div class="form-input-wrap">
+                                        <button class="save-btn" @click="saveProfile" :disabled="profileSaving">
+                                            {{ profileSaving ? '保存中...' : '保存修改' }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -131,7 +210,7 @@
                                     <span class="account-label">手机</span>
                                 </div>
                                 <div class="account-right">
-                                    <span class="account-value">13****1129</span>
+                                    <span class="account-value">{{ bindings.phone || '未绑定' }}</span>
                                     <button class="account-btn">换绑</button>
                                 </div>
                             </div>
@@ -141,8 +220,8 @@
                                     <span class="account-label">微信</span>
                                 </div>
                                 <div class="account-right">
-                                    <span class="account-value">未绑定</span>
-                                    <button class="account-btn">绑定</button>
+                                    <span class="account-value">{{ bindings.wechat && bindings.wechat.bound ? (bindings.wechat.nickname || '已绑定') : '未绑定' }}</span>
+                                    <button class="account-btn">{{ bindings.wechat && bindings.wechat.bound ? '解绑' : '绑定' }}</button>
                                 </div>
                             </div>
                             <div class="account-item">
@@ -151,8 +230,8 @@
                                     <span class="account-label">新浪微博</span>
                                 </div>
                                 <div class="account-right">
-                                    <span class="account-value">未绑定</span>
-                                    <button class="account-btn">绑定</button>
+                                    <span class="account-value">{{ bindings.weibo && bindings.weibo.bound ? (bindings.weibo.nickname || '已绑定') : '未绑定' }}</span>
+                                    <button class="account-btn">{{ bindings.weibo && bindings.weibo.bound ? '解绑' : '绑定' }}</button>
                                 </div>
                             </div>
                             <div class="account-item">
@@ -161,8 +240,8 @@
                                     <span class="account-label">GitHub</span>
                                 </div>
                                 <div class="account-right">
-                                    <span class="account-value">未绑定</span>
-                                    <button class="account-btn">绑定</button>
+                                    <span class="account-value">{{ bindings.github && bindings.github.bound ? (bindings.github.nickname || '已绑定') : '未绑定' }}</span>
+                                    <button class="account-btn">{{ bindings.github && bindings.github.bound ? '解绑' : '绑定' }}</button>
                                 </div>
                             </div>
                         </div>
@@ -175,14 +254,14 @@
                                     <span class="account-icon">🔑</span>
                                     <span class="account-label">密码</span>
                                 </div>
-                                <button class="account-btn">重置</button>
+                                <button class="account-btn" @click="showPasswordDialog = true">重置</button>
                             </div>
                             <div class="account-item">
                                 <div class="account-info">
                                     <span class="account-icon">🗑️</span>
                                     <span class="account-label">账号注销</span>
                                 </div>
-                                <button class="danger-btn" @click="showDeleteConfirm = true">注销</button>
+                                <button class="danger-btn" @click="handleDeleteAccount">注销</button>
                             </div>
                         </div>
                     </div>
@@ -387,32 +466,52 @@
             </span>
         </el-dialog>
 
-        <el-dialog 
-            title="确认注销" 
-            :visible.sync="showDeleteConfirm" 
-            width="480px"
-        >
-            <div class="delete-warning">
-                <i class="el-icon-warning"></i>
-                <p>确认要注销您的账号吗？</p>
-                <p class="warning-desc">注销后，您的所有数据将被永久删除且无法恢复，包括文章、动态、收藏等内容。</p>
+        <!-- 密码修改弹窗 -->
+        <el-dialog title="修改密码" :visible.sync="showPasswordDialog" width="420px" :close-on-click-modal="false">
+            <div class="password-form">
+                <div class="form-item">
+                    <label>旧密码</label>
+                    <input type="password" v-model="passwordForm.oldPassword" class="form-input" placeholder="请输入旧密码">
+                </div>
+                <div class="form-item">
+                    <label>新密码</label>
+                    <input type="password" v-model="passwordForm.newPassword" class="form-input" placeholder="请输入新密码（至少6位）">
+                </div>
+                <div class="form-item">
+                    <label>确认密码</label>
+                    <input type="password" v-model="passwordForm.confirmPassword" class="form-input" placeholder="请再次输入新密码">
+                </div>
             </div>
-            <el-form>
-                <el-form-item label="请输入密码确认">
-                    <el-input type="password" placeholder="请输入登录密码" v-model="deleteForm.password"></el-input>
-                </el-form-item>
-            </el-form>
             <span slot="footer" class="dialog-footer">
-                <el-button @click="showDeleteConfirm = false">取消</el-button>
-                <el-button type="danger" @click="confirmDelete">确认注销</el-button>
+                <el-button @click="showPasswordDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleUpdatePassword" :disabled="passwordSaving">
+                    {{ passwordSaving ? '保存中...' : '确定' }}
+                </el-button>
             </span>
         </el-dialog>
-    </div>
+
+        <!-- 注销确认弹窗 -->
+        <el-dialog title="账号注销" :visible.sync="showDeleteAccountDialog" width="420px" :close-on-click-modal="false">
+            <div class="delete-account-content">
+                <p class="delete-warning">确认要注销您的账号吗？</p>
+                <p class="delete-desc">注销后，您的所有数据将被永久删除且无法恢复，包括文章、动态、收藏等内容。</p>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="showDeleteAccountDialog = false">取消</el-button>
+                <el-button type="danger" @click="confirmDeleteAccount" :disabled="deleteAccountConfirming">
+                    {{ deleteAccountConfirming ? '注销中...' : '确认注销' }}
+                </el-button>
+            </span>
+        </el-dialog>
+
+        </div>
 </template>
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
+import Utils from '@/utils/env'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
+import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount } from '@/apis/user'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -422,31 +521,23 @@ export default {
         return {
             activeSection: 'profile',
             showAvatarUpload: false,
-            showDeleteConfirm: false,
             showAddTag: false,
             localAvatar: null,
-            newTag: '',
-            deleteForm: {
-                password: ''
-            },
-            userInfo: {
-                id: '123456',
-                nickName: '程序员小站',
-                avatar: '',
-                intro: '分享技术心得，记录成长历程',
-                mobile: '138****8888',
-                email: ''
-            },
             profileForm: {
-                nickName: '程序员小站',
-                startWork: '2026-05',
-                jobDirection: 'backend',
+                username: '',
+                avatarUrl: '',
+                careerStartDate: '',
+                careerDirection: '',
                 position: '',
                 company: '',
-                homepage: '',
-                intro: '',
-                tags: ['Vue', 'React', 'JavaScript']
+                website: '',
+                bio: '',
+                selectedTagIds: [],
+                tagGroups: []
             },
+            profileSaving: false,
+            profileLoaded: false,
+            activeTagCategory: '',
             generalSettings: {
                 darkMode: false,
                 fontSize: 'normal',
@@ -473,56 +564,159 @@ export default {
                 { id: 1, name: 'Vue.js', articleCount: 1256 },
                 { id: 2, name: 'TypeScript', articleCount: 890 },
                 { id: 3, name: 'Node.js', articleCount: 678 }
-            ]
+            ],
+            bindings: {
+                phone: '',
+                wechat: { bound: false, nickname: '', avatar: '' },
+                weibo: { bound: false, nickname: '', avatar: '' },
+                github: { bound: false, nickname: '', avatar: '' }
+            },
+            showPasswordDialog: false,
+            passwordForm: {
+                oldPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            },
+            passwordSaving: false,
+            showDeleteAccountDialog: false,
+            deleteAccountConfirming: false
         }
     },
     computed: {
+        isDesktop() {
+            return Utils.isDesktop()
+        },
         defaultAvatar() {
             return defaultAvatar
+        },
+        currentCategoryTags() {
+            for (const group of this.profileForm.tagGroups) {
+                if (group.categoryCode === this.activeTagCategory) {
+                    return group.tags
+                }
+            }
+            return []
         }
     },
     methods: {
-        handleAvatarChange() {
-            let file = document.querySelector('.el-upload .el-upload__input').files[0]
-            if (file) {
-                this.localAvatar = URL.createObjectURL(file)
+        async loadProfile() {
+            try {
+                const res = await getUserProfile()
+                if (res && res.code === 200 && res.data) {
+                    const data = res.data
+                    this.profileForm.username = data.username || ''
+                    this.profileForm.avatarUrl = data.avatarUrl || ''
+                    this.profileForm.careerStartDate = data.careerStartDate ? data.careerStartDate.substring(0, 7) : ''
+                    this.profileForm.careerDirection = data.careerDirection || ''
+                    this.profileForm.position = data.position || ''
+                    this.profileForm.company = data.company || ''
+                    this.profileForm.website = data.website || ''
+                    this.profileForm.bio = data.bio || ''
+                    this.profileForm.selectedTagIds = data.selectedTagIds || []
+                    this.profileForm.tagGroups = data.tagGroups || []
+                    // 默认选中第一个分类
+                    if (this.profileForm.tagGroups.length > 0 && !this.activeTagCategory) {
+                        this.activeTagCategory = this.profileForm.tagGroups[0].categoryCode
+                    }
+                    this.profileLoaded = true
+                }
+            } catch (e) {
+                toast('加载个人资料失败', 2)
             }
         },
-        uploadAvatar() {
-            if (!this.localAvatar) {
-                toast('请选择一张图片', 2)
+        async saveProfile() {
+            // 校验
+            if (!this.profileForm.username || this.profileForm.username.trim().length < 5) {
+                toast('用户名至少需要5个字符', 2)
                 return
             }
-            this.showAvatarUpload = false
-            this.localAvatar = null
-            toast('头像上传成功', 2)
-        },
-        saveProfile() {
-            if (!this.profileForm.nickName) {
-                toast('请输入昵称', 2)
+            if (this.profileForm.username.trim().length > 20) {
+                toast('用户名不能超过20个字符', 2)
                 return
             }
-            this.userInfo.nickName = this.profileForm.nickName
-            this.userInfo.intro = this.profileForm.intro
-            toast('资料保存成功', 2)
-        },
-        confirmDelete() {
-            if (!this.deleteForm.password) {
-                toast('请输入密码', 2)
+            if (!this.profileForm.careerDirection) {
+                toast('请选择职业方向', 2)
                 return
             }
-            this.showDeleteConfirm = false
-            this.deleteForm.password = ''
-            toast('账号注销成功', 2)
-        },
-        addInterestTag() {
-            if (this.newTag && !this.profileForm.tags.includes(this.newTag)) {
-                this.profileForm.tags.push(this.newTag)
-                this.newTag = ''
+            if (this.profileForm.selectedTagIds.length === 0) {
+                toast('请至少选择一个兴趣标签', 2)
+                return
+            }
+            
+            this.profileSaving = true
+            try {
+                const params = {
+                    username: this.profileForm.username.trim(),
+                    careerStartDate: this.profileForm.careerStartDate ? this.profileForm.careerStartDate + '-01' : null,
+                    careerDirection: this.profileForm.careerDirection,
+                    position: this.profileForm.position || null,
+                    company: this.profileForm.company || null,
+                    website: this.profileForm.website || null,
+                    bio: this.profileForm.bio || null,
+                    tagIds: this.profileForm.selectedTagIds
+                }
+                const res = await updateUserProfile(params)
+                if (res && res.code === 200) {
+                    toast('资料保存成功', 2)
+                } else {
+                    toast(res.message || '保存失败', 2)
+                }
+            } catch (e) {
+                toast(e.message || '保存失败', 2)
+            } finally {
+                this.profileSaving = false
             }
         },
-        removeInterestTag(tag) {
-            this.profileForm.tags = this.profileForm.tags.filter(t => t !== tag)
+        triggerAvatarUpload() {
+            this.$refs.avatarInput.click()
+        },
+        async handleAvatarFileChange(e) {
+            const file = e.target.files[0]
+            if (!file) return
+            
+            // 校验类型
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+            if (!allowedTypes.includes(file.type)) {
+                toast('仅支持JPG、PNG、WebP格式的图片', 2)
+                return
+            }
+            
+            // 校验大小
+            if (file.size > 5 * 1024 * 1024) {
+                toast('图片大小不能超过5MB', 2)
+                return
+            }
+            
+            try {
+                const res = await uploadAvatar(file)
+                if (res && res.code === 200 && res.data && res.data.url) {
+                    this.profileForm.avatarUrl = res.data.url
+                    toast('头像上传成功', 2)
+                } else {
+                    toast(res.message || '上传失败', 2)
+                }
+            } catch (e) {
+                toast(e.message || '上传失败', 2)
+            } finally {
+                // 清除input以便重新选择同一文件
+                e.target.value = ''
+            }
+        },
+        toggleTag(tagId) {
+            const index = this.profileForm.selectedTagIds.indexOf(tagId)
+            if (index > -1) {
+                this.profileForm.selectedTagIds.splice(index, 1)
+            } else {
+                this.profileForm.selectedTagIds.push(tagId)
+            }
+        },
+        getTagName(tagId) {
+            for (const group of this.profileForm.tagGroups) {
+                for (const tag of group.tags) {
+                    if (tag.id === tagId) return tag.tagName
+                }
+            }
+            return ''
         },
         unblockUser(userId) {
             this.blockedUsers = this.blockedUsers.filter(u => u.id !== userId)
@@ -535,7 +729,80 @@ export default {
         unfollowTag(tagId) {
             this.followedTags = this.followedTags.filter(t => t.id !== tagId)
             toast('已取消关注', 2)
+        },
+        handleDeleteAccount() {
+            this.showDeleteAccountDialog = true
+        },
+        async confirmDeleteAccount() {
+            this.deleteAccountConfirming = true
+            try {
+                const res = await deleteAccount()
+                if (res && res.code === 200) {
+                    toast('账号已注销', 2)
+                    this.$store.dispatch('logout')
+                    this.$router.push('/home')
+                } else {
+                    toast(res.message || '注销失败', 2)
+                }
+            } catch (e) {
+                toast(e.message || '注销失败', 2)
+            } finally {
+                this.deleteAccountConfirming = false
+                this.showDeleteAccountDialog = false
+            }
+        },
+        async loadBindings() {
+            try {
+                const res = await getBindings()
+                if (res && res.code === 200 && res.data) {
+                    this.bindings = res.data
+                }
+            } catch (e) {
+                toast('加载绑定信息失败', 2)
+            }
+        },
+        async handleUpdatePassword() {
+            if (!this.passwordForm.oldPassword) {
+                toast('请输入旧密码', 2)
+                return
+            }
+            if (!this.passwordForm.newPassword || this.passwordForm.newPassword.length < 6) {
+                toast('新密码至少6位', 2)
+                return
+            }
+            if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+                toast('两次输入的密码不一致', 2)
+                return
+            }
+            this.passwordSaving = true
+            try {
+                const res = await updatePassword({
+                    oldPassword: this.passwordForm.oldPassword,
+                    newPassword: this.passwordForm.newPassword
+                })
+                if (res && res.code === 200) {
+                    toast('密码修改成功', 2)
+                    this.showPasswordDialog = false
+                    this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' }
+                } else {
+                    toast(res.message || '修改失败', 2)
+                }
+            } catch (e) {
+                toast(e.message || '修改失败', 2)
+            } finally {
+                this.passwordSaving = false
+            }
         }
+    },
+    watch: {
+        activeSection(newVal) {
+            if (newVal === 'account') {
+                this.loadBindings()
+            }
+        }
+    },
+    mounted() {
+        this.loadProfile()
     }
 }
 </script>
@@ -805,26 +1072,6 @@ export default {
     color: #8c939d;
 }
 
-.delete-warning {
-    text-align: center;
-    padding: 20px 0;
-    i {
-        font-size: 48px;
-        color: #faad14;
-        margin-bottom: 16px;
-    }
-    p {
-        font-size: 16px;
-        color: #252933;
-        margin: 0 0 8px 0;
-    }
-    .warning-desc {
-        font-size: 13px;
-        color: #8a919f;
-        margin-top: 12px;
-    }
-}
-
 .general-item {
     display: flex;
     justify-content: space-between;
@@ -963,34 +1210,166 @@ export default {
     margin-left: 8px;
 }
 
-.interest-tags {
+.profile-form {
+    margin-top: 24px;
+}
+
+.form-item-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid #f2f3f5;
+    &:last-child { border-bottom: none; }
+}
+
+.form-label {
+    width: 100px;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: #515767;
+    padding-top: 8px;
+    .required { color: #ff4d4f; }
+}
+
+.form-input-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    box-sizing: border-box;
+    &:focus { border-color: #1e80ff; }
+    &::placeholder { color: #c4c9d1; }
+}
+
+.form-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    background: #fff;
+    &:focus { border-color: #1e80ff; }
+}
+
+.form-textarea {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    &:focus { border-color: #1e80ff; }
+    &::placeholder { color: #c4c9d1; }
+}
+
+.save-btn {
+    padding: 8px 32px;
+    border: none;
+    border-radius: 4px;
+    background: #1e80ff;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    &:hover { background: #4096ff; }
+    &:disabled { background: #a0c4ff; cursor: not-allowed; }
+}
+
+.tag-selector {
+    max-width: 500px;
+}
+
+.tag-categories {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f2f3f5;
 }
-.interest-tag {
+
+.tag-category {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    color: #515767;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover { color: #1e80ff; }
+    &.active {
+        background: #1e80ff;
+        color: #fff;
+    }
+}
+
+.tag-pool {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-option {
+    padding: 4px 12px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #515767;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover { border-color: #1e80ff; color: #1e80ff; }
+    &.selected {
+        background: #eaf2ff;
+        border-color: #1e80ff;
+        color: #1e80ff;
+    }
+}
+
+.selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f2f3f5;
+}
+
+.selected-label {
+    font-size: 12px;
+    color: #999;
+}
+
+.selected-tag {
+    display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 2px 10px;
     background: #eaf2ff;
     color: #1e80ff;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 12px;
 }
+
 .remove-tag {
     cursor: pointer;
     font-size: 14px;
     &:hover { color: #ff4d4f; }
-}
-.add-tag-input {
-    padding: 4px 10px;
-    border: 1px solid #e4e6eb;
-    border-radius: 4px;
-    font-size: 13px;
-    outline: none;
-    &:focus { border-color: #1e80ff; }
 }
 
 .account-item {
@@ -1022,6 +1401,43 @@ export default {
     color: #1e80ff;
     font-size: 13px;
     cursor: pointer;
+}
+
+.password-form {
+    padding: 10px 0;
+    .form-item {
+        margin-bottom: 16px;
+        label {
+            display: block;
+            font-size: 14px;
+            color: #515767;
+            margin-bottom: 6px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e4e6eb;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+            &:focus { border-color: #1e80ff; outline: none; }
+        }
+    }
+}
+
+.delete-account-content {
+    padding: 10px 0;
+    .delete-warning {
+        font-size: 16px;
+        color: #ff4d4f;
+        font-weight: 500;
+        margin-bottom: 12px;
+    }
+    .delete-desc {
+        font-size: 14px;
+        color: #8a919f;
+        line-height: 1.6;
+    }
 }
 
 @media screen and (max-width: 768px) {
