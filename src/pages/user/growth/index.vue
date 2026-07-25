@@ -1,15 +1,6 @@
 <template>
     <div class="growth-page">
-        <div class="growth-header">
-            <div class="header-left" @click="goBack">
-                <span class="back-icon">&#xf060;</span>
-            </div>
-            <div class="header-title">成长等级</div>
-            <div class="header-right">
-                <span class="header-link" @click="showDevTip('掘友分明细')">掘友分明细</span>
-                <span class="header-link" @click="showDevTip('等级规则')">等级规则</span>
-            </div>
-        </div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
 
         <div class="growth-content">
             <!-- 用户名称 -->
@@ -226,6 +217,8 @@
 </template>
 
 <script>
+import HomeBar from '@/components/bars/home_bar'
+import Utils from '@/utils/env'
 import { toast } from '@/utils/toast'
 
 // 任务分组配置
@@ -295,6 +288,7 @@ const TASK_BUTTON_MAP = {
 
 export default {
     name: 'GrowthLevel',
+    components: { HomeBar },
     data() {
         return {
             userId: 1,
@@ -317,6 +311,9 @@ export default {
         }
     },
     computed: {
+        isDesktop() {
+            return Utils.isDesktop()
+        },
         userName() {
             const userInfo = this.$store.state.user.userInfo
             return userInfo ? (userInfo.nickName || '用户') : '用户'
@@ -570,53 +567,6 @@ export default {
 .growth-page {
     min-height: 100vh;
     background: #F5F7FA;
-}
-
-.growth-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: @mian-color;
-    height: @top-height;
-    padding: 0 15px;
-    box-sizing: border-box;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.header-left,
-.header-right {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.header-right {
-    width: auto;
-    gap: 16px;
-}
-
-.header-link {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.85);
-    margin-left: 16px;
-    cursor: pointer;
-}
-
-.back-icon {
-    font-family: fontawesome;
-    font-size: 32px;
-    color: #fff;
-    cursor: pointer;
-}
-
-.header-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #fff;
 }
 
 .growth-content {

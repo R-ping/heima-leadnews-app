@@ -1,6 +1,6 @@
-﻿<template>
+<template>
     <div class="history-page">
-        <div class="art-top"><HomeBar /></div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar /></div>
         <div class="history-content">
             <!-- 标题栏卡片 -->
             <div class="history-toolbar">
@@ -67,6 +67,7 @@
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
+import Utils from '@/utils/env'
 import { toast } from '@/utils/toast'
 import { getBrowseHistory, clearBrowseHistory } from '@/apis/history'
 import ConfirmModal from '@/components/common/ConfirmModal'
@@ -89,6 +90,9 @@ export default {
         }
     },
     computed: {
+        isDesktop() {
+            return Utils.isDesktop()
+        },
         groupedHistory() {
             const groups = {}
             this.historyList.forEach((item) => {

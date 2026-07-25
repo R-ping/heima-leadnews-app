@@ -99,7 +99,7 @@
             </div>
 
             <div class="desktop-container">
-                <div class="desktop-sidebar">
+                <div class="desktop-sidebar" v-if="!isUserPage">
                     <div class="sidebar-nav">
                         <div class="nav-item" :class="{ active: currentCategory === 'following' }" @click="selectCategory('following')">
                             <span class="nav-icon">&#xf004;</span>
@@ -148,11 +148,11 @@
                     </div>
                 </div>
 
-                <div class="desktop-content">
+                <div class="desktop-content" :class="{ 'user-page-content': isUserPage }">
                     <router-view/>
                 </div>
 
-                <div class="desktop-aside">
+                <div class="desktop-aside" v-if="!isUserPage">
                     <div class="aside-card">
                         <div class="aside-title">文章榜</div>
                         <div class="rank-list">
@@ -349,6 +349,9 @@
             },
             formattedLevelText() {
                 return this.levelScore + ' / ' + this.levelMax
+            },
+            isUserPage() {
+                return this.$route.path.startsWith('/user/');
             }
         },
         mounted() {
@@ -398,8 +401,9 @@
             handleAppOpen() {
                 toast('未发布App产品，敬请期待', 2)
             },
-            toggleUserDropdown() {
+            toggleUserDropdown(e) {
                 if (this.isLoggedIn) {
+                    e.stopPropagation();
                     this.showUserDropdown = !this.showUserDropdown
                     if (this.showUserDropdown) {
                         this.loadUserStats()
@@ -1095,6 +1099,10 @@
             flex: 1;
             min-width: 0;
             max-width: none;
+        }
+
+        .user-page-content {
+            max-width: 100%;
         }
 
         .desktop-aside {

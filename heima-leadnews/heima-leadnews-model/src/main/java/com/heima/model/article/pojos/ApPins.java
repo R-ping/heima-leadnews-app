@@ -38,10 +38,13 @@ public class ApPins implements Serializable {
     @TableField("topic_tags")
     private String topicTags;
 
+    @TableField("like_count")
     private Integer likes = 0;
 
+    @TableField("comment_count")
     private Integer comment = 0;
 
+    @TableField("share_count")
     private Integer share = 0;
 
     private Byte status;

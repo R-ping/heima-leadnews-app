@@ -272,48 +272,37 @@
                         <h2>通用设置</h2>
                     </div>
                     <div class="settings-card">
-                        <div class="card-header">界面设置</div>
+                        <div class="card-header">主题设置</div>
                         <div class="card-body">
-                            <div class="general-item">
-                                <div class="general-info">
-                                    <span class="general-label">深色模式</span>
-                                    <span class="general-desc">切换深色/浅色主题</span>
+                            <p class="general-hint">该设置仅在当前浏览器生效</p>
+                            <div class="theme-options">
+                                <div class="theme-card" :class="{ active: generalSettings.theme === 'light' }" @click="setTheme('light')">
+                                    <span class="theme-icon">☀️</span>
+                                    <span class="theme-label">浅色模式</span>
+                                    <span class="theme-check" v-if="generalSettings.theme === 'light'">✓</span>
                                 </div>
-                                <el-switch v-model="generalSettings.darkMode" active-text="开启" inactive-text="关闭"></el-switch>
-                            </div>
-                            <div class="general-item">
-                                <div class="general-info">
-                                    <span class="general-label">字体大小</span>
-                                    <span class="general-desc">调整页面字体大小</span>
+                                <div class="theme-card" :class="{ active: generalSettings.theme === 'dark' }" @click="setTheme('dark')">
+                                    <span class="theme-icon">🌙</span>
+                                    <span class="theme-label">深色模式</span>
+                                    <span class="theme-check" v-if="generalSettings.theme === 'dark'">✓</span>
                                 </div>
-                                <el-select v-model="generalSettings.fontSize" placeholder="请选择">
-                                    <el-option label="小号" value="small"></el-option>
-                                    <el-option label="默认" value="normal"></el-option>
-                                    <el-option label="大号" value="large"></el-option>
-                                </el-select>
+                                <div class="theme-card" :class="{ active: generalSettings.theme === 'system' }" @click="setTheme('system')">
+                                    <span class="theme-icon">💻</span>
+                                    <span class="theme-label">跟随系统</span>
+                                    <span class="theme-check" v-if="generalSettings.theme === 'system'">✓</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="settings-card">
-                        <div class="card-header">浏览设置</div>
+                        <div class="card-header">功能设置</div>
                         <div class="card-body">
                             <div class="general-item">
                                 <div class="general-info">
-                                    <span class="general-label">图片质量</span>
-                                    <span class="general-desc">默认加载高清图片</span>
+                                    <span class="general-label">代码助手</span>
+                                    <span class="general-desc">开启后会在编辑器提供代码提示</span>
                                 </div>
-                                <el-select v-model="generalSettings.imageQuality" placeholder="请选择">
-                                    <el-option label="高清" value="high"></el-option>
-                                    <el-option label="标准" value="normal"></el-option>
-                                    <el-option label="节省流量" value="low"></el-option>
-                                </el-select>
-                            </div>
-                            <div class="general-item">
-                                <div class="general-info">
-                                    <span class="general-label">自动播放视频</span>
-                                    <span class="general-desc">在Wi-Fi下自动播放视频</span>
-                                </div>
-                                <el-switch v-model="generalSettings.autoPlayVideo" active-text="开启" inactive-text="关闭"></el-switch>
+                                <el-switch v-model="generalSettings.codeAssistant" @change="saveCodeAssistant" active-text="开启" inactive-text="关闭"></el-switch>
                             </div>
                         </div>
                     </div>
@@ -539,10 +528,8 @@ export default {
             profileLoaded: false,
             activeTagCategory: '',
             generalSettings: {
-                darkMode: false,
-                fontSize: 'normal',
-                imageQuality: 'high',
-                autoPlayVideo: false
+                theme: 'light',
+                codeAssistant: true
             },
             notificationSettings: {
                 follow: true,
@@ -733,6 +720,27 @@ export default {
         handleDeleteAccount() {
             this.showDeleteAccountDialog = true
         },
+        setTheme(theme) {
+            this.generalSettings.theme = theme
+            try {
+                localStorage.setItem('app_theme', theme)
+            } catch (e) {}
+        },
+        saveCodeAssistant(val) {
+            try {
+                localStorage.setItem('app_code_assistant', val ? '1' : '0')
+            } catch (e) {}
+        },
+        initGeneralSettings() {
+            try {
+                var theme = localStorage.getItem('app_theme')
+                if (theme && ['light', 'dark', 'system'].indexOf(theme) !== -1) {
+                    this.generalSettings.theme = theme
+                }
+                var ca = localStorage.getItem('app_code_assistant')
+                this.generalSettings.codeAssistant = ca !== '0'
+            } catch (e) {}
+        },
         async confirmDeleteAccount() {
             this.deleteAccountConfirming = true
             try {
@@ -803,6 +811,7 @@ export default {
     },
     mounted() {
         this.loadProfile()
+        this.initGeneralSettings()
     }
 }
 </script>
@@ -1088,6 +1097,63 @@ export default {
     margin-bottom: 4px;
 }
 .general-desc { font-size: 13px; color: #8a919f; }
+
+.general-hint {
+    font-size: 12px;
+    color: #8a919f;
+    background: #f8fafc;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.theme-options {
+    display: flex;
+    gap: 16px;
+}
+
+.theme-card {
+    flex: 1;
+    padding: 20px;
+    border: 2px solid #e4e6eb;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    &:hover { border-color: #1e80ff; }
+    &.active {
+        border-color: #1e80ff;
+        background: #f0f5ff;
+    }
+}
+
+.theme-icon {
+    display: block;
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.theme-label {
+    font-size: 14px;
+    color: #252933;
+    font-weight: 500;
+}
+
+.theme-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: #1e80ff;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 .empty-block {
     display: flex;

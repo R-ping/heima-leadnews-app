@@ -123,6 +123,10 @@ Request.prototype = {
             if (typeof data === 'string') {
                 return { code: 200, data: data }
             }
+            // 检查响应code字段，非200时视为错误，抛出带message的异常
+            if (data && data.code !== undefined && data.code !== 200) {
+                return Promise.reject({ code: data.code, message: data.message || '服务器内部错误', data: data.data })
+            }
             return data
         }).catch(function (error) {
             // 444 — accessToken过期，仅当原请求使用用户token时才尝试刷新后重放

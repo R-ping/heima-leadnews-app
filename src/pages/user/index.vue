@@ -1,6 +1,6 @@
-﻿<template>
+<template>
     <div class="user-page">
-        <div class="art-top"><HomeBar/></div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
         <div class="user-content">
             <div class="user-header">
                 <div class="header-left">
@@ -404,6 +404,7 @@
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
+import Utils from '@/utils/env'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
 import { toast } from '@/utils/toast'
 import { getUserStatistics } from '@/apis/user'
@@ -462,6 +463,9 @@ export default {
         }
     },
     computed: {
+        isDesktop() {
+            return Utils.isDesktop()
+        },
         defaultAvatar() {
             return defaultAvatar
         }

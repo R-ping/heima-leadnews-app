@@ -35,6 +35,36 @@ let routes = [
                 path:'/home/:category',
                 name:'HomeCategory',
                 component: Home
+            },
+            {
+                path:'/user/settings',
+                name:'user-settings',
+                component:UserSettings
+            },
+            {
+                path:'/user/growth',
+                name:'user-growth',
+                component:UserGrowth
+            },
+            {
+                path:'/user/checkin',
+                name:'user-checkin',
+                component:UserCheckin
+            },
+            {
+                path:'/user/courses',
+                name:'user-courses',
+                component:UserCourses
+            },
+            {
+                path:'/user/history',
+                name:'user-history',
+                component:UserHistory
+            },
+            {
+                path:'/user/:id',
+                name:'user-profile',
+                component:User
             }
         ]
     },{
@@ -58,30 +88,6 @@ let routes = [
         path:'/oauth/callback',
         name:'oauth-callback',
         component:OAuthCallback
-    },{
-        path:'/user/:id',
-        name:'user-profile',
-        component:User
-    },{
-        path:'/user/settings',
-        name:'user-settings',
-        component:UserSettings
-    },{
-        path:'/user/growth',
-        name:'user-growth',
-        component:UserGrowth
-    },{
-        path:'/user/checkin',
-        name:'user-checkin',
-        component:UserCheckin
-    },{
-        path:'/user/courses',
-        name:'user-courses',
-        component:UserCourses
-    },{
-        path:'/user/history',
-        name:'user-history',
-        component:UserHistory
     },{
         path:'/notification',
         name:'notification',

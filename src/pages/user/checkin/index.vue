@@ -1,12 +1,6 @@
 <template>
     <div class="checkin-page">
-        <div class="checkin-header">
-            <div class="header-left" @click="goBack">
-                <span class="back-icon">&#xf060;</span>
-            </div>
-            <div class="header-title">成长福利</div>
-            <div class="header-right"></div>
-        </div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
 
         <div class="checkin-content">
             <!-- User Info Bar -->
@@ -172,11 +166,14 @@
 </template>
 
 <script>
+import HomeBar from '@/components/bars/home_bar'
+import Utils from '@/utils/env'
 import { getDashboard, doCheckIn, doRetroactive, getCheckInRecords } from '@/apis/checkin'
 import { toast } from '@/utils/toast'
 
 export default {
     name: 'UserCheckin',
+    components: { HomeBar },
     data() {
         return {
             activeTab: 'checkin',
@@ -204,6 +201,9 @@ export default {
         }
     },
     computed: {
+        isDesktop() {
+            return Utils.isDesktop()
+        },
         calendarCells() {
             const cells = []
             const firstDay = new Date(this.currentYear, this.currentMonth - 1, 1).getDay()
@@ -413,40 +413,6 @@ export default {
 .checkin-page {
     min-height: 100vh;
     background: #f5f7fa;
-}
-
-.checkin-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: @mian-color;
-    height: @top-height;
-    padding: 0 15px;
-    box-sizing: border-box;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.header-left, .header-right {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.back-icon {
-    font-family: fontawesome;
-    font-size: 32px;
-    color: #fff;
-    cursor: pointer;
-}
-
-.header-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #fff;
 }
 
 .checkin-content {

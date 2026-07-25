@@ -54,7 +54,13 @@ export default defineConfig({
       },
       '/user': {
         target: 'http://127.0.0.1:51601/',
-        changeOrigin: true
+        changeOrigin: true,
+        bypass(req) {
+          // 前端路由 /user/* 由 SPA 处理，不代理到后端
+          if (req.url && req.url.startsWith('/user/')) {
+            return req.url;
+          }
+        }
       },
       '/search': {
         target: 'http://127.0.0.1:51601/',

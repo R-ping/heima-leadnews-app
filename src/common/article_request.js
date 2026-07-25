@@ -39,7 +39,12 @@ service.interceptors.request.use(
 // response interceptor
 service.interceptors.response.use(
   response => {
-    return response.data
+    const data = response.data
+    // 检查响应code字段，非200时视为错误
+    if (data && data.code !== undefined && data.code !== 200) {
+      return Promise.reject({ code: data.code, message: data.message || '服务器内部错误', data: data.data })
+    }
+    return data
   },
   error => {
     // 444 — accessToken过期，尝试刷新后重放
