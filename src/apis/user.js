@@ -39,3 +39,13 @@ export const deleteAccount = () => {
 export const updatePrivacyMessage = (data) => {
   return request.put('/api/v1/user/privacy/message', data)
 }
+
+// 获取屏蔽列表
+export const getBlocks = (type, page = 1, size = 10) => {
+  return request.get('/api/v1/user/blocks', { params: { type, page, size } })
+}
+
+// 解除屏蔽
+export const removeBlock = (id) => {
+  return request.delete(`/api/v1/user/blocks/${id}`)
+}

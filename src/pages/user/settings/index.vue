@@ -349,37 +349,27 @@
                     <div class="section-header">
                         <h2>屏蔽管理</h2>
                     </div>
-                    <div class="settings-card">
-                        <div class="card-header">屏蔽的用户</div>
-                        <div class="card-body">
-                            <div v-if="blockedUsers.length === 0" class="empty-block">
-                                <span class="empty-icon">👤</span>
-                                <span class="empty-text">暂无屏蔽的用户</span>
-                            </div>
-                            <div v-else class="blocked-list">
-                                <div class="blocked-item" v-for="user in blockedUsers" :key="user.id">
-                                    <img :src="user.avatar || defaultAvatar" class="blocked-avatar" alt="avatar">
-                                    <div class="blocked-info">
-                                        <div class="blocked-name">{{ user.name }}</div>
-                                        <div class="blocked-time">{{ user.blockTime }}</div>
-                                    </div>
-                                    <button class="unblock-btn" @click="unblockUser(user.id)">取消屏蔽</button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="block-tabs">
+                        <span class="block-tab" :class="{ active: blockTab === 'author' }" @click="switchBlockTab('author')">屏蔽作者</span>
+                        <span class="block-tab" :class="{ active: blockTab === 'tag' }" @click="switchBlockTab('tag')">屏蔽标签</span>
                     </div>
                     <div class="settings-card">
-                        <div class="card-header">屏蔽的话题</div>
                         <div class="card-body">
-                            <div v-if="blockedTopics.length === 0" class="empty-block">
-                                <span class="empty-icon">📌</span>
-                                <span class="empty-text">暂无屏蔽的话题</span>
+                            <div v-if="blockList.length === 0" class="empty-block">
+                                <span class="empty-icon">👤</span>
+                                <span class="empty-text">您当前尚未屏蔽任何{{ blockTab === 'author' ? '作者' : '标签' }}~</span>
+                                <button class="add-tag-btn" @click="$router.push('/home')">去首页逛逛</button>
                             </div>
-                            <div v-else class="blocked-topics">
-                                <span class="blocked-topic-item" v-for="topic in blockedTopics" :key="topic.id">
-                                    {{ topic.name }}
-                                    <span class="remove-topic" @click="unblockTopic(topic.id)">×</span>
-                                </span>
+                            <div v-else class="blocked-list">
+                                <div class="blocked-item" v-for="item in blockList" :key="item.id">
+                                    <img v-if="blockTab === 'author'" :src="item.targetAvatar || defaultAvatar" class="blocked-avatar" alt="avatar">
+                                    <span v-else class="blocked-tag-icon">🏷️</span>
+                                    <div class="blocked-info">
+                                        <div class="blocked-name">{{ item.targetName }}</div>
+                                        <div class="blocked-time">{{ item.createTime }}</div>
+                                    </div>
+                                    <button class="unblock-btn" @click="handleUnblock(item.id)">解除屏蔽</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -478,7 +468,7 @@
 import HomeBar from '@/components/bars/home_bar'
 import Utils from '@/utils/env'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
-import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount, updatePrivacyMessage } from '@/apis/user'
+import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount, updatePrivacyMessage, getBlocks, removeBlock } from '@/apis/user'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -510,14 +500,9 @@ export default {
                 codeAssistant: true
             },
             privacyScope: 0,
-            blockedUsers: [
-                { id: 1, name: '不良用户A', avatar: '', blockTime: '2025-10-20' },
-                { id: 2, name: '垃圾广告号', avatar: '', blockTime: '2025-10-18' }
-            ],
-            blockedTopics: [
-                { id: 1, name: '营销广告' },
-                { id: 2, name: '八卦娱乐' }
-            ],
+            blockTab: 'author',
+            blockList: [],
+            blockLoading: false,
             followedTags: [
                 { id: 1, name: 'Vue.js', articleCount: 1256 },
                 { id: 2, name: 'TypeScript', articleCount: 890 },
@@ -676,13 +661,36 @@ export default {
             }
             return ''
         },
-        unblockUser(userId) {
-            this.blockedUsers = this.blockedUsers.filter(u => u.id !== userId)
-            toast('已取消屏蔽', 2)
+        async switchBlockTab(tab) {
+            this.blockTab = tab
+            await this.loadBlockList()
         },
-        unblockTopic(topicId) {
-            this.blockedTopics = this.blockedTopics.filter(t => t.id !== topicId)
-            toast('已取消屏蔽', 2)
+        async loadBlockList() {
+            this.blockLoading = true
+            try {
+                const type = this.blockTab === 'author' ? 1 : 2
+                const res = await getBlocks(type)
+                if (res && res.code === 200 && res.data) {
+                    this.blockList = res.data.list || []
+                }
+            } catch (e) {
+                toast('加载屏蔽列表失败', 2)
+            } finally {
+                this.blockLoading = false
+            }
+        },
+        async handleUnblock(id) {
+            try {
+                const res = await removeBlock(id)
+                if (res && res.code === 200) {
+                    this.blockList = this.blockList.filter(item => item.id !== id)
+                    toast('已解除屏蔽', 2)
+                } else {
+                    toast(res.message || '解除失败', 2)
+                }
+            } catch (e) {
+                toast('解除屏蔽失败', 2)
+            }
         },
         unfollowTag(tagId) {
             this.followedTags = this.followedTags.filter(t => t.id !== tagId)
@@ -785,6 +793,8 @@ export default {
         activeSection(newVal) {
             if (newVal === 'account') {
                 this.loadBindings()
+            } else if (newVal === 'block') {
+                this.loadBlockList()
             }
         }
     },
@@ -1196,6 +1206,45 @@ export default {
 }
 .empty-icon { font-size: 32px; margin-bottom: 8px; }
 .empty-text { font-size: 14px; color: #8a919f; }
+
+.block-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.block-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #515767;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    &:hover { color: #1e80ff; }
+    &.active {
+        background: #eaf2ff;
+        color: #1e80ff;
+        font-weight: 500;
+    }
+}
+
+.blocked-tag-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: #f7f8fa;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
 
 .blocked-list { padding: 8px 0; }
 .blocked-item {
