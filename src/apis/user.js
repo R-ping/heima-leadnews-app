@@ -49,3 +49,23 @@ export const getBlocks = (type, page = 1, size = 10) => {
 export const removeBlock = (id) => {
   return request.delete(`/api/v1/user/blocks/${id}`)
 }
+
+// 获取标签发现列表
+export const getTagsDiscover = (params) => {
+  return request.get('/api/v1/tags/discover', { params })
+}
+
+// 获取已关注标签
+export const getFollowedTags = () => {
+  return request.get('/api/v1/tags/followed')
+}
+
+// 关注标签
+export const followTag = (tagId) => {
+  return request.post(`/api/v1/tags/follow/${tagId}`)
+}
+
+// 取关标签
+export const unfollowTag = (tagId) => {
+  return request.delete(`/api/v1/tags/follow/${tagId}`)
+}

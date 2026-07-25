@@ -379,19 +379,38 @@
                     <div class="section-header">
                         <h2>标签管理</h2>
                     </div>
+                    <div class="block-tabs">
+                        <span class="block-tab" :class="{ active: tagTab === 'followed' }" @click="switchTagTab('followed')">已关注标签</span>
+                        <span class="block-tab" :class="{ active: tagTab === 'all' }" @click="switchTagTab('all')">全部标签</span>
+                    </div>
+                    <div v-if="tagTab === 'all'" class="tag-filter-bar">
+                        <div class="filter-sort">
+                            <span class="filter-btn" :class="{ active: tagSort === 'hottest' }" @click="tagSort = 'hottest'; loadTagDiscover()">最热</span>
+                            <span class="filter-btn" :class="{ active: tagSort === 'latest' }" @click="tagSort = 'latest'; loadTagDiscover()">最新</span>
+                        </div>
+                        <div class="filter-search">
+                            <input v-model="tagKeyword" class="form-input" placeholder="搜索标签" @keyup.enter="loadTagDiscover()">
+                            <span class="search-icon" @click="loadTagDiscover()">&#xf002;</span>
+                        </div>
+                    </div>
                     <div class="settings-card">
-                        <div class="card-header">关注的标签</div>
                         <div class="card-body">
-                            <div v-if="followedTags.length === 0" class="empty-tags">
+                            <div v-if="tagList.length === 0" class="empty-block">
                                 <span class="empty-icon">🏷️</span>
-                                <span class="empty-text">暂无关注的标签</span>
-                                <button class="add-tag-btn" @click="showAddTag = true">添加标签</button>
+                                <span class="empty-text">{{ tagTab === 'followed' ? '暂无关注的标签' : '暂无标签' }}</span>
                             </div>
-                            <div v-else class="followed-tags-grid">
-                                <div class="tag-card" v-for="tag in followedTags" :key="tag.id">
-                                    <span class="tag-name">{{ tag.name }}</span>
-                                    <span class="tag-count">{{ tag.articleCount }}篇文章</span>
-                                    <button class="unfollow-tag-btn" @click="unfollowTag(tag.id)">取消关注</button>
+                            <div v-else class="tag-grid">
+                                <div class="tag-card" v-for="tag in tagList" :key="tag.id">
+                                    <span class="tag-name">{{ tag.tagName }}</span>
+                                    <div class="tag-stats">
+                                        <span class="tag-stat">{{ tag.followCount || 0 }}关注</span>
+                                        <span class="tag-stat">{{ tag.articleCount || 0 }}文章</span>
+                                    </div>
+                                    <button 
+                                        class="tag-follow-btn"
+                                        :class="{ following: tag.isFollowing }"
+                                        @click="handleTagFollow(tag)"
+                                    >{{ tag.isFollowing ? '已关注' : '关注' }}</button>
                                 </div>
                             </div>
                         </div>
@@ -468,7 +487,7 @@
 import HomeBar from '@/components/bars/home_bar'
 import Utils from '@/utils/env'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
-import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount, updatePrivacyMessage, getBlocks, removeBlock } from '@/apis/user'
+import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount, updatePrivacyMessage, getBlocks, removeBlock, getTagsDiscover, getFollowedTags, followTag, unfollowTag } from '@/apis/user'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -478,7 +497,6 @@ export default {
         return {
             activeSection: 'profile',
             showAvatarUpload: false,
-            showAddTag: false,
             localAvatar: null,
             profileForm: {
                 username: '',
@@ -503,11 +521,11 @@ export default {
             blockTab: 'author',
             blockList: [],
             blockLoading: false,
-            followedTags: [
-                { id: 1, name: 'Vue.js', articleCount: 1256 },
-                { id: 2, name: 'TypeScript', articleCount: 890 },
-                { id: 3, name: 'Node.js', articleCount: 678 }
-            ],
+            tagTab: 'followed',
+            tagSort: 'hottest',
+            tagKeyword: '',
+            tagList: [],
+            tagLoading: false,
             bindings: {
                 phone: '',
                 wechat: { bound: false, nickname: '', avatar: '' },
@@ -692,9 +710,64 @@ export default {
                 toast('解除屏蔽失败', 2)
             }
         },
-        unfollowTag(tagId) {
-            this.followedTags = this.followedTags.filter(t => t.id !== tagId)
-            toast('已取消关注', 2)
+        async switchTagTab(tab) {
+            this.tagTab = tab
+            if (tab === 'followed') {
+                await this.loadFollowedTags()
+            } else {
+                await this.loadTagDiscover()
+            }
+        },
+        async loadTagDiscover() {
+            this.tagLoading = true
+            try {
+                const params = { sort: this.tagSort, page: 1, size: 50 }
+                if (this.tagKeyword) params.keyword = this.tagKeyword
+                const res = await getTagsDiscover(params)
+                if (res && res.code === 200 && res.data) {
+                    this.tagList = res.data.list || []
+                }
+            } catch (e) {
+                toast('加载标签列表失败', 2)
+            } finally {
+                this.tagLoading = false
+            }
+        },
+        async loadFollowedTags() {
+            this.tagLoading = true
+            try {
+                const res = await getFollowedTags()
+                if (res && res.code === 200 && res.data) {
+                    this.tagList = (res.data.list || res.data).map(tag => ({
+                        ...tag,
+                        isFollowing: true
+                    }))
+                }
+            } catch (e) {
+                toast('加载已关注标签失败', 2)
+            } finally {
+                this.tagLoading = false
+            }
+        },
+        async handleTagFollow(tag) {
+            try {
+                if (tag.isFollowing) {
+                    const res = await unfollowTag(tag.id)
+                    if (res && res.code === 200) {
+                        tag.isFollowing = false
+                        if (this.tagTab === 'followed') {
+                            this.tagList = this.tagList.filter(t => t.id !== tag.id)
+                        }
+                    }
+                } else {
+                    const res = await followTag(tag.id)
+                    if (res && res.code === 200) {
+                        tag.isFollowing = true
+                    }
+                }
+            } catch (e) {
+                toast('操作失败', 2)
+            }
         },
         handleDeleteAccount() {
             this.showDeleteAccountDialog = true
@@ -795,6 +868,8 @@ export default {
                 this.loadBindings()
             } else if (newVal === 'block') {
                 this.loadBlockList()
+            } else if (newVal === 'tags') {
+                this.loadFollowedTags()
             }
         }
     },
@@ -1300,6 +1375,92 @@ export default {
     flex-direction: column;
     align-items: center;
     padding: 40px 0;
+}
+
+.tag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.tag-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.filter-sort {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-btn {
+    padding: 6px 16px;
+    border: 1px solid #e4e6eb;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #515767;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover { border-color: #1e80ff; color: #1e80ff; }
+    &.active {
+        background: #1e80ff;
+        color: #fff;
+        border-color: #1e80ff;
+    }
+}
+
+.filter-search {
+    position: relative;
+    .form-input {
+        width: 200px;
+        padding: 6px 32px 6px 12px;
+        border: 1px solid #e4e6eb;
+        border-radius: 4px;
+        font-size: 13px;
+        outline: none;
+        &:focus { border-color: #1e80ff; }
+    }
+    .search-icon {
+        font-family: fontawesome;
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 14px;
+        color: #999;
+        cursor: pointer;
+    }
+}
+
+.tag-stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.tag-stat {
+    font-size: 12px;
+    color: #8a919f;
+}
+
+.tag-follow-btn {
+    padding: 4px 16px;
+    border: 1px solid #1e80ff;
+    border-radius: 4px;
+    background: #fff;
+    color: #1e80ff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover { background: #eaf2ff; }
+    &.following {
+        background: #eaf2ff;
+        border-color: #8a919f;
+        color: #8a919f;
+    }
 }
 .add-tag-btn {
     margin-top: 12px;
