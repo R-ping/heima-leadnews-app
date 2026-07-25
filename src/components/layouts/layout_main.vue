@@ -144,7 +144,7 @@
                             <span class="nav-icon">&#xf02d;</span>
                             <span class="nav-text">阅读</span>
                         </div>
-                        <div class="nav-item" :class="{ active: currentCategory === 'ranking' }" @click="selectCategory('ranking')">
+                        <div class="nav-item" :class="{ active: currentCategory === 'ranking' || isHotPage }" @click="selectCategory('ranking')">
                             <span class="nav-icon">&#xf091;</span>
                             <span class="nav-text">排行榜</span>
                         </div>
@@ -329,6 +329,9 @@
             },
             isUserPage() {
                 return this.$route.path.startsWith('/user/');
+            },
+            isHotPage() {
+                return this.$route.path === '/hot'
             }
         },
         mounted() {
@@ -494,6 +497,10 @@
             },
             selectCategory(category) {
                 this.currentCategory = category
+                if (category === 'ranking') {
+                    this.$router.push('/hot')
+                    return
+                }
                 if (category === 'following') {
                     if (!this.isLoggedIn) {
                         this.showLogin()
@@ -508,7 +515,10 @@
             },
             syncCategoryFromRoute() {
                 var path = this.$route.path
-                if (path === '/home/following') {
+                if (path === '/hot') {
+                    this.currentCategory = 'ranking'
+                    this.currentNav = 'home'
+                } else if (path === '/home/following') {
                     this.currentCategory = 'following'
                     this.currentNav = 'home'
                 } else if (path === '/home') {

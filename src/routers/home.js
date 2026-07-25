@@ -20,6 +20,7 @@ const PinsCircles = () => import('@/pages/pins/circles.vue')
 const Course = () => import('@/pages/course/index.vue')
 const CourseDetail = () => import('@/pages/course/detail.vue')
 const CourseRead = () => import('@/pages/course/read.vue')
+const Hot = () => import('@/pages/hot/index.vue')
 
 let routes = [
     {
@@ -35,6 +36,11 @@ let routes = [
                 path:'/home/:category',
                 name:'HomeCategory',
                 component: Home
+            },
+            {
+                path:'/hot',
+                name:'hot',
+                component: Hot
             },
             {
                 path:'/user/settings',
