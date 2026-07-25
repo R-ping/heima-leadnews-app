@@ -75,6 +75,27 @@ Request.prototype = {
             })
         })
     },
+    del: function (path, parms) {
+        var _this = this
+        var time = new Date().getTime()
+        if (parms == undefined) parms = {}
+        else {
+            path = path + '?' + objToQueryString(parms)
+        }
+        parms['t'] = time
+        return this.store.getToken().then(function (token) {
+            return _this.__fetch('DELETE', path, token, time, parms)
+        }).catch(function (e) {
+            return _this.store.getGuestToken().then(function (guestToken) {
+                if (guestToken) {
+                    return _this.__fetch('DELETE', path, guestToken, time, parms)
+                }
+                return _this.__fetch('DELETE', path, '', time, parms)
+            }).catch(function () {
+                return _this.__fetch('DELETE', path, '', time, parms)
+            })
+        })
+    },
     put: function (path, body, parms) {
         var _this = this
         var time = new Date().getTime()

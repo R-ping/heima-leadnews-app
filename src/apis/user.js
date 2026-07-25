@@ -32,7 +32,7 @@ export const updatePassword = (data) => {
 
 // 注销账号
 export const deleteAccount = () => {
-  return request.delete('/api/v1/user/account')
+  return request.del('/api/v1/user/account')
 }
 
 // 更新私信权限
@@ -47,7 +47,7 @@ export const getBlocks = (type, page = 1, size = 10) => {
 
 // 解除屏蔽
 export const removeBlock = (id) => {
-  return request.delete(`/api/v1/user/blocks/${id}`)
+  return request.del(`/api/v1/user/blocks/${id}`)
 }
 
 // 获取标签发现列表
@@ -67,5 +67,5 @@ export const followTag = (tagId) => {
 
 // 取关标签
 export const unfollowTag = (tagId) => {
-  return request.delete(`/api/v1/tags/follow/${tagId}`)
+  return request.del(`/api/v1/tags/follow/${tagId}`)
 }
