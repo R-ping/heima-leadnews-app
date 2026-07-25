@@ -313,55 +313,33 @@
                         <h2>消息设置</h2>
                     </div>
                     <div class="settings-card">
-                        <div class="card-header">互动通知</div>
+                        <div class="card-header">私信设置</div>
                         <div class="card-body">
-                            <div class="notification-item">
-                                <div class="notification-info">
-                                    <span class="notification-label">有人关注我</span>
-                                    <span class="notification-desc">当有用户关注您时发送通知</span>
+                            <div class="privacy-options">
+                                <div class="privacy-card" :class="{ active: privacyScope === 0 }" @click="setPrivacyScope(0)">
+                                    <span class="privacy-icon">👥</span>
+                                    <span class="privacy-label">所有人</span>
+                                    <span class="privacy-desc">所有人都可以给我发私信</span>
+                                    <span class="privacy-check" v-if="privacyScope === 0">✓</span>
                                 </div>
-                                <el-switch v-model="notificationSettings.follow" active-text="开启" inactive-text="关闭"></el-switch>
-                            </div>
-                            <div class="notification-item">
-                                <div class="notification-info">
-                                    <span class="notification-label">有人评论我</span>
-                                    <span class="notification-desc">当有用户评论您的文章时发送通知</span>
+                                <div class="privacy-card" :class="{ active: privacyScope === 1 }" @click="setPrivacyScope(1)">
+                                    <span class="privacy-icon">👤</span>
+                                    <span class="privacy-label">我关注的人</span>
+                                    <span class="privacy-desc">仅我关注的人可以发私信</span>
+                                    <span class="privacy-check" v-if="privacyScope === 1">✓</span>
                                 </div>
-                                <el-switch v-model="notificationSettings.comment" active-text="开启" inactive-text="关闭"></el-switch>
-                            </div>
-                            <div class="notification-item">
-                                <div class="notification-info">
-                                    <span class="notification-label">有人点赞我</span>
-                                    <span class="notification-desc">当有用户点赞您的内容时发送通知</span>
+                                <div class="privacy-card" :class="{ active: privacyScope === 2 }" @click="setPrivacyScope(2)">
+                                    <span class="privacy-icon">🤝</span>
+                                    <span class="privacy-label">互相关注的人</span>
+                                    <span class="privacy-desc">仅互相关注的人可以发私信</span>
+                                    <span class="privacy-check" v-if="privacyScope === 2">✓</span>
                                 </div>
-                                <el-switch v-model="notificationSettings.like" active-text="开启" inactive-text="关闭"></el-switch>
-                            </div>
-                            <div class="notification-item">
-                                <div class="notification-info">
-                                    <span class="notification-label">有人@我</span>
-                                    <span class="notification-desc">当有用户@您时发送通知</span>
+                                <div class="privacy-card" :class="{ active: privacyScope === 3 }" @click="setPrivacyScope(3)">
+                                    <span class="privacy-icon">🔒</span>
+                                    <span class="privacy-label">关闭</span>
+                                    <span class="privacy-desc">不接收任何私信</span>
+                                    <span class="privacy-check" v-if="privacyScope === 3">✓</span>
                                 </div>
-                                <el-switch v-model="notificationSettings.at" active-text="开启" inactive-text="关闭"></el-switch>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-card">
-                        <div class="card-header">系统通知</div>
-                        <div class="card-body">
-                            <div class="notification-item">
-                                <div class="notification-info">
-                                    <span class="notification-label">系统公告</span>
-                                    <span class="notification-desc">接收平台系统公告和重要通知</span>
-                                </div>
-                                <el-switch v-model="notificationSettings.system" active-text="开启" inactive-text="关闭"></el-switch>
-                            </div>
-                            <div class="notification-item">
-                                <div class="notification-info">
-                                    <span class="notification-label">热门内容推荐</span>
-                                    <span class="notification-desc">接收平台推荐的热门内容</span>
-                                </div>
-                                <el-switch v-model="notificationSettings.recommend" active-text="开启" inactive-text="关闭"></el-switch>
                             </div>
                         </div>
                     </div>
@@ -500,7 +478,7 @@
 import HomeBar from '@/components/bars/home_bar'
 import Utils from '@/utils/env'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
-import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount } from '@/apis/user'
+import { getUserProfile, updateUserProfile, uploadAvatar, getBindings, updatePassword, deleteAccount, updatePrivacyMessage } from '@/apis/user'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -531,14 +509,7 @@ export default {
                 theme: 'light',
                 codeAssistant: true
             },
-            notificationSettings: {
-                follow: true,
-                comment: true,
-                like: true,
-                at: true,
-                system: true,
-                recommend: true
-            },
+            privacyScope: 0,
             blockedUsers: [
                 { id: 1, name: '不良用户A', avatar: '', blockTime: '2025-10-20' },
                 { id: 2, name: '垃圾广告号', avatar: '', blockTime: '2025-10-18' }
@@ -740,6 +711,14 @@ export default {
                 var ca = localStorage.getItem('app_code_assistant')
                 this.generalSettings.codeAssistant = ca !== '0'
             } catch (e) {}
+        },
+        async setPrivacyScope(scope) {
+            this.privacyScope = scope
+            try {
+                await updatePrivacyMessage({ scope: scope })
+            } catch (e) {
+                toast('设置失败', 2)
+            }
         },
         async confirmDeleteAccount() {
             this.deleteAccountConfirming = true
@@ -1097,6 +1076,60 @@ export default {
     margin-bottom: 4px;
 }
 .general-desc { font-size: 13px; color: #8a919f; }
+
+.privacy-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.privacy-card {
+    padding: 20px;
+    border: 2px solid #e4e6eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    &:hover { border-color: #1e80ff; }
+    &.active {
+        border-color: #1e80ff;
+        background: #f0f5ff;
+    }
+}
+
+.privacy-icon {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.privacy-label {
+    display: block;
+    font-size: 14px;
+    color: #252933;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.privacy-desc {
+    font-size: 12px;
+    color: #8a919f;
+}
+
+.privacy-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: #1e80ff;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 .general-hint {
     font-size: 12px;
