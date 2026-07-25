@@ -11,4 +11,10 @@ public interface TopicService {
      * @return
      */
     List<ApTopic> findList(String keyword);
+
+    /**
+     * 获取推荐话题（按讨论数降序，Top 10）
+     * @return
+     */
+    List<ApTopic> getRecommendTopics();
 }

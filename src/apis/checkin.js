@@ -20,6 +20,10 @@ export const getCheckInStats = () => {
   return request.get('/api/v1/checkin/stats')
 }
 
+export const getTodayStatus = () => {
+  return request.get('/api/v1/checkin/today')
+}
+
 export const getCheckInTasks = () => {
   return request.get('/api/v1/checkin/tasks')
 }

@@ -1,21 +1,57 @@
 package com.heima.article.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.heima.article.mapper.ApCheckInMapper;
+import com.heima.article.mapper.UserSignInSummaryMapper;
+import com.heima.model.article.pojos.ApCheckIn;
+import com.heima.model.article.pojos.UserSignInSummary;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Transactional
 public class CheckInServiceTest {
 
     @Autowired
     private CheckInService checkInService;
 
+    @Autowired
+    private ApCheckInMapper checkInMapper;
+
+    @Autowired
+    private UserSignInSummaryMapper summaryMapper;
+
     private static final Long TEST_USER_ID = 1L;
+
+    @BeforeEach
+    public void setUp() {
+        // 清理今日测试数据，避免重复签到冲突
+        java.sql.Date today = java.sql.Date.valueOf(LocalDate.now());
+        LambdaQueryWrapper<ApCheckIn> query = new LambdaQueryWrapper<>();
+        query.eq(ApCheckIn::getUserId, TEST_USER_ID);
+        query.eq(ApCheckIn::getCheckInDate, today);
+        checkInMapper.delete(query);
+
+        // 重置签到汇总
+        LambdaQueryWrapper<UserSignInSummary> summaryQuery = new LambdaQueryWrapper<>();
+        summaryQuery.eq(UserSignInSummary::getUserId, TEST_USER_ID);
+        UserSignInSummary summary = summaryMapper.selectOne(summaryQuery);
+        if (summary != null) {
+            summary.setCurrentConsecutiveDays(0);
+            summary.setLastSignDate(null);
+            summary.setTotalOre(0L);
+            summary.setTotalSignedDays(0);
+            summaryMapper.updateById(summary);
+        }
+    }
 
     // ==================== getCheckInStats ====================
 

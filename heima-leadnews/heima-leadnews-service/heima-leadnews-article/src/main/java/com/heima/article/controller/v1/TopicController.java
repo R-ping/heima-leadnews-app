@@ -19,4 +19,9 @@ public class TopicController {
     public ResponseResult findList(@RequestParam(required = false) String keyword) {
         return ResponseResult.okResult(topicService.findList(keyword));
     }
+
+    @GetMapping("/recommend")
+    public ResponseResult getRecommendTopics() {
+        return ResponseResult.okResult(topicService.getRecommendTopics());
+    }
 }

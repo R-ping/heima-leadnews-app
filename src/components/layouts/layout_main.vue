@@ -5,7 +5,10 @@
             <div class="desktop-header">
                 <div class="header-inner">
                     <div class="header-left">
-                        <span class="logo-text">黑马头条</span>
+                        <div class="brand-link" @click="goToHome">
+                            <img class="brand-logo" src="/static/images/logo-icon.svg" alt="logo" />
+                            <span class="logo-text">逐日Coding</span>
+                        </div>
                     </div>
                     <nav class="main-nav">
                         <span class="nav-link" :class="{ active: currentNav === 'home' }" @click="goToHome">首页</span>
@@ -153,56 +156,39 @@
                 </div>
 
                 <div class="desktop-aside" v-if="!isUserPage">
-                    <div class="aside-card">
-                        <div class="aside-title">文章榜</div>
-                        <div class="rank-list">
-                            <div class="rank-item" v-for="(item, idx) in articleRankList" :key="'ar'+idx">
-                                <span class="rank-num" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                                <span class="rank-title">{{ item }}</span>
+                    <!-- 签到入口 -->
+                    <div class="aside-card checkin-card">
+                        <div class="checkin-entry" @click="handleCheckinClick">
+                            <div class="checkin-info">
+                                <span class="checkin-icon">&#xf058;</span>
+                                <span class="checkin-label" v-if="!isLoggedIn">每日签到</span>
+                                <span class="checkin-label" v-else-if="!checkinTodayStatus.isSignedIn">每日签到</span>
+                                <span class="checkin-label signed" v-else>已签到 {{ checkinTodayStatus.consecutiveDays }} 天</span>
+                            </div>
+                            <span class="checkin-arrow">&#xf105;</span>
+                        </div>
+                        <div class="checkin-extra" v-if="isLoggedIn">
+                            <span class="ore-text">矿石 {{ checkinTodayStatus.totalOre || 0 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- 推荐话题 -->
+                    <div class="aside-card topic-card">
+                        <div class="aside-title">推荐话题</div>
+                        <div class="topic-list" v-if="recommendTopics.length > 0">
+                            <div class="topic-item" v-for="topic in recommendTopics" :key="topic.id" @click="goToTopic(topic.id)">
+                                <span class="topic-name">{{ topic.name }}</span>
+                                <span class="topic-count">{{ formatTopicCount(topic.count) }} 讨论</span>
                             </div>
                         </div>
-                    </div>
-                    <div class="aside-card">
-                        <div class="aside-title">推荐作者</div>
-                        <div class="author-item" v-for="i in 5" :key="i">
-                            <img class="author-avatar" :src="'/static/images/avatar_head_' + i + '.png'" alt="作者头像"/>
-                            <div class="author-info">
-                                <div class="author-name">推荐作者{{ i }}</div>
-                                <div class="author-desc">写了{{ i * 23 }}篇文章 · {{ i * 120 }}关注</div>
-                            </div>
-                            <span class="follow-btn" @click="showLogin">关注</span>
-                        </div>
-                        <div class="aside-more">查看更多 ›</div>
-                    </div>
-                    <div class="aside-card">
-                        <div class="aside-title">热门标签</div>
-                        <div class="tag-list">
-                            <span class="tag-item">前端</span>
-                            <span class="tag-item">Java</span>
-                            <span class="tag-item">Python</span>
-                            <span class="tag-item">Vue</span>
-                            <span class="tag-item">React</span>
-                            <span class="tag-item">Android</span>
-                            <span class="tag-item">iOS</span>
-                            <span class="tag-item">人工智能</span>
+                        <div class="topic-empty" v-else>
+                            <span>暂无推荐话题</span>
                         </div>
                     </div>
-                    <div class="aside-card">
-                        <div class="aside-title">作者榜</div>
-                        <div class="author-list">
-                            <div class="author-item" v-for="(item, idx) in authorRankList" :key="'au'+idx">
-                                <span class="rank-num" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                                <img class="author-avatar" :src="'/static/images/avatar_head_' + (idx + 1) + '.png'" alt="作者头像"/>
-                                <div class="author-info">
-                                    <div class="author-name">{{ item.name }}</div>
-                                    <div class="author-desc">{{ item.desc }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                     <div class="aside-footer">
                         <div class="footer-links">关于 · 联系我们 · 加入我们</div>
-                        <div class="footer-copy">© 2024 黑马头条</div>
+                        <div class="footer-copy">© 2024 逐日Coding</div>
                     </div>
                 </div>
             </div>
@@ -225,6 +211,8 @@
     import SearchApi from '@/apis/search/api'
     import { sanitizeHighlight } from '@/utils/sanitize'
     import { getUserStatistics } from '@/apis/user'
+    import { getRecommendTopics } from '@/apis/topic'
+    import { getTodayStatus, doCheckIn } from '@/apis/checkin'
     import UserDropdown from '@/components/bars/UserDropdown.vue'
 
     var SEARCH_HISTORY_KEY = 'HEIMA_SEARCH_HISTORY'
@@ -301,23 +289,12 @@
                 levelScore: 0,
                 levelMax: 150,
                 levelPercent: 0,
-                articleRankList: [
-                    'Vue 3.5 新特性全面解析',
-                    '2024 前端开发趋势报告',
-                    '深入理解 JavaScript 异步编程',
-                    'React 19 新功能实战指南',
-                    'TypeScript 5.5 类型体操',
-                    'Node.js 性能优化实战',
-                    'CSS Grid 布局完全指南',
-                    'Webpack 到 Vite 迁移实践'
-                ],
-                authorRankList: [
-                    { name: '张风捷特烈', desc: 'Android · 120k关注' },
-                    { name: '捡田螺的小男孩', desc: '后端 · 98k关注' },
-                    { name: '程序员鱼皮', desc: '全栈 · 87k关注' },
-                    { name: '神三元', desc: '前端 · 75k关注' },
-                    { name: '敖丙', desc: 'Java · 68k关注' }
-                ]
+                checkinTodayStatus: {
+                    isSignedIn: false,
+                    consecutiveDays: 0,
+                    totalOre: 0
+                },
+                recommendTopics: []
             }
         },
         computed: {
@@ -376,10 +353,19 @@
             }
             document.addEventListener('click', this.closeDropdown)
             this.searchHistory = getSearchHistory()
+            this.loadRecommendTopics()
+            this.loadCheckinStatus()
         },
         watch: {
             '$route.path': function(newPath) {
                 this.syncCategoryFromRoute()
+            },
+            isLoggedIn: function(newVal) {
+                if (newVal) {
+                    this.loadCheckinStatus()
+                } else {
+                    this.checkinTodayStatus = { isSignedIn: false, consecutiveDays: 0, totalOre: 0 }
+                }
             }
         },
         beforeDestroy() {
@@ -623,6 +609,63 @@
                 this.showSearchDropdown = false
                 this.searchSuggestions = []
                 this.$router.push({ name: 'search_result', params: { keyword: keyword } })
+            },
+            async loadRecommendTopics() {
+                try {
+                    const res = await getRecommendTopics()
+                    if (res && res.code === 200) {
+                        this.recommendTopics = res.data || []
+                    }
+                } catch (e) {
+                    console.error('加载推荐话题失败', e)
+                }
+            },
+            async loadCheckinStatus() {
+                if (!this.isLoggedIn) {
+                    this.checkinTodayStatus = { isSignedIn: false, consecutiveDays: 0, totalOre: 0 }
+                    return
+                }
+                try {
+                    const res = await getTodayStatus()
+                    if (res && res.code === 200) {
+                        this.checkinTodayStatus = res.data || { isSignedIn: false, consecutiveDays: 0, totalOre: 0 }
+                    }
+                } catch (e) {
+                    console.error('加载签到状态失败', e)
+                }
+            },
+            handleCheckinClick() {
+                if (!this.isLoggedIn) {
+                    this.showLogin()
+                    return
+                }
+                if (!this.checkinTodayStatus.isSignedIn) {
+                    this.doCheckInAction()
+                } else {
+                    this.$router.push('/user/checkin')
+                }
+            },
+            async doCheckInAction() {
+                try {
+                    const res = await doCheckIn()
+                    if (res && res.code === 200) {
+                        toast('签到成功')
+                        this.loadCheckinStatus()
+                    } else {
+                        toast(res && res.message || '签到失败')
+                    }
+                } catch (e) {
+                    toast('签到失败，请重试')
+                }
+            },
+            formatTopicCount(count) {
+                if (count >= 1000) {
+                    return (count / 1000).toFixed(1) + 'k'
+                }
+                return String(count)
+            },
+            goToTopic(topicId) {
+                this.$router.push('/topic/' + topicId)
             }
         }
     };
@@ -722,10 +765,27 @@
             flex-shrink: 0;
         }
 
+        .brand-link {
+            display: flex;
+            align-items: center;
+            gap: 10PX;
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.2s;
+        }
+        .brand-link:hover {
+            opacity: 0.85;
+        }
+        .brand-logo {
+            width: 32PX;
+            height: 32PX;
+            flex-shrink: 0;
+        }
         .logo-text {
             font-size: 22PX;
             font-weight: 700;
             color: @mian-color;
+            white-space: nowrap;
         }
 
         .main-nav {
@@ -1129,153 +1189,91 @@
             border-bottom: 1PX solid #f0f0f0;
         }
 
-        .author-item {
+        /* ===== 签到入口卡片 ===== */
+        .checkin-card {
+            padding: 12PX 20PX;
+        }
+        .checkin-entry {
             display: flex;
             align-items: center;
-            padding: 8PX 0;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .checkin-entry:hover {
+            opacity: 0.8;
+        }
+        .checkin-info {
+            display: flex;
+            align-items: center;
             gap: 10PX;
         }
-
-        .author-avatar {
-            width: 40PX;
-            height: 40PX;
-            border-radius: 50%;
-            object-fit: cover;
-            flex-shrink: 0;
+        .checkin-icon {
+            font-family: fontawesome;
+            font-size: 22PX;
+            color: #FFB800;
         }
-
-        .author-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .author-name {
-            font-size: 14PX;
+        .checkin-label {
+            font-size: 15PX;
             color: #333;
             font-weight: 500;
-            margin-bottom: 2PX;
         }
-
-        .author-desc {
-            font-size: 12PX;
-            color: #999;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .follow-btn {
-            padding: 4PX 12PX;
-            border: 1PX solid @mian-color;
-            border-radius: 4PX;
-            color: @mian-color;
-            font-size: 12PX;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        .follow-btn:hover {
-            background-color: @mian-color;
-            color: #fff;
-        }
-
-        .aside-more {
-            text-align: center;
-            padding-top: 8PX;
-            font-size: 13PX;
-            color: #999;
-            cursor: pointer;
-        }
-        .aside-more:hover {
-            color: @mian-color;
-        }
-
-        .rank-list {
-            display: flex;
-            flex-direction: column;
-        }
-        .rank-item {
-            display: flex;
-            align-items: center;
-            padding: 6PX 0;
-            cursor: pointer;
-            gap: 10PX;
-            transition: color 0.2s;
-        }
-        .rank-item:hover .rank-title {
+        .checkin-label.signed {
             color: #1E80FF;
         }
-        .rank-num {
-            width: 20PX;
-            height: 20PX;
+        .checkin-arrow {
+            font-family: fontawesome;
+            font-size: 16PX;
+            color: #c0c4cc;
+        }
+        .checkin-extra {
+            margin-top: 8PX;
+            padding-left: 32PX;
+        }
+        .ore-text {
+            font-size: 12PX;
+            color: #999;
+        }
+
+        /* ===== 推荐话题卡片 ===== */
+        .topic-card {
+            padding: 16PX 20PX;
+        }
+        .topic-list {
+            display: flex;
+            flex-direction: column;
+        }
+        .topic-item {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 13PX;
-            font-weight: 600;
-            color: #C2C8D1;
-            flex-shrink: 0;
-            border-radius: 4PX;
+            justify-content: space-between;
+            padding: 8PX 0;
+            cursor: pointer;
+            transition: color 0.2s;
         }
-        .rank-1 { color: #F53F3F; }
-        .rank-2 { color: #FF7D00; }
-        .rank-3 { color: #FFB400; }
-        .rank-title {
+        .topic-item:hover .topic-name {
+            color: #1E80FF;
+        }
+        .topic-name {
             font-size: 14PX;
-            color: #515767;
+            color: #333;
             flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            line-height: 1.8;
+            transition: color 0.2s;
         }
-        .author-list {
-            display: flex;
-            flex-direction: column;
-        }
-        .author-list .author-item {
-            display: flex;
-            align-items: center;
-            padding: 8PX 0;
-            gap: 10PX;
-            cursor: pointer;
-        }
-        .author-list .author-avatar {
-            width: 36PX;
-            height: 36PX;
-        }
-        .author-list .author-name {
-            font-size: 14PX;
-            color: #333;
-            font-weight: 500;
-            margin-bottom: 2PX;
-        }
-        .author-list .author-desc {
+        .topic-count {
             font-size: 12PX;
             color: #999;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: 10PX;
         }
-
-        .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8PX;
-        }
-
-        .tag-item {
-            padding: 4PX 10PX;
-            background-color: #f5f5f5;
-            border-radius: 3PX;
+        .topic-empty {
+            text-align: center;
+            padding: 20PX 0;
             font-size: 13PX;
-            color: #666;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tag-item:hover {
-            background-color: @mian-color;
-            color: #fff;
+            color: #c0c4cc;
         }
 
         .aside-footer {
@@ -1352,8 +1350,12 @@
         .header-left {
             width: auto;
         }
+        .brand-logo {
+            width: 24PX;
+            height: 24PX;
+        }
         .logo-text {
-            font-size: 18PX;
+            font-size: 16PX;
         }
         .header-right {
             width: auto;

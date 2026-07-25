@@ -43,4 +43,11 @@ public interface CheckInService {
      * @return 补签结果
      */
     Map<String, Object> doRetroactive(Long userId, String missedDate);
+
+    /**
+     * 获取今日签到状态（用于首页右侧栏签到入口）
+     * @param userId 用户ID，null 表示未登录
+     * @return 包含 isSignedIn, consecutiveDays, totalOre 的 map
+     */
+    Map<String, Object> getTodayStatus(Long userId);
 }

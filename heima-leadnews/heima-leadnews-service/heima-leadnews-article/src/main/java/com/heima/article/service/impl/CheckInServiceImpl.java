@@ -289,6 +289,32 @@ public class CheckInServiceImpl implements CheckInService {
         return result;
     }
 
+    @Override
+    public Map<String, Object> getTodayStatus(Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        if (userId == null) {
+            result.put("isSignedIn", false);
+            result.put("consecutiveDays", 0);
+            result.put("totalOre", 0L);
+            return result;
+        }
+
+        UserSignInSummary summary = getOrCreateSummary(userId);
+        LocalDate today = LocalDate.now();
+        java.sql.Date todaySql = java.sql.Date.valueOf(today);
+
+        // 判断今日是否已签到
+        LambdaQueryWrapper<ApCheckIn> todayQuery = new LambdaQueryWrapper<>();
+        todayQuery.eq(ApCheckIn::getUserId, userId);
+        todayQuery.eq(ApCheckIn::getCheckInDate, todaySql);
+        Long todayCount = checkInMapper.selectCount(todayQuery);
+
+        result.put("isSignedIn", todayCount > 0);
+        result.put("consecutiveDays", summary.getCurrentConsecutiveDays() != null ? summary.getCurrentConsecutiveDays() : 0);
+        result.put("totalOre", summary.getTotalOre() != null ? summary.getTotalOre() : 0L);
+        return result;
+    }
+
     /**
      * 计算连续签到天数（从昨天开始往前数，直到遇到中断）
      */

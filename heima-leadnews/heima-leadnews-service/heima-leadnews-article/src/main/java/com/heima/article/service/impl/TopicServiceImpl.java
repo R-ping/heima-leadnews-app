@@ -30,4 +30,13 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, ApTopic> implemen
         wrapper.orderByAsc(ApTopic::getSort);
         return list(wrapper);
     }
+
+    @Override
+    public List<ApTopic> getRecommendTopics() {
+        LambdaQueryWrapper<ApTopic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApTopic::getStatus, 1);
+        wrapper.orderByDesc(ApTopic::getCount);
+        wrapper.last("LIMIT 10");
+        return list(wrapper);
+    }
 }
