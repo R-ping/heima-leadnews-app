@@ -84,3 +84,16 @@ kafka:
   hosts: 127.0.0.1:9092
   group: ${spring.application.name}
 
+bailian:
+  dashscope:
+    api-key: ${DASH_SCOPE_API_KEY:}
+    api-host: ${DASH_SCOPE_API_HOST:https://dashscope.aliyuncs.com}
+    model: qwen-plus
+    embedding-model: text-embedding-v2
+    timeout:
+      connect: 5000
+      read: 30000
+    retry:
+      max-attempts: 3
+      backoff-delay: 1000
+

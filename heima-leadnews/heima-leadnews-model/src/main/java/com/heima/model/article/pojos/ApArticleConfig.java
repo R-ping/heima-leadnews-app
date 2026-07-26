@@ -28,6 +28,7 @@ public class ApArticleConfig implements Serializable {
         this.isDown = false;
         this.isForward = true;
         this.isComment = true;
+        this.isRecommend = true;
     }
 
 
@@ -72,4 +73,12 @@ public class ApArticleConfig implements Serializable {
      */
     @TableField("is_delete")
     private Boolean isDelete;
+
+    /**
+     * 是否推荐
+     * true: 推荐   1
+     * false: 不推荐  0
+     */
+    @TableField("is_recommend")
+    private Boolean isRecommend;
 }
