@@ -21,8 +21,7 @@
 </template>
 
 <script>
-import * as echarts from 'echarts'
-import 'echarts/theme/macarons' // echarts theme
+import echarts from '@/utils/echarts-setup'
 // import { debounce } from '@/utils'
 
 const animationDuration = 3000

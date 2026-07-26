@@ -73,21 +73,12 @@ public class LevelServiceImpl implements LevelService {
 
         Integer dailyLimit = DAILY_ACTION_LIMIT.get(actionType);
         if (dailyLimit != null) {
-            LambdaQueryWrapper<ApUserActionLog> limitQuery = new LambdaQueryWrapper<>();
-            limitQuery.eq(ApUserActionLog::getUserId, userId);
-            limitQuery.eq(ApUserActionLog::getActionType, actionType);
-            limitQuery.apply("DATE(created_time) = '" + today + "'");
-            long todayCount = actionLogMapper.selectCount(limitQuery);
-            if (todayCount >= dailyLimit) {
+            if (getTodayActionCount(userId, actionType, today) >= dailyLimit) {
                 return;
             }
         }
 
-        LambdaQueryWrapper<ApUserActionLog> logQuery = new LambdaQueryWrapper<>();
-        logQuery.eq(ApUserActionLog::getUserId, userId);
-        logQuery.apply("DATE(created_time) = '" + today + "'");
-        Integer todayScore = actionLogMapper.selectList(logQuery).stream()
-                .mapToInt(ApUserActionLog::getScoreChange).sum();
+        int todayScore = getTodayScore(userId, today);
 
         int actualScore = Math.min(score, DAILY_SCORE_LIMIT - todayScore);
         if (actualScore <= 0) {
@@ -295,11 +286,7 @@ public class LevelServiceImpl implements LevelService {
             return result;
         }
 
-        LambdaQueryWrapper<ApUserActionLog> scoreQuery = new LambdaQueryWrapper<>();
-        scoreQuery.eq(ApUserActionLog::getUserId, userId);
-        scoreQuery.apply("DATE(created_time) = '" + today + "'");
-        Integer todayScore = actionLogMapper.selectList(scoreQuery).stream()
-                .mapToInt(ApUserActionLog::getScoreChange).sum();
+        int todayScore = getTodayScore(userId, today);
 
         Integer score = ACTION_SCORE_MAP.getOrDefault("daily_checkin", 0);
         int actualScore = Math.min(score, DAILY_SCORE_LIMIT - todayScore);
@@ -356,12 +343,7 @@ public class LevelServiceImpl implements LevelService {
 
         Integer dailyLimit = DAILY_ACTION_LIMIT.get(actionType);
         if (dailyLimit != null) {
-            LambdaQueryWrapper<ApUserActionLog> limitQuery = new LambdaQueryWrapper<>();
-            limitQuery.eq(ApUserActionLog::getUserId, userId);
-            limitQuery.eq(ApUserActionLog::getActionType, actionType);
-            limitQuery.apply("DATE(created_time) = '" + today + "'");
-            long todayCount = actionLogMapper.selectCount(limitQuery);
-            if (todayCount >= dailyLimit) {
+            if (getTodayActionCount(userId, actionType, today) >= dailyLimit) {
                 result.put("success", false);
                 result.put("message", "今日该行为已达上限");
                 result.put("score", 0);
@@ -369,11 +351,7 @@ public class LevelServiceImpl implements LevelService {
             }
         }
 
-        LambdaQueryWrapper<ApUserActionLog> logQuery = new LambdaQueryWrapper<>();
-        logQuery.eq(ApUserActionLog::getUserId, userId);
-        logQuery.apply("DATE(created_time) = '" + today + "'");
-        Integer todayScore = actionLogMapper.selectList(logQuery).stream()
-                .mapToInt(ApUserActionLog::getScoreChange).sum();
+        int todayScore = getTodayScore(userId, today);
 
         int actualScore = Math.min(score, DAILY_SCORE_LIMIT - todayScore);
         if (actualScore <= 0) {
@@ -494,5 +472,27 @@ public class LevelServiceImpl implements LevelService {
             userPermissionMapper.updateById(existing);
             log.info("用户{}失去权限{}", userId, permissionCode);
         }
+    }
+
+    /**
+     * 获取用户今日积分总和
+     */
+    private int getTodayScore(Long userId, String today) {
+        LambdaQueryWrapper<ApUserActionLog> query = new LambdaQueryWrapper<>();
+        query.eq(ApUserActionLog::getUserId, userId);
+        query.apply("DATE(created_time) = '" + today + "'");
+        return actionLogMapper.selectList(query).stream()
+                .mapToInt(ApUserActionLog::getScoreChange).sum();
+    }
+
+    /**
+     * 获取用户今日指定行为次数
+     */
+    private long getTodayActionCount(Long userId, String actionType, String today) {
+        LambdaQueryWrapper<ApUserActionLog> query = new LambdaQueryWrapper<>();
+        query.eq(ApUserActionLog::getUserId, userId);
+        query.eq(ApUserActionLog::getActionType, actionType);
+        query.apply("DATE(created_time) = '" + today + "'");
+        return actionLogMapper.selectCount(query);
     }
 }

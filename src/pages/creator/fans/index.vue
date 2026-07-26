@@ -152,7 +152,7 @@
 </template>
 
 <script>
-import * as echarts from 'echarts'
+import echarts from '@/utils/echarts-setup'
 import { getFansStatistics, getFansTrend, getFansList, followFans } from '@/apis/creator/fans'
 import { toast } from '@/utils/toast'
 

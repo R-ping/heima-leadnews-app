@@ -5,8 +5,7 @@
 </template>
 
 <script>
-import * as echarts from 'echarts'
-import 'echarts/theme/macarons' // echarts theme
+import echarts from '@/utils/echarts-setup'
 
 export default {
   props: {

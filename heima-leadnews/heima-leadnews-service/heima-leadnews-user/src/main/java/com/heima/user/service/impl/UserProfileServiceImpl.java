@@ -84,8 +84,11 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .collect(Collectors.toList());
         vo.setSelectedTagIds(selectedTagIds);
 
-        // 查询全量标签并分组
-        List<SysTag> allTags = sysTagMapper.selectList(new QueryWrapper<>());
+        // 查询全量标签并分组（标签表为小表，加排序和上限保证安全）
+        QueryWrapper<SysTag> tagQuery = new QueryWrapper<>();
+        tagQuery.orderByAsc("category_code", "id");
+        tagQuery.last("LIMIT 500");
+        List<SysTag> allTags = sysTagMapper.selectList(tagQuery);
         Map<String, List<TagVO>> tagGroupMap = new LinkedHashMap<>();
         Map<String, String> categoryNameMap = new LinkedHashMap<>();
         for (SysTag tag : allTags) {

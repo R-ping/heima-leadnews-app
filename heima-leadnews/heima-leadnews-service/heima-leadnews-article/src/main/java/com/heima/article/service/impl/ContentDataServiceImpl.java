@@ -35,14 +35,27 @@ public class ContentDataServiceImpl implements ContentDataService {
     private ApPinsMapper apPinsMapper;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     // ==================== Article ====================
 
     @Override
     public ResponseResult getArticleStatistics(Long userId, String startDate, String endDate) {
-        Map<String, Object> current = calcArticleMetrics(userId, startDate, endDate);
         String prevDate = getPreviousDay(startDate);
-        Map<String, Object> previous = calcArticleMetrics(userId, prevDate, prevDate);
+        // 一次查询覆盖当前区间和前一天
+        Date rangeStart = parseDate(prevDate);
+        Date rangeEnd = parseDateEnd(endDate);
+
+        LambdaQueryWrapper<ApArticle> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApArticle::getAuthorId, userId);
+        wrapper.eq(ApArticle::getIsDeleted, false);
+        wrapper.between(ApArticle::getPublishTime, rangeStart, rangeEnd);
+        List<ApArticle> articles = apArticleMapper.selectList(wrapper);
+
+        // 按日期分组：当前区间 vs 前一天
+        Date currentStart = parseDate(startDate);
+        Map<String, Object> current = aggregateArticleMetrics(articles, currentStart, rangeEnd);
+        Map<String, Object> previous = aggregateArticleMetrics(articles, rangeStart, parseDateEnd(prevDate));
 
         Map<String, Object> data = new HashMap<>();
         data.put("totalCount", current.get("totalCount"));
@@ -63,13 +76,27 @@ public class ContentDataServiceImpl implements ContentDataService {
 
     @Override
     public ResponseResult getArticleTrend(Long userId, String startDate, String endDate, Integer days) {
+        // 一次查询获取整个日期范围的所有文章
+        Date rangeStart = parseDate(startDate);
+        Date rangeEnd = parseDateEnd(endDate);
+        LambdaQueryWrapper<ApArticle> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApArticle::getAuthorId, userId);
+        wrapper.eq(ApArticle::getIsDeleted, false);
+        wrapper.between(ApArticle::getPublishTime, rangeStart, rangeEnd);
+        List<ApArticle> articles = apArticleMapper.selectList(wrapper);
+
+        // 按日期分组
+        Map<String, List<ApArticle>> grouped = articles.stream()
+                .collect(Collectors.groupingBy(a -> dateFormat.format(a.getPublishTime())));
+
         List<Map<String, Object>> trendData = new ArrayList<>();
         LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
         LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
 
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             String dateStr = date.format(DATE_FORMATTER);
-            Map<String, Object> metrics = calcArticleMetrics(userId, dateStr, dateStr);
+            List<ApArticle> dayArticles = grouped.getOrDefault(dateStr, Collections.emptyList());
+            Map<String, Object> metrics = aggregateArticleMetrics(dayArticles);
             Map<String, Object> point = new HashMap<>();
             point.put("date", dateStr);
             point.put("showCount", metrics.get("showCount"));
@@ -120,9 +147,19 @@ public class ContentDataServiceImpl implements ContentDataService {
 
     @Override
     public ResponseResult getColumnStatistics(Long userId, String startDate, String endDate) {
-        Map<String, Object> current = calcColumnMetrics(userId, startDate, endDate);
         String prevDate = getPreviousDay(startDate);
-        Map<String, Object> previous = calcColumnMetrics(userId, prevDate, prevDate);
+        Date rangeStart = parseDate(prevDate);
+        Date rangeEnd = parseDateEnd(endDate);
+
+        LambdaQueryWrapper<ApColumn> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApColumn::getAuthorId, userId);
+        wrapper.eq(ApColumn::getIsDeleted, false);
+        wrapper.between(ApColumn::getCreatedTime, rangeStart, rangeEnd);
+        List<ApColumn> columns = apColumnMapper.selectList(wrapper);
+
+        Date currentStart = parseDate(startDate);
+        Map<String, Object> current = aggregateColumnMetrics(columns, currentStart, rangeEnd);
+        Map<String, Object> previous = aggregateColumnMetrics(columns, rangeStart, parseDateEnd(prevDate));
 
         Map<String, Object> data = new HashMap<>();
         data.put("totalCount", current.get("totalCount"));
@@ -135,13 +172,25 @@ public class ContentDataServiceImpl implements ContentDataService {
 
     @Override
     public ResponseResult getColumnTrend(Long userId, String startDate, String endDate, Integer days) {
+        Date rangeStart = parseDate(startDate);
+        Date rangeEnd = parseDateEnd(endDate);
+        LambdaQueryWrapper<ApColumn> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApColumn::getAuthorId, userId);
+        wrapper.eq(ApColumn::getIsDeleted, false);
+        wrapper.between(ApColumn::getCreatedTime, rangeStart, rangeEnd);
+        List<ApColumn> columns = apColumnMapper.selectList(wrapper);
+
+        Map<String, List<ApColumn>> grouped = columns.stream()
+                .collect(Collectors.groupingBy(c -> dateFormat.format(c.getCreatedTime())));
+
         List<Map<String, Object>> trendData = new ArrayList<>();
         LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
         LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
 
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             String dateStr = date.format(DATE_FORMATTER);
-            Map<String, Object> metrics = calcColumnMetrics(userId, dateStr, dateStr);
+            List<ApColumn> dayColumns = grouped.getOrDefault(dateStr, Collections.emptyList());
+            Map<String, Object> metrics = aggregateColumnMetrics(dayColumns);
             Map<String, Object> point = new HashMap<>();
             point.put("date", dateStr);
             point.put("subscribeCount", metrics.get("subscribeCount"));
@@ -185,9 +234,19 @@ public class ContentDataServiceImpl implements ContentDataService {
 
     @Override
     public ResponseResult getPinStatistics(Long userId, String startDate, String endDate) {
-        Map<String, Object> current = calcPinMetrics(userId, startDate, endDate);
         String prevDate = getPreviousDay(startDate);
-        Map<String, Object> previous = calcPinMetrics(userId, prevDate, prevDate);
+        Date rangeStart = parseDate(prevDate);
+        Date rangeEnd = parseDateEnd(endDate);
+
+        LambdaQueryWrapper<ApPins> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApPins::getAuthorId, userId);
+        wrapper.eq(ApPins::getIsDeleted, false);
+        wrapper.between(ApPins::getPublishTime, rangeStart, rangeEnd);
+        List<ApPins> pins = apPinsMapper.selectList(wrapper);
+
+        Date currentStart = parseDate(startDate);
+        Map<String, Object> current = aggregatePinMetrics(pins, currentStart, rangeEnd);
+        Map<String, Object> previous = aggregatePinMetrics(pins, rangeStart, parseDateEnd(prevDate));
 
         Map<String, Object> data = new HashMap<>();
         data.put("totalCount", current.get("totalCount"));
@@ -202,13 +261,25 @@ public class ContentDataServiceImpl implements ContentDataService {
 
     @Override
     public ResponseResult getPinTrend(Long userId, String startDate, String endDate, Integer days) {
+        Date rangeStart = parseDate(startDate);
+        Date rangeEnd = parseDateEnd(endDate);
+        LambdaQueryWrapper<ApPins> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApPins::getAuthorId, userId);
+        wrapper.eq(ApPins::getIsDeleted, false);
+        wrapper.between(ApPins::getPublishTime, rangeStart, rangeEnd);
+        List<ApPins> pins = apPinsMapper.selectList(wrapper);
+
+        Map<String, List<ApPins>> grouped = pins.stream()
+                .collect(Collectors.groupingBy(p -> dateFormat.format(p.getPublishTime())));
+
         List<Map<String, Object>> trendData = new ArrayList<>();
         LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
         LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
 
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             String dateStr = date.format(DATE_FORMATTER);
-            Map<String, Object> metrics = calcPinMetrics(userId, dateStr, dateStr);
+            List<ApPins> dayPins = grouped.getOrDefault(dateStr, Collections.emptyList());
+            Map<String, Object> metrics = aggregatePinMetrics(dayPins);
             Map<String, Object> point = new HashMap<>();
             point.put("date", dateStr);
             point.put("likeCount", metrics.get("likeCount"));
@@ -252,18 +323,23 @@ public class ContentDataServiceImpl implements ContentDataService {
 
     // ==================== Private Helpers ====================
 
-    private Map<String, Object> calcArticleMetrics(Long userId, String startDate, String endDate) {
-        Date start = parseDate(startDate);
-        Date end = parseDateEnd(endDate);
+    /**
+     * 聚合已过滤的文章列表中的指标（按时间范围过滤）
+     */
+    private Map<String, Object> aggregateArticleMetrics(List<ApArticle> articles, Date startTime, Date endTime) {
+        List<ApArticle> filtered = articles.stream()
+                .filter(a -> a.getPublishTime() != null
+                        && !a.getPublishTime().before(startTime)
+                        && !a.getPublishTime().after(endTime))
+                .collect(Collectors.toList());
+        return aggregateArticleMetrics(filtered);
+    }
 
-        LambdaQueryWrapper<ApArticle> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApArticle::getAuthorId, userId);
-        wrapper.eq(ApArticle::getIsDeleted, false);
-        wrapper.between(ApArticle::getPublishTime, start, end);
-        List<ApArticle> articles = apArticleMapper.selectList(wrapper);
-
+    /**
+     * 聚合文章列表中的指标
+     */
+    private Map<String, Object> aggregateArticleMetrics(List<ApArticle> articles) {
         int totalCount = articles.size();
-        int showCount = totalCount;
         int readCount = articles.stream().mapToInt(a -> a.getViews() != null ? a.getViews() : 0).sum();
         int likeCount = articles.stream().mapToInt(a -> a.getLikes() != null ? a.getLikes() : 0).sum();
         int commentCount = articles.stream().mapToInt(a -> a.getComment() != null ? a.getComment() : 0).sum();
@@ -271,7 +347,7 @@ public class ContentDataServiceImpl implements ContentDataService {
 
         Map<String, Object> metrics = new HashMap<>();
         metrics.put("totalCount", totalCount);
-        metrics.put("showCount", showCount);
+        metrics.put("showCount", totalCount);
         metrics.put("readCount", readCount);
         metrics.put("likeCount", likeCount);
         metrics.put("commentCount", commentCount);
@@ -279,16 +355,16 @@ public class ContentDataServiceImpl implements ContentDataService {
         return metrics;
     }
 
-    private Map<String, Object> calcColumnMetrics(Long userId, String startDate, String endDate) {
-        Date start = parseDate(startDate);
-        Date end = parseDateEnd(endDate);
+    private Map<String, Object> aggregateColumnMetrics(List<ApColumn> columns, Date startTime, Date endTime) {
+        List<ApColumn> filtered = columns.stream()
+                .filter(c -> c.getCreatedTime() != null
+                        && !c.getCreatedTime().before(startTime)
+                        && !c.getCreatedTime().after(endTime))
+                .collect(Collectors.toList());
+        return aggregateColumnMetrics(filtered);
+    }
 
-        LambdaQueryWrapper<ApColumn> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApColumn::getAuthorId, userId);
-        wrapper.eq(ApColumn::getIsDeleted, false);
-        wrapper.between(ApColumn::getCreatedTime, start, end);
-        List<ApColumn> columns = apColumnMapper.selectList(wrapper);
-
+    private Map<String, Object> aggregateColumnMetrics(List<ApColumn> columns) {
         int totalCount = columns.size();
         int subscribeCount = columns.stream().mapToInt(c -> c.getSubscribeCount() != null ? c.getSubscribeCount() : 0).sum();
 
@@ -298,16 +374,16 @@ public class ContentDataServiceImpl implements ContentDataService {
         return metrics;
     }
 
-    private Map<String, Object> calcPinMetrics(Long userId, String startDate, String endDate) {
-        Date start = parseDate(startDate);
-        Date end = parseDateEnd(endDate);
+    private Map<String, Object> aggregatePinMetrics(List<ApPins> pins, Date startTime, Date endTime) {
+        List<ApPins> filtered = pins.stream()
+                .filter(p -> p.getPublishTime() != null
+                        && !p.getPublishTime().before(startTime)
+                        && !p.getPublishTime().after(endTime))
+                .collect(Collectors.toList());
+        return aggregatePinMetrics(filtered);
+    }
 
-        LambdaQueryWrapper<ApPins> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApPins::getAuthorId, userId);
-        wrapper.eq(ApPins::getIsDeleted, false);
-        wrapper.between(ApPins::getPublishTime, start, end);
-        List<ApPins> pins = apPinsMapper.selectList(wrapper);
-
+    private Map<String, Object> aggregatePinMetrics(List<ApPins> pins) {
         int totalCount = pins.size();
         int likeCount = pins.stream().mapToInt(p -> p.getLikes() != null ? p.getLikes() : 0).sum();
         int commentCount = pins.stream().mapToInt(p -> p.getComment() != null ? p.getComment() : 0).sum();
