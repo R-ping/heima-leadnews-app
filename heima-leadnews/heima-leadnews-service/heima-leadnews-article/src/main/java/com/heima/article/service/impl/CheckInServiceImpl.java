@@ -21,10 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -48,6 +46,9 @@ public class CheckInServiceImpl implements CheckInService {
 
     @Autowired
     private LevelService levelService;
+
+    @Autowired
+    private CheckInCalendarBuilder calendarBuilder;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int MAX_BONUS = 10;
@@ -93,7 +94,7 @@ public class CheckInServiceImpl implements CheckInService {
         result.put("cards", cards);
 
         // calendar
-        Map<String, Object> calendar = buildCalendarData(userId, today.getYear(), today.getMonthValue(), retroactiveCards);
+        Map<String, Object> calendar = calendarBuilder.buildCalendarData(userId, today.getYear(), today.getMonthValue(), retroactiveCards);
         result.put("calendar", calendar);
 
         // tasks
@@ -244,7 +245,7 @@ public class CheckInServiceImpl implements CheckInService {
     public Map<String, Object> getCheckInRecords(Long userId, Integer year, Integer month) {
         UserSignInSummary summary = getOrCreateSummary(userId);
         int retroactiveCards = summary.getRetroactiveCardCount() != null ? summary.getRetroactiveCardCount() : 0;
-        return buildCalendarData(userId, year, month, retroactiveCards);
+        return calendarBuilder.buildCalendarData(userId, year, month, retroactiveCards);
     }
 
     @Override
@@ -355,86 +356,6 @@ public class CheckInServiceImpl implements CheckInService {
             summaryMapper.insert(summary);
         }
         return summary;
-    }
-
-    private Map<String, Object> buildCalendarData(Long userId, int year, int month, int retroactiveCards) {
-        Map<String, Object> calendar = new HashMap<>();
-        calendar.put("year", year);
-        calendar.put("month", month);
-
-        LocalDate today = LocalDate.now();
-        YearMonth yearMonth = YearMonth.of(year, month);
-        int daysInMonth = yearMonth.lengthOfMonth();
-
-        // get all signed records for this month
-        LocalDate startOfMonth = yearMonth.atDay(1);
-        LocalDate endOfMonth = yearMonth.atEndOfMonth();
-        java.sql.Date startSql = java.sql.Date.valueOf(startOfMonth);
-        java.sql.Date endSql = java.sql.Date.valueOf(endOfMonth);
-
-        LambdaQueryWrapper<ApCheckIn> recordsQuery = new LambdaQueryWrapper<>();
-        recordsQuery.eq(ApCheckIn::getUserId, userId);
-        recordsQuery.ge(ApCheckIn::getCheckInDate, startSql);
-        recordsQuery.le(ApCheckIn::getCheckInDate, endSql);
-        List<ApCheckIn> records = checkInMapper.selectList(recordsQuery);
-
-        Set<LocalDate> signedDates = records.stream()
-                .map(r -> {
-                    java.sql.Date sqlDate = new java.sql.Date(r.getCheckInDate().getTime());
-                    return sqlDate.toLocalDate();
-                })
-                .collect(Collectors.toSet());
-
-        Map<LocalDate, Integer> rewardMap = new HashMap<>();
-        for (ApCheckIn r : records) {
-            java.sql.Date sqlDate = new java.sql.Date(r.getCheckInDate().getTime());
-            rewardMap.put(sqlDate.toLocalDate(), r.getRewardPoints());
-        }
-
-        // get all sign_in_config for month
-        LambdaQueryWrapper<SignInConfig> configQuery = new LambdaQueryWrapper<>();
-        configQuery.eq(SignInConfig::getIsActive, 1);
-        configQuery.le(SignInConfig::getDayOfMonth, daysInMonth);
-        List<SignInConfig> configs = signInConfigMapper.selectList(configQuery);
-        Map<Integer, SignInConfig> configMap = configs.stream()
-                .collect(Collectors.toMap(SignInConfig::getDayOfMonth, c -> c, (a, b) -> a));
-
-        // build days array
-        List<Map<String, Object>> days = new ArrayList<>();
-        for (int day = 1; day <= daysInMonth; day++) {
-            LocalDate date = yearMonth.atDay(day);
-            Map<String, Object> dayData = new HashMap<>();
-            dayData.put("date", date.format(DATE_FORMATTER));
-
-            String status;
-            int reward = 0;
-            String label = null;
-            boolean canRetroactive = false;
-
-            SignInConfig dayConfig = configMap.get(day);
-
-            if (date.isAfter(today) && year == today.getYear() && month == today.getMonthValue()) {
-                status = "FUTURE";
-            } else if (signedDates.contains(date)) {
-                status = "SIGNED";
-                reward = rewardMap.getOrDefault(date, 0);
-                label = dayConfig != null ? dayConfig.getExtraLabel() : null;
-            } else if (date.isBefore(today) || (year < today.getYear()) || (year == today.getYear() && month < today.getMonthValue())) {
-                status = "MISSED";
-                canRetroactive = retroactiveCards > 0;
-            } else {
-                status = "NORMAL";
-            }
-
-            dayData.put("status", status);
-            dayData.put("reward", reward);
-            dayData.put("label", label);
-            dayData.put("canRetroactive", canRetroactive);
-            days.add(dayData);
-        }
-
-        calendar.put("days", days);
-        return calendar;
     }
 
     private List<Map<String, Object>> buildTasksData(Long userId) {

@@ -42,26 +42,52 @@ public class ExceptionCatch {
 
     /**
      * 将 AppHttpCodeEnum 映射为 HTTP 状态码
+     * 映射规则：
+     *   1-2:   登录错误 → 401
+     *   50-52: Token错误 → 401
+     *   100-101: 签名错误 → 401
+     *   500-503: 参数/审核/服务器错误 → 400
+     *   1000-1002: 数据错误 → 404
+     *   2001-2007: 社交登录错误 → 400
+     *   3000-3001: 权限错误 → 403
+     *   3501:   素材错误 → 400
      */
     private int mapHttpStatus(AppHttpCodeEnum appHttpCodeEnum) {
         if (appHttpCodeEnum == null) {
             return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         }
         int code = appHttpCodeEnum.getCode();
-        if (code >= 1 && code <= 50) {
+        // 登录段 1~2
+        if (code >= 1 && code <= 2) {
             return HttpServletResponse.SC_UNAUTHORIZED; // 401
         }
-        if (code >= 50 && code <= 100) {
+        // Token段 50~52
+        if (code >= 50 && code <= 52) {
             return HttpServletResponse.SC_UNAUTHORIZED; // 401
         }
-        if (code >= 500 && code <= 1000) {
+        // 签名段 100~101
+        if (code >= 100 && code <= 101) {
+            return HttpServletResponse.SC_UNAUTHORIZED; // 401
+        }
+        // 参数/审核/服务器错误 500~503
+        if (code >= 500 && code <= 503) {
             return HttpServletResponse.SC_BAD_REQUEST; // 400
         }
-        if (code == 1001 || code == 1002) {
+        // 数据错误 1000~1002
+        if (code >= 1000 && code <= 1002) {
             return HttpServletResponse.SC_NOT_FOUND; // 404
         }
-        if (code >= 3000 && code <= 3500) {
+        // 社交登录错误 2001~2007
+        if (code >= 2001 && code <= 2007) {
+            return HttpServletResponse.SC_BAD_REQUEST; // 400
+        }
+        // 权限错误 3000~3001
+        if (code >= 3000 && code <= 3001) {
             return HttpServletResponse.SC_FORBIDDEN; // 403
+        }
+        // 素材错误 3501
+        if (code == 3501) {
+            return HttpServletResponse.SC_BAD_REQUEST; // 400
         }
         return HttpServletResponse.SC_INTERNAL_SERVER_ERROR; // 500
     }

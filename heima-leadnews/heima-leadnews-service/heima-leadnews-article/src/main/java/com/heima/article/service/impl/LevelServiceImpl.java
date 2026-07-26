@@ -35,6 +35,9 @@ public class LevelServiceImpl implements LevelService {
     @Autowired
     private ApUserPermissionMapper userPermissionMapper;
 
+    @Autowired
+    private LevelTaskProgressBuilder taskProgressBuilder;
+
     @Override
     public ApUserLevel getUserLevel(Long userId) {
         LambdaQueryWrapper<ApUserLevel> query = new LambdaQueryWrapper<>();
@@ -409,78 +412,7 @@ public class LevelServiceImpl implements LevelService {
 
     @Override
     public Map<String, Object> getTodayTaskProgress(Long userId) {
-        Map<String, Object> result = new HashMap<>();
-        List<Map<String, Object>> tasks = new ArrayList<>();
-
-        String today = new java.sql.Date(System.currentTimeMillis()).toString();
-
-        Map<String, String> taskNameMap = new HashMap<>();
-        taskNameMap.put("daily_checkin", "每日签到");
-        taskNameMap.put("upload_avatar", "上传头像");
-        taskNameMap.put("daily_login", "移动端登录");
-        taskNameMap.put("publish_article", "发布文章");
-        taskNameMap.put("publish_pins", "发布沸点");
-        taskNameMap.put("comment_article", "评论文章");
-        taskNameMap.put("comment_pin", "评论沸点");
-        taskNameMap.put("like_article", "点赞文章");
-        taskNameMap.put("like_pin", "点赞沸点");
-        taskNameMap.put("collect_article", "收藏文章");
-        taskNameMap.put("follow_user", "关注用户");
-        taskNameMap.put("browse_article", "浏览文章");
-        taskNameMap.put("browse_course", "浏览课程");
-        taskNameMap.put("be_followed", "被关注");
-        taskNameMap.put("pin_liked", "沸点获赞");
-        taskNameMap.put("article_liked", "文章获赞");
-
-        Map<String, String> taskIconMap = new HashMap<>();
-        taskIconMap.put("daily_checkin", "check-circle");
-        taskIconMap.put("upload_avatar", "camera");
-        taskIconMap.put("daily_login", "smartphone");
-        taskIconMap.put("publish_article", "edit");
-        taskIconMap.put("publish_pins", "message-circle");
-        taskIconMap.put("comment_article", "message-square");
-        taskIconMap.put("comment_pin", "message-circle");
-        taskIconMap.put("like_article", "heart");
-        taskIconMap.put("like_pin", "thumbs-up");
-        taskIconMap.put("collect_article", "star");
-        taskIconMap.put("follow_user", "user-plus");
-        taskIconMap.put("browse_article", "book-open");
-        taskIconMap.put("browse_course", "play-circle");
-        taskIconMap.put("be_followed", "users");
-        taskIconMap.put("pin_liked", "award");
-        taskIconMap.put("article_liked", "trending-up");
-
-        String[] actionTypes = {"daily_checkin", "upload_avatar", "daily_login", "publish_article", "publish_pins", "comment_article", "comment_pin", "like_article", "like_pin", "collect_article", "follow_user", "browse_article", "browse_course", "be_followed", "pin_liked", "article_liked"};
-
-        for (String actionType : actionTypes) {
-            Map<String, Object> task = new HashMap<>();
-            Integer max = DAILY_ACTION_LIMIT.get(actionType);
-            Integer score = ACTION_SCORE_MAP.get(actionType);
-
-            LambdaQueryWrapper<ApUserActionLog> query = new LambdaQueryWrapper<>();
-            query.eq(ApUserActionLog::getUserId, userId);
-            query.eq(ApUserActionLog::getActionType, actionType);
-            query.apply("DATE(created_time) = '" + today + "'");
-            long current = actionLogMapper.selectCount(query);
-
-            task.put("actionType", actionType);
-            task.put("name", taskNameMap.get(actionType));
-            task.put("icon", taskIconMap.get(actionType));
-            task.put("current", current);
-            task.put("max", max);
-            task.put("score", score);
-
-            if (max == null) {
-                task.put("completed", false);
-            } else {
-                task.put("completed", current >= max);
-            }
-
-            tasks.add(task);
-        }
-
-        result.put("tasks", tasks);
-        return result;
+        return taskProgressBuilder.buildTaskProgress(userId);
     }
 
     private int calculateLevel(int levelType, int score) {
