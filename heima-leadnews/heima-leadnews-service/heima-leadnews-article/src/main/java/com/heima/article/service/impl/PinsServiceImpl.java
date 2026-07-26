@@ -85,6 +85,7 @@ public class PinsServiceImpl extends ServiceImpl<ApPinsMapper, ApPins> implement
         if (pins.getContent() == null || pins.getContent().isEmpty()) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "内容不能为空");
         }
+        pins.setUserId(user.getId().longValue());
         pins.setAuthorId(user.getId().longValue());
         pins.setAuthorName(user.getNickname());
         pins.setAuthorImage(user.getImage());

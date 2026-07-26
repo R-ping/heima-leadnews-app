@@ -21,6 +21,9 @@ public class ApPins implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
+    @TableField("user_id")
+    private Long userId;
+
     @TableField("author_id")
     private Long authorId;
 
