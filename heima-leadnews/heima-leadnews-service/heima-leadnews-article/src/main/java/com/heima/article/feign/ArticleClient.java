@@ -67,7 +67,7 @@ public class ArticleClient implements IArticleClient {
         return ResponseResult.okResult(apArticle);
     }
     @PostMapping("/api/v1/article/generate/event")
-    public boolean generateArticleEvent(ApArticle article, long lastExecuteInterval) {
+    public boolean generateArticleEvent(@RequestBody ApArticle article, @RequestParam("lastExecuteInterval") long lastExecuteInterval) {
        return apArticleService.generateArticleEvent(article, lastExecuteInterval);
     }
 

@@ -27,7 +27,7 @@ public interface IArticleClient {
     @GetMapping("/api/v1/article/info")
     public ResponseResult getArticleInfo(@RequestParam("articleId") Long articleId);
     @PostMapping("/api/v1/article/generate/event")
-    public boolean generateArticleEvent(ApArticle article, long executeTimeInterval);
+    public boolean generateArticleEvent(@RequestBody ApArticle article, @RequestParam("lastExecuteInterval") long executeTimeInterval);
     @PostMapping("/api/v1/article/publish")
     public ResponseResult publishArticle(@RequestParam("articleId") Long articleId);
 
