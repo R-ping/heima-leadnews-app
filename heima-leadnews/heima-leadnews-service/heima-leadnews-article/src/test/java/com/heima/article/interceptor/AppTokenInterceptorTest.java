@@ -15,6 +15,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
@@ -86,14 +87,13 @@ class AppTokenInterceptorTest {
         }
 
         @Test
-        @DisplayName("header中userId为空字符串时，不应调用setUser")
-        void shouldNotSetUserWhenUserIdIsEmpty() throws Exception {
+        @DisplayName("header中userId为空字符串时，抛出NumberFormatException")
+        void shouldThrowWhenUserIdIsEmpty() {
             when(request.getHeader("userId")).thenReturn("");
 
-            boolean result = interceptor.preHandle(request, response, handler);
-
-            assertTrue(result);
-            mockedThreadLocal.verify(() -> AppThreadLocalUtil.setUser(any(ApUser.class)));
+            assertThrows(NumberFormatException.class, () -> {
+                interceptor.preHandle(request, response, handler);
+            });
         }
 
         @Test
