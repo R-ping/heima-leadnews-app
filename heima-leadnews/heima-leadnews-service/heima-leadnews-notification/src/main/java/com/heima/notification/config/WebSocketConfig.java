@@ -17,6 +17,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Autowired
     private AuthHandshakeInterceptor authHandshakeInterceptor;
 
+    @Autowired
+    private UserInterceptor userInterceptor;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // 客户端订阅前缀（服务端推送消息的目的地）
@@ -30,13 +33,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns("http://localhost:*", "https://localhost:*")
                 .addInterceptors(authHandshakeInterceptor)
                 .withSockJS();
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new UserInterceptor());
+        registration.interceptors(userInterceptor);
     }
 }

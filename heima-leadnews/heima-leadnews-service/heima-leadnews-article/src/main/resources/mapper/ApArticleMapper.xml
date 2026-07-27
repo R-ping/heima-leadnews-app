@@ -54,7 +54,7 @@
             aa.*
         FROM
             `ap_article` aa
-            LEFT JOIN ap_article_config aac ON aa.id = aac.article_id
+            INNER JOIN ap_article_config aac ON aa.id = aac.article_id
         <where>
             and aac.is_delete != 1
             and aac.is_down != 1
@@ -64,6 +64,7 @@
                 and aa.channel_id = #{channelId}
             </if>
         </where>
+        ORDER BY aa.publish_time DESC, aa.id DESC
         LIMIT #{maxCandidates}
     </select>
 

@@ -1,8 +1,9 @@
 package com.heima.notification.websocket;
 
-import com.heima.model.user.pojos.ApUser;
-import com.heima.utils.thread.AppThreadLocalUtil;
+import com.heima.utils.common.AppJwtUtil;
+import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -15,27 +16,58 @@ import java.util.Map;
 @Component
 public class AuthHandshakeInterceptor implements HandshakeInterceptor {
 
+    private static final String TOKEN_KEY = "token";
+
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
-        // 从请求参数中获取token进行鉴权
         String query = request.getURI().getQuery();
-        if (query != null && query.contains("token=")) {
-            String token = query.substring(query.indexOf("token=") + 6);
-            if (token.contains("&")) {
-                token = token.substring(0, token.indexOf("&"));
-            }
-            // 简化鉴权：从ThreadLocal获取用户（实际应解析JWT）
-            ApUser user = AppThreadLocalUtil.getUser();
-            if (user != null) {
-                attributes.put("userId", user.getId().longValue());
-                return true;
-            }
-            // 允许匿名连接（实际业务中应严格校验token）
-            attributes.put("userId", 0L);
-            return true;
+        if (query == null || !query.contains(TOKEN_KEY + "=")) {
+            log.warn("WebSocket handshake rejected: missing token, uri={}", request.getURI());
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            return false;
         }
-        return true;
+
+        String token = extractToken(query);
+        if (token == null || token.isEmpty()) {
+            log.warn("WebSocket handshake rejected: empty token");
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            return false;
+        }
+
+        try {
+            Claims claims = AppJwtUtil.getClaimsBody(token);
+            if (claims == null) {
+                log.warn("WebSocket handshake rejected: invalid or expired token");
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                return false;
+            }
+            Object userIdObj = claims.get("id");
+            if (userIdObj == null) {
+                log.warn("WebSocket handshake rejected: no userId in token");
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                return false;
+            }
+            Long userId = Long.valueOf(userIdObj.toString());
+            attributes.put("userId", userId);
+            log.info("WebSocket handshake authenticated: userId={}", userId);
+            return true;
+        } catch (Exception e) {
+            log.error("WebSocket handshake rejected: token parse error", e);
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            return false;
+        }
+    }
+
+    private String extractToken(String query) {
+        int tokenIdx = query.indexOf(TOKEN_KEY + "=");
+        if (tokenIdx < 0) return null;
+        String token = query.substring(tokenIdx + TOKEN_KEY.length() + 1);
+        int ampIdx = token.indexOf("&");
+        if (ampIdx >= 0) {
+            token = token.substring(0, ampIdx);
+        }
+        return token;
     }
 
     @Override

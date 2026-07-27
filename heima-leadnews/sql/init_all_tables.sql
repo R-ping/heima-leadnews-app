@@ -106,8 +106,10 @@ CREATE TABLE IF NOT EXISTS `ap_article_config` (
     `is_forward` tinyint DEFAULT 1 COMMENT '是否转发 1是 0否',
     `is_down` tinyint DEFAULT 0 COMMENT '是否下架 1是 0否',
     `is_delete` tinyint DEFAULT 0 COMMENT '是否删除 1是 0否',
+    `is_recommend` tinyint DEFAULT 1 COMMENT '是否推荐 1是 0否',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_article_id` (`article_id`)
+    UNIQUE KEY `uk_article_id` (`article_id`),
+    KEY `idx_config_filter` (`is_delete`, `is_down`, `is_recommend`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文章配置表';
 
 -- 6. 文章内容表
