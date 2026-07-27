@@ -3,7 +3,6 @@ package com.heima.schedule.listener;
 import com.alibaba.fastjson.JSON;
 import com.heima.apis.article.IArticleClient;
 import com.heima.model.article.pojos.ApArticle;
-import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.schedule.service.TaskService;
 import com.heima.utils.common.ProtostuffUtil;
@@ -44,8 +43,10 @@ public class TaskDelayConsumer {
             Task task = JSON.parseObject(taskJson, Task.class);
             ApArticle article = ProtostuffUtil.deserialize(task.getParameters(), ApArticle.class);
             log.info("消费延迟任务，taskId={}, articleId={}", task.getTaskId(), article.getId());
-            ResponseResult result = articleClient.publishArticle(article.getId());
-            if (result != null && result.getCode() != null && result.getCode().equals(200)) {
+            // 文章服务，本地消息表+mq方案，article-->minio、es
+            long lastExecInterval = task.getObjExecInterval() - task.getFirstExecInterval();
+            boolean isArticleEvenBuilt = articleClient.generateArticleEvent(article, lastExecInterval);
+            if (isArticleEvenBuilt) {
                 taskService.consumerTask(task.getTaskId());
             } else {
                 taskService.failTask(task.getTaskId());

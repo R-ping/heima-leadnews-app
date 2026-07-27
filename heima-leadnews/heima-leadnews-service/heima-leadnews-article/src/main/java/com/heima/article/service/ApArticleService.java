@@ -26,6 +26,8 @@ public interface ApArticleService extends IService<ApArticle> {
     public ResponseResult saveArticle(ArticleDto dto,long lastTime);
 
 
+    boolean generateArticleEvent(ApArticle article, long lastExecuteInterval);
+
     public void updateScore(ArticleVisitStreamMess message);
 
     List<ApArticle> listByAuthorId(ArticleDto dto);

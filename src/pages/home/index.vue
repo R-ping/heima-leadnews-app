@@ -121,7 +121,7 @@
         })
       })
       this.$nextTick(() => {
-        if (this.isDesktop && !this.tabStates[0].loaded) {
+        if (this.isDesktop && !this.tabStates[0].loaded && !this.recommendStates[0].loaded) {
           this.loadCategoryFromRoute()
         }
       })
@@ -171,11 +171,11 @@
       },
       getTabIndexByCategory(category) {
         const categoryMap = {
-          'following': 0, 'comprehensive': 1, 'backend': 2, 'frontend': 3,
-          'android': 4, 'ios': 5, 'ai': 6, 'devtools': 7, 'coderslife': 8,
-          'reading': 9, 'ranking': 10
+          'recommend': 0, 'following': 1, 'comprehensive': 2, 'backend': 3,
+          'frontend': 4, 'android': 5, 'ios': 6, 'ai': 7, 'devtools': 8,
+          'coderslife': 9, 'reading': 10, 'ranking': 11
         }
-        return categoryMap[category] !== undefined ? categoryMap[category] : 1
+        return categoryMap[category] !== undefined ? categoryMap[category] : 2
       },
       wxcPanItemClicked(item) {
         if (!item || !item.id) return

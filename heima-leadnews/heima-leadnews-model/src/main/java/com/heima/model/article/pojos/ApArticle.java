@@ -72,9 +72,9 @@ public class ApArticle implements Serializable {
     private Byte flag;
 
     /**
-     * 文章封面图片 多张逗号分隔
+     * 文章封面图片
      */
-    private String images;
+    private String coverImage;
 
     /**
      * 标签
@@ -172,12 +172,23 @@ public class ApArticle implements Serializable {
      */
     @TableField("is_deleted")
     private Boolean isDeleted = false;
-
+    /**
+     * 内容里嵌入的图片列表
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<ApArticleDraft.ContPic> contPics;
+    @Data
+    public static class ContPic {
+        private String picUri;
+        private String picUrl;
+    }
     /**
      * 审核状态枚举
+     * SUBMIT提交（审核中）,
+     * FAIL失败（未通过）,
+     * PUBLISHED（已发布）
      */
     public enum Status {
-        NORMAL((byte) 0),
         SUBMIT((byte) 1),
         FAIL((byte) 2),
         PUBLISHED((byte) 9);

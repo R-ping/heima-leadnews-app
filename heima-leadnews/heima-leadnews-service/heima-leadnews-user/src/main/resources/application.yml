@@ -52,10 +52,12 @@ oauth:
     # 公众号二维码图片URL（需替换为实际的公众号二维码）
     qrcode-url: mmexport1780758632985.jpeg
 
-#  cloud:
-#    nacos:
-#      discovery:
-#        server-addr: 192.168.200.130:8848
-#      config:
-#        server-addr: 192.168.200.130:8848
-#        file-extension: yml
+aliyun:
+  oss:
+    accessKeyId: ${ALIBABA_RAM_ACCESS_KEY}
+    accessKeySecret: ${ALIBABA_RAM_ACCESS_SECRET}
+    endpoint: http://oss-cn-beijing.aliyuncs.com
+    host: https://zhuri-leadnews.oss-cn-beijing.aliyuncs.com
+    bucket: zhuri-leadnews
+    dir: material/
+    expireTime: 300

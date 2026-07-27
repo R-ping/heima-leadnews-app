@@ -42,14 +42,14 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private void sendTaskDelayMsg(Task task, Long nowTime) {
-        long executeTime = task.getObjExecInterval();
+        long executeTime = task.getExecuteTime().getTime();
         nowTime = nowTime == null ? System.currentTimeMillis() : nowTime;
         // 得到1个小时后的时间
-        long oneHour = 60 * 60 * 1000;
+        long oneHourInterval = 60 * 60 * 1000;
         long delay = 0;
         if (executeTime <= nowTime) {
             delay = 0;
-        } else if (executeTime <= nowTime + oneHour) {
+        } else if (executeTime <= nowTime + oneHourInterval) {
             delay = task.getFirstExecInterval();
         }
         final long finalDelay = delay;
@@ -96,20 +96,6 @@ public class TaskServiceImpl implements TaskService {
         return flag;
     }
 
-
-    /**
-     * 取消任务
-     */
-    @Override
-    public void cancelTask(long taskId) {
-        //删除任务，更新任务日志
-        Task task = updateDb(taskId, ScheduleConstants.CANCELLED);
-        //删除redis的数据
-        if (task != null) {
-            removeTaskFromCache(task);
-        }
-    }
-
     /**
      * 更新任务日志
      */
@@ -131,20 +117,6 @@ public class TaskServiceImpl implements TaskService {
     }
 
     /**
-     * 删除redis中的数据
-     */
-    private void removeTaskFromCache(Task task) {
-
-        String key = task.getTaskType() + "_" + task.getPriority();
-        if (task.getExecuteTime().getTime() <= System.currentTimeMillis()) {
-            cacheService.lRemove(ScheduleConstants.TOPIC + key, 0, JSON.toJSONString(task));
-        } else {
-            cacheService.zRemove(ScheduleConstants.FUTURE + key, JSON.toJSONString(task));
-        }
-
-    }
-
-    /**
      * 消费任务
      */
     public void consumerTask(Long taskId) {
@@ -153,18 +125,6 @@ public class TaskServiceImpl implements TaskService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * 由于apArticle服务，做业务数据、本地消息保存失败 将status改为fail，次数+1
-     */
-    @Override
-    public void updateTask(Task task) {
-//        taskinfoLogsMapper.update(Wrappers.<TaskinfoLogs>lambdaUpdate()
-//            .set(TaskinfoLogs::getStatus, ScheduleConstants.FAIL)
-//            .eq(TaskinfoLogs::getParameters, task.getParameters())
-//        );
-
     }
 
     @Override

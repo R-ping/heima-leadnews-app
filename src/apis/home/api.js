@@ -35,6 +35,33 @@ Api.prototype = {
             })
         })
     },
+    // 加载推荐数据（基于种子随机洗牌）
+    recommendLoad: function(params) {
+        var body = {
+            channel: params.channel || '__all__',
+            size: params.size || 10
+        }
+        if (params.seed) {
+            body.seed = params.seed
+        }
+        if (params.page !== undefined && params.page !== null) {
+            body.page = params.page
+        }
+        return store.getEquipmentId().then(function(equipmentId) {
+            body.equipmentId = equipmentId
+            return new Promise(function(resolve, reject) {
+                request.post('/ARTICLE/api/v1/article/recommend', body, {}).then(function(d) {
+                    resolve(d)
+                }).catch(function(e) {
+                    reject(e)
+                })
+            })
+        }).catch(function(e) {
+            return new Promise(function(resolve, reject) {
+                reject(e)
+            })
+        })
+    },
     // 区别请求哪个URL
     getLoadUrl : function(dir){
         let url = conf.urls.get('load')

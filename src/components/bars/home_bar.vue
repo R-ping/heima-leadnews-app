@@ -6,6 +6,7 @@
         <div class="user-info" v-if="isLoggedIn" @click="toggleUserDropdown">
             <div class="notification-bell" @click.stop="goToNotification">
                 <span class="bell-icon">&#xf0f3;</span>
+                <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
             </div>
             <img v-if="userAvatar" class="user-avatar" :src="userAvatar" alt="头像" />
             <span v-else class="bar-icon user-btn">&#xf007;</span>
@@ -39,6 +40,7 @@
     import UserDropdown from './UserDropdown.vue'
     import { toast } from "@/utils/toast"
     import { getUserStatistics } from '@/apis/user'
+    import request from '@/common/request'
 
     export default {
         name: "HomeBar",
@@ -47,6 +49,8 @@
             return {
                 icon:'\uF002',
                 showUserDropdown: false,
+                unreadCount: 0,
+                unreadTimer: null,
                 stats: {
                     followCount: 0,
                     likeCount: 0,
@@ -183,9 +187,18 @@
             goToNotification() {
                 this.showUserDropdown = false
                 this.$router.push('/notification')
+            },
+            fetchUnreadCount() {
+                request.get('/NOTIFICATION/api/v1/notifications/unread-count', {}).then(d => {
+                    if (d && d.code === 200 && d.data) {
+                        this.unreadCount = d.data.total || 0
+                    }
+                }).catch(() => {})
             }
         },
         mounted() {
+            this.fetchUnreadCount()
+            this.unreadTimer = setInterval(() => this.fetchUnreadCount(), 30000)
             this.closeDropdown = (e) => {
                 if (this.showUserDropdown && !this.$el.querySelector('.user-info').contains(e.target)) {
                     this.showUserDropdown = false
@@ -200,6 +213,10 @@
             document.addEventListener('keydown', this.escClose)
         },
         beforeDestroy() {
+            if (this.unreadTimer) {
+                clearInterval(this.unreadTimer)
+                this.unreadTimer = null
+            }
             document.removeEventListener('click', this.closeDropdown)
             document.removeEventListener('keydown', this.escClose)
         }
@@ -259,15 +276,18 @@
     }
 
     .notification-bell {
+        position: relative;
+        margin-right: 16px;
+        font-size: 20px;
+        color: #515767;
+        cursor: pointer;
         width: 44px;
         height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
         border-radius: 50%;
         transition: background-color 0.2s;
-        margin-right: 8px;
     }
     .notification-bell:hover {
         background-color: rgba(255,255,255,0.15);
@@ -276,5 +296,19 @@
         font-family: fontawesome;
         font-size: 24px;
         color: #ffffff;
+    }
+    .unread-badge {
+        position: absolute;
+        top: -6px;
+        right: -10px;
+        min-width: 16px;
+        height: 16px;
+        line-height: 16px;
+        text-align: center;
+        background: #ff4d4f;
+        color: #fff;
+        font-size: 10px;
+        border-radius: 8px;
+        padding: 0 4px;
     }
 </style>

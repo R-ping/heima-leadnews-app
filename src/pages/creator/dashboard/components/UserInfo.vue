@@ -11,7 +11,7 @@
           <span class="divider"></span>
           <span class="stat-item"><span class="stat-value">{{ power }}</span> <span class="stat-label">掘力值</span></span>
         </div>
-        <div class="days">在黑马头条创作的第 {{ days }} 天</div>
+        <div class="days">在逐日Coding创作的第 {{ days }} 天</div>
       </div>
     </div>
   </header>

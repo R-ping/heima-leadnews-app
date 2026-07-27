@@ -4,15 +4,28 @@ const  config = {
         article:'ARTICLE',
         behavior:'BEHAVIOR',
         user:'USER',
-        search:'SEARCH'
+        search:'SEARCH',
+        notification:'NOTIFICATION'
     },
     // 请求本地的请求service
-    local:{user:true,article:true,behavior:true,search:true},
+    local:{user:true,article:true,behavior:true,search:true,notification:true},
     // 代理前缀
     prefix:{
         server_85:'/server_85'
     },
     urls:{
+        recommend:{url:'api/v1/article/recommend',sv:'article'},
+        // ==========  notification (站内信)
+        notifications_list:{url:'api/v1/notifications',sv:'notification'},
+        notifications_unread:{url:'api/v1/notifications/unread-count',sv:'notification'},
+        notifications_mark_read:{url:'api/v1/notifications/mark-all-read',sv:'notification'},
+        notifications_reply:{url:'api/v1/notifications/actions/reply',sv:'notification'},
+        notifications_like:{url:'api/v1/notifications/actions/like',sv:'notification'},
+        notifications_follow_back:{url:'api/v1/notifications/actions/follow-back',sv:'notification'},
+        im_sessions:{url:'api/v1/im/sessions',sv:'notification'},
+        im_messages:{url:'api/v1/im/messages',sv:'notification'},
+        im_send:{url:'api/v1/im/messages',sv:'notification'},
+        im_read:{url:'api/v1/im/messages/read',sv:'notification'},
         // ==========  article (后端已实现)
         load:{url:'api/v1/article/load/',sv:'article'},
         loadmore:{url:'api/v1/article/load/more',sv:'article'},

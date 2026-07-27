@@ -1,5 +1,6 @@
 export default {
-    tabTitles: [{title: '关注', id:'__follow__'},
+    tabTitles: [{title: '推荐', id:'__recommend__'},
+        {title: '关注', id:'__follow__'},
         {title: '综合',id:'__all__'},
         {title: '后端',id:1},
         {title: '前端',id:2},

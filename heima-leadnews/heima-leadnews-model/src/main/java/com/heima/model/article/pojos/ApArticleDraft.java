@@ -33,7 +33,8 @@ public class ApArticleDraft implements Serializable {
 
     private Short layout;
 
-    private String images;
+    private String coverImage;
+
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> tags;
 
@@ -53,10 +54,19 @@ public class ApArticleDraft implements Serializable {
     private Date updatedTime;
 
     private Byte status;
-
     /**
      * 是否删除 0 未删除 1 已删除
      */
     @TableField("is_deleted")
     private Boolean isDeleted = false;
+    /**
+     * 内容里嵌入的图片列表
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<ContPic> contPics;
+    @Data
+    public static class ContPic {
+        private String picUri;
+        private String picUrl;
+    }
 }

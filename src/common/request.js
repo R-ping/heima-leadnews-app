@@ -156,7 +156,9 @@ Request.prototype = {
             }
             // 401未授权 — 仅当原请求使用用户token时才弹出登录窗口
             if (error.response && error.response.status === 401 && retryCount < 1 && usedUserToken) {
-                _this.store.dispatch('showLogin')
+                // 先跳转到主页面，再弹出登录框
+                sessionStorage.setItem('showLoginAfterRedirect', '1')
+                window.location.href = '/home'
                 return Promise.reject(error.response || error)
             }
             // 网络错误
@@ -184,8 +186,9 @@ Request.prototype = {
         }
         var refreshToken = _this.store.state.refreshToken
         if (!refreshToken) {
-            // 有accessToken但没有refreshToken，无法刷新，弹出登录弹窗（不清除token避免丢失登录状态）
-            _this.store.dispatch('showLogin')
+            // 有accessToken但没有refreshToken，无法刷新，跳转主页并弹出登录弹窗
+            sessionStorage.setItem('showLoginAfterRedirect', '1')
+            window.location.href = '/home'
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         }
         // 有accessToken和refreshToken，尝试刷新token后重放
@@ -213,14 +216,16 @@ Request.prototype = {
                     return _this.__fetch(type, path, newToken, time, parms, body, retryCount + 1)
                 })
             }
-            // 刷新失败，清除全部登录状态
+            // 刷新失败，清除登录状态，跳转主页并弹出登录弹窗
             _this.store.dispatch('logout')
-            _this.store.dispatch('showLogin')
+            sessionStorage.setItem('showLoginAfterRedirect', '1')
+            window.location.href = '/home'
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         }).catch(function () {
-            // 刷新失败，清除全部登录状态
+            // 刷新失败，清除登录状态，跳转主页并弹出登录弹窗
             _this.store.dispatch('logout')
-            _this.store.dispatch('showLogin')
+            sessionStorage.setItem('showLoginAfterRedirect', '1')
+            window.location.href = '/home'
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         })
     },

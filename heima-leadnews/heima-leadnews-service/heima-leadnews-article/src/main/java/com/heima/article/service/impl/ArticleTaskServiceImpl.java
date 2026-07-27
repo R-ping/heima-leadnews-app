@@ -61,8 +61,7 @@ public class ArticleTaskServiceImpl implements ArticleTaskService {
         task.setParameters(ProtostuffUtil.serialize(apArticle));
 
         scheduleClient.addTask(task);
-        log.info("文章延迟发布任务已添加, articleId={}, executeTime={}ms, firstTime={}ms",
-            articleId, executeTimeInterval, task.getFirstExecInterval());
+        log.info("文章延迟发布任务已添加, articleId={},", articleId);
     }
 
     @Override

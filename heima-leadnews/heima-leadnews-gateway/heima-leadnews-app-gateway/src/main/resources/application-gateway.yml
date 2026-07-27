@@ -48,3 +48,10 @@ spring:
             - Path=/wemedia/**
           filters:
             - StripPrefix= 1
+        # 站内信微服务
+        - id: leadnews-notification
+          uri: lb://leadnews-notification
+          predicates:
+            - Path=/notification/**
+          filters:
+            - StripPrefix= 1

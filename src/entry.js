@@ -20,3 +20,8 @@ new Vue(Vue.util.extend({el: '#root', router}, App));
 if (window.location.pathname === '/' || window.location.pathname === '') {
     router.push('/home');
 }
+// Token过期后重定向到主页，自动弹出登录框
+if (sessionStorage.getItem('showLoginAfterRedirect') === '1') {
+    sessionStorage.removeItem('showLoginAfterRedirect')
+    store.dispatch('showLogin')
+}

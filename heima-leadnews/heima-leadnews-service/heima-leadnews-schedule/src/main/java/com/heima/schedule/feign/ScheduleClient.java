@@ -5,8 +5,6 @@ import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.schedule.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,19 +33,5 @@ public class ScheduleClient implements IScheduleClient {
     public void addTask(@RequestBody Task task) {
         taskService.addTask(task);
 
-    }
-
-    /**
-     * 取消任务
-     */
-    @GetMapping("/api/v1/task/{taskId}")
-    public ResponseResult cancelTask(@PathVariable("taskId") long taskId) {
-        taskService.cancelTask(taskId);
-        return ResponseResult.okResult();
-    }
-
-    @PostMapping("/api/v1/task/update")
-    public void TaskUpdate(@RequestBody Task task) {
-        taskService.updateTask(task);
     }
 }

@@ -1,5 +1,6 @@
 package com.heima.article.controller.v1;
 
+import com.heima.article.service.ApArticleRecommendService;
 import com.heima.article.service.ApArticleService;
 import com.heima.common.constants.ArticleConstants;
 import com.heima.model.article.dtos.ArticleHomeDto;
@@ -17,6 +18,9 @@ public class ArticleHomeController {
 
     @Autowired
     private ApArticleService apArticleService;
+
+    @Autowired
+    private ApArticleRecommendService apArticleRecommendService;
 
     /**
      * 加载首页
@@ -46,5 +50,13 @@ public class ArticleHomeController {
     @PostMapping("/load/new")
     public ResponseResult loadnew(@RequestBody ArticleHomeDto dto){
         return apArticleService.load(dto, ArticleConstants.LOADTYPE_LOAD_NEW);
+    }
+
+    /**
+     * 推荐文章（非确定性排序，基于种子随机洗牌）
+     */
+    @PostMapping("/recommend")
+    public ResponseResult recommend(@RequestBody com.heima.model.article.dtos.ArticleRecommendDto dto) {
+        return apArticleRecommendService.recommend(dto);
     }
 }

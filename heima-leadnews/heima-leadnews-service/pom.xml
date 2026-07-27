@@ -17,6 +17,7 @@
         <module>heima-leadnews-schedule</module>
         <module>heima-leadnews-search</module>
         <module>heima-leadnews-behavior</module>
+        <module>heima-leadnews-notification</module>
     </modules>
 
     <properties>

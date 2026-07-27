@@ -94,9 +94,10 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         article.setAuthorId(draft.getAuthorId() != null ? draft.getAuthorId() : user.getId().longValue());
         article.setChannelId(draft.getChannelId());
         article.setLayout(draft.getLayout() != null ? draft.getLayout().byteValue() : (byte) 0);
-        article.setImages(draft.getImages());
+        article.setCoverImage(draft.getCoverImage());
         article.setTags(draft.getTags());
         article.setCreatedTime(new Date());
+        // 获取发布时间，如果为null（不延迟时）则与创建时间相等
         article.setPublishTime(draft.getPublishTime() != null ? draft.getPublishTime() : new Date());
         article.setStatus(ApArticle.Status.SUBMIT.getCode()); // 审核中
 
@@ -128,9 +129,12 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         articleAutoScanService.autoScanArticle(article.getId());
 
         // 如果是延迟发布，添加到调度任务
-        if (draft.getPublishTime() != null && draft.getPublishTime().after(new Date())) {
-            articleTaskService.addArticleToTask(article.getId(), draft.getPublishTime());
-        }
+//        if (draft.getPublishTime() != null && draft.getPublishTime().after(new Date())) {
+//            articleTaskService.addArticleToTask(article.getId(), draft.getPublishTime());
+//        }
+
+        // 不管是不是延迟发布，都添加到调度任务，只不过不延迟时interval：0，多经过了Task任务类流转
+        articleTaskService.addArticleToTask(article.getId(), article.getPublishTime());
 
         return ResponseResult.okResult(article);
     }

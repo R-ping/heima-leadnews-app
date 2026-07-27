@@ -3,8 +3,8 @@
     <div class="left-menu">
       <hamburger :toggle-click="toggleSideBar" class="hamburger-container"/>
       <router-link to="/home" class="brand-container">
-        <img src="/static/images/logo-icon.svg" width="24" height="24" class="brand-icon" alt="黑马头条">
-        <span class="brand-name">黑马头条</span>
+        <img src="/static/images/logo-icon.svg" width="24" height="24" class="brand-icon" alt="逐日Coding">
+        <span class="brand-name">逐日Coding</span>
         <span class="brand-divider">·</span>
         <span class="brand-subtitle">创作者中心</span>
       </router-link>

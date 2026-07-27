@@ -8,19 +8,13 @@ import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class IArticleClientFallback implements IArticleClient {
-//    @Override
-//    public ResponseResult saveArticle(ArticleDto dto, Integer wmNewsId, long executeTime) {
-//        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"文章保存异常");
-//    }
-//
-//    @Override
-//    public ResponseResult saveArticle(Integer wmNewsId) {
-//        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"文章保存异常");
-//    }
+
 
     @Override
     public ResponseResult saveArticle(ArticleDto dto, long executeTime) {
@@ -40,6 +34,12 @@ public class IArticleClientFallback implements IArticleClient {
     @Override
     public ResponseResult getArticleInfo(Long articleId) {
         return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"获取文章信息异常");
+    }
+
+    @Override
+    public boolean generateArticleEvent(ApArticle article, long executeTimeInterval) {
+        log.info("远程生成article操作事件失败{}", article.getId());
+        return false;
     }
 
     @Override

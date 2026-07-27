@@ -66,6 +66,10 @@ public class ArticleClient implements IArticleClient {
         }
         return ResponseResult.okResult(apArticle);
     }
+    @PostMapping("/api/v1/article/generate/event")
+    public boolean generateArticleEvent(ApArticle article, long lastExecuteInterval) {
+       return apArticleService.generateArticleEvent(article, lastExecuteInterval);
+    }
 
     @PostMapping("/api/v1/article/publish")
     public ResponseResult publishArticle(@RequestParam("articleId") Long articleId) {

@@ -132,6 +132,33 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
         return ResponseResult.okResult(apArticle.getId());
     }
 
+
+    /**
+     * 根据文章id生成文章事件,后续进行mq异步处理
+     */
+    @Override
+    public boolean generateArticleEvent(ApArticle article, long lastExecuteInterval) {
+        //1.检查参数
+        if (article == null) {
+            log.error("文章保存失败，参数为空");
+            return false;
+        }
+        try {
+            // 本地消息表入库（事务内）
+            ArticleEvent event = buildArticleEvent();
+            event.setArticleId(article.getId());
+            apArticleEventMapper.insertArticleEvent(event);
+            log.info("文章本地消息表保存成功，文章id：{}", article.getId());
+        } catch (Exception e) {
+            log.error("文章保存失败", e);
+            return false;
+        }
+        // 异步操作移到事务提交后，避免事务边界问题
+        articleFreemarkerService.buildHTMLAndSend(article, "", lastExecuteInterval);
+        return true;
+    }
+
+
     /**
      * 构建文章事件
      */

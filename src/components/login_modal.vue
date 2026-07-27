@@ -7,7 +7,7 @@
 
                 <!-- 登录/注册 -->
                 <div class="login-container">
-                    <div class="modal-title">登录黑马头条</div>
+                    <div class="modal-title">登录逐日Coding</div>
                     <p class="modal-subtitle">
                         {{ isPasswordMode ? '手机号或邮箱登录' : '验证码登录' }}
                     </p>
@@ -69,18 +69,10 @@
                             <span class="social-icon github-icon">&#xf09b;</span>
                             <span class="social-label">GitHub</span>
                         </div>
-                        <div class="social-item wechat-item" @click="toggleWechatQr" :class="{ active: showWechatQr }" title="微信公众号登录">
+                        <div class="social-item wechat-item" @click="openWechatLogin" title="微信公众号登录">
                             <span class="social-icon wechat-icon">&#xf1d7;</span>
                             <span class="social-label">微信</span>
                         </div>
-                    </div>
-
-                    <!-- 微信二维码 -->
-                    <div class="wechat-qr-area" v-if="showWechatQr">
-                        <div class="qr-box">
-                            <img src="/static/images/gzh.jpeg" alt="微信公众号二维码" class="qr-img" />
-                        </div>
-                        <p class="qr-tip">请使用微信扫描二维码<br/>关注公众号后获取验证码登录</p>
                     </div>
                 </div>
 
@@ -92,6 +84,35 @@
                     <span class="link">《隐私政策》</span>
                 </div>
             </div>
+
+            <!-- 微信登录覆盖弹框 -->
+            <transition name="wechat-fade">
+                <div class="wechat-overlay" v-if="showWechatLogin" @click.self="closeWechatLogin">
+                    <div class="wechat-modal" :class="{ 'is-desktop': isDesktop }">
+                        <span class="wechat-back-btn" @click="closeWechatLogin">
+                            <span class="back-icon">&#xf104;</span>
+                            <span class="back-text">返回</span>
+                        </span>
+                        <div class="wechat-content">
+                            <div class="wechat-qr-section">
+                                <div class="qr-box">
+                                    <img src="/static/images/gzh.jpeg" alt="微信公众号二维码" class="qr-img" />
+                                </div>
+                                <p class="qr-tip">关注公众号后获取验证码登录</p>
+                            </div>
+                            <div class="wechat-code-section">
+                                <div class="input-group code-group">
+                                    <input v-model="wechatCode" type="tel" placeholder="请输入验证码" class="input" maxlength="6" />
+                                    <span class="code-btn" :class="{ disabled: wechatCodeCountdown > 0 }" @click="getWechatCode">
+                                        {{ wechatCodeCountdown > 0 ? wechatCodeCountdown + 's后重试' : '获取验证码' }}
+                                    </span>
+                                </div>
+                                <span class="login-btn" @click="wechatCodeLogin">登录</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
         </div>
     </transition>
 </template>
@@ -110,7 +131,10 @@ export default {
             wechatIcon: '\uf1d7',
             githubIcon: '\uf09b',
             isPasswordMode: false,
-            showWechatQr: false,
+            showWechatLogin: false,
+            wechatCode: '',
+            wechatCodeCountdown: 0,
+            wechatCodeTimer: null,
             codeCountdown: 0,
             codeTimer: null,
             params: {
@@ -133,16 +157,18 @@ export default {
         visible: function (val) {
             if (val) {
                 this.isPasswordMode = false
-                this.showWechatQr = false
+                this.showWechatLogin = false
                 this.resetParams()
             } else {
-                this.showWechatQr = false
+                this.showWechatLogin = false
                 this.clearCodeTimer()
+                this.clearWechatCodeTimer()
             }
         }
     },
     beforeDestroy() {
         this.clearCodeTimer()
+        this.clearWechatCodeTimer()
         if (this._resizeHandler) {
             window.removeEventListener('resize', this._resizeHandler)
         }
@@ -157,7 +183,7 @@ export default {
     methods: {
         close() {
             this.$store.dispatch('hideLogin')
-            this.showWechatQr = false
+            this.showWechatLogin = false
         },
         resetParams() {
             this.params.phone = ''
@@ -167,7 +193,7 @@ export default {
         },
         toggleMode() {
             this.isPasswordMode = !this.isPasswordMode
-            this.showWechatQr = false
+            this.showWechatLogin = false
             this.resetParams()
         },
         goRegister() {
@@ -177,8 +203,60 @@ export default {
         onForgetPassword() {
             toast('请使用验证码登录后在设置中重置密码', 3)
         },
-        toggleWechatQr() {
-            this.showWechatQr = !this.showWechatQr
+        openWechatLogin() {
+            this.showWechatLogin = true
+            this.wechatCode = ''
+        },
+        closeWechatLogin() {
+            this.showWechatLogin = false
+            this.wechatCode = ''
+            this.clearWechatCodeTimer()
+        },
+        getWechatCode() {
+            if (this.wechatCodeCountdown > 0) return
+            toast('请关注公众号后发送验证码获取', 3)
+            this.startWechatCodeCountdown()
+        },
+        startWechatCodeCountdown() {
+            var self = this
+            this.clearWechatCodeTimer()
+            this.wechatCodeCountdown = 60
+            this.wechatCodeTimer = setInterval(function () {
+                self.wechatCodeCountdown--
+                if (self.wechatCodeCountdown <= 0) {
+                    self.clearWechatCodeTimer()
+                }
+            }, 1000)
+        },
+        clearWechatCodeTimer() {
+            if (this.wechatCodeTimer) {
+                clearInterval(this.wechatCodeTimer)
+                this.wechatCodeTimer = null
+            }
+            this.wechatCodeCountdown = 0
+        },
+        wechatCodeLogin() {
+            var self = this
+            if (!this.wechatCode || this.wechatCode.length < 4) {
+                toast('请输入正确的验证码', 3)
+                return
+            }
+            Api.loginAuth({
+                phoneOrEmail: '',
+                code: this.wechatCode,
+                platform: 'wechat'
+            }).then(function (d) {
+                if (d && d.code === 200 && d.data) {
+                    self.$store.dispatch('login', d.data)
+                    self.close()
+                    self.showWechatLogin = false
+                    toast('登录成功', 2)
+                } else {
+                    toast((d && d.errorMessage) || (d && d.message) || '验证码错误', 3)
+                }
+            }).catch(function () {
+                toast('登录失败，请重试', 3)
+            })
         },
 
         getCode() {
@@ -540,15 +618,79 @@ export default {
 }
 
 .wechat-qr-area {
-    margin-top: 28px;
+    display: none;
+}
+
+/* ========== 微信覆盖弹框 ========== */
+.wechat-fade-enter-active, .wechat-fade-leave-active {
+    transition: opacity 0.25s ease;
+}
+.wechat-fade-enter, .wechat-fade-leave-to {
+    opacity: 0;
+}
+
+.wechat-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.wechat-modal {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px 36px 32px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+.wechat-back-btn {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: #515767;
+    font-size: 14px;
+    transition: color 0.2s;
+    user-select: none;
+}
+.wechat-back-btn:hover {
+    color: #3194ff;
+}
+.back-icon {
+    font-family: fontawesome;
+    font-size: 20px;
+}
+.back-text {
+    font-size: 14px;
+}
+
+.wechat-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px;
-    background-color: #fafafa;
-    border-radius: 8px;
+    gap: 24px;
+    margin-top: 12px;
 }
-.qr-box {
+
+.wechat-qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.wechat-modal .qr-box {
     width: 180px;
     height: 180px;
     background-color: #ffffff;
@@ -560,17 +702,155 @@ export default {
     padding: 10px;
     box-sizing: border-box;
 }
-.qr-img {
+.wechat-modal .qr-img {
     width: 100%;
     height: 100%;
     object-fit: contain;
 }
-.qr-tip {
+.wechat-modal .qr-tip {
     font-size: 13px;
     color: #999999;
     text-align: center;
-    margin: 16px 0 0 0;
+    margin: 12px 0 0 0;
     line-height: 1.6;
+}
+
+.wechat-code-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wechat-modal .input-group {
+    display: flex;
+    align-items: center;
+    background-color: #f7f8fa;
+    border-radius: 8px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    height: 56px;
+    box-sizing: border-box;
+}
+.wechat-modal .input-group:focus-within {
+    border-color: #3194ff;
+    background-color: #ffffff;
+}
+.wechat-modal .code-group {
+    padding-right: 12px;
+}
+.wechat-modal .input {
+    flex: 1;
+    height: 100%;
+    font-size: 16px;
+    color: #333333;
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+.wechat-modal .input::placeholder {
+    color: #c0c4cc;
+}
+.wechat-modal .code-btn {
+    font-size: 15px;
+    color: #3194ff;
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 8px 14px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+.wechat-modal .code-btn:hover {
+    background-color: #e8f4ff;
+}
+.wechat-modal .code-btn.disabled {
+    color: #c0c4cc;
+    cursor: not-allowed;
+}
+.wechat-modal .code-btn.disabled:hover {
+    background-color: transparent;
+}
+
+.wechat-modal .login-btn {
+    height: 52px;
+    line-height: 52px;
+    background-color: #3194ff;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.wechat-modal .login-btn:hover {
+    background-color: #2684e8;
+}
+
+/* Web端微信弹框适配 */
+.is-desktop.wechat-modal {
+    width: 400PX;
+    max-width: 90vw;
+    padding: 16PX 32PX 28PX;
+    border-radius: 12PX;
+}
+.is-desktop .wechat-back-btn {
+    top: 12PX;
+    left: 12PX;
+}
+.is-desktop .wechat-back-btn .back-icon {
+    font-size: 18PX;
+}
+.is-desktop .wechat-back-btn .back-text {
+    font-size: 13PX;
+}
+.is-desktop .wechat-content {
+    gap: 20PX;
+    margin-top: 8PX;
+}
+.is-desktop .wechat-modal .qr-box {
+    width: 140PX;
+    height: 140PX;
+}
+.is-desktop .wechat-modal .qr-tip {
+    font-size: 12PX;
+    margin-top: 8PX;
+}
+.is-desktop .wechat-modal .input-group {
+    height: 44PX;
+    padding: 0 16PX;
+    border-radius: 6PX;
+}
+.is-desktop .wechat-modal .code-group {
+    padding-right: 8PX;
+}
+.is-desktop .wechat-modal .input {
+    font-size: 14PX;
+}
+.is-desktop .wechat-modal .code-btn {
+    font-size: 13PX;
+    padding: 6PX 12PX;
+}
+.is-desktop .wechat-modal .login-btn {
+    height: 44PX;
+    line-height: 44PX;
+    font-size: 16PX;
+    border-radius: 6PX;
+}
+
+@media screen and (max-width: 560px) {
+    .wechat-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .wechat-modal {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        padding: 28px 24px 28px;
+        animation: slideUp 0.3s ease;
+    }
 }
 
 .agreement {

@@ -1,38 +1,38 @@
-﻿<template>
+<template>
     <div class="notification-page">
         <div class="art-top"><HomeBar/></div>
         <div class="notification-content">
             <div class="tabs-bar">
-                <div 
-                    class="tab-item" 
+                <div
+                    class="tab-item"
                     :class="{ 'active': activeTab === 'comment' }"
                     @click="activeTab = 'comment'"
                 >
                     评论
                 </div>
-                <div 
-                    class="tab-item" 
+                <div
+                    class="tab-item"
                     :class="{ 'active': activeTab === 'like' }"
                     @click="activeTab = 'like'"
                 >
                     赞和收藏
                 </div>
-                <div 
-                    class="tab-item" 
+                <div
+                    class="tab-item"
                     :class="{ 'active': activeTab === 'follow' }"
                     @click="activeTab = 'follow'"
                 >
                     新增粉丝
                 </div>
-                <div 
-                    class="tab-item" 
+                <div
+                    class="tab-item"
                     :class="{ 'active': activeTab === 'message' }"
                     @click="activeTab = 'message'"
                 >
                     私信
                 </div>
-                <div 
-                    class="tab-item" 
+                <div
+                    class="tab-item"
                     :class="{ 'active': activeTab === 'system' }"
                     @click="activeTab = 'system'"
                 >
@@ -41,7 +41,7 @@
             </div>
 
             <div class="content-area">
-                <div v-if="activeTab === 'comment'" class="tab-content">
+                <div v-if="activeTab === 'comment'" class="tab-content" @scroll="onScroll($event, 'comment')">
                     <div class="notification-list">
                         <div class="notification-item" v-for="item in commentList" :key="item.id">
                             <img :src="item.userAvatar || defaultAvatar" class="notify-avatar" alt="avatar">
@@ -68,7 +68,7 @@
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'like'" class="tab-content">
+                <div v-if="activeTab === 'like'" class="tab-content" @scroll="onScroll($event, 'like')">
                     <div class="notification-list">
                         <div class="notification-item" v-for="item in likeList" :key="item.id">
                             <img :src="item.userAvatar || defaultAvatar" class="notify-avatar" alt="avatar">
@@ -78,14 +78,13 @@
                                     <span class="notify-action">{{ item.action }}</span>
                                     <span class="notify-time">{{ formatTime(item.time) }}</span>
                                 </div>
-                                <div class="notify-text" v-if="item.content">{{ item.content }}</div>
                                 <div class="notify-article">{{ item.articleTitle }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'follow'" class="tab-content">
+                <div v-if="activeTab === 'follow'" class="tab-content" @scroll="onScroll($event, 'follow')">
                     <div class="notification-list">
                         <div class="notification-item" v-for="item in followList" :key="item.id">
                             <img :src="item.userAvatar || defaultAvatar" class="notify-avatar" alt="avatar">
@@ -96,8 +95,8 @@
                                     <span class="notify-time">{{ formatTime(item.time) }}</span>
                                 </div>
                             </div>
-                            <button 
-                                class="follow-btn" 
+                            <button
+                                class="follow-btn"
                                 :class="{ 'active': item.isFollowed }"
                                 @click="toggleFollow(item)"
                             >
@@ -114,8 +113,8 @@
                                 <input type="text" class="search-input" placeholder="搜索联系人" v-model="searchKeyword">
                             </div>
                             <div class="contact-list">
-                                <div 
-                                    class="contact-item" 
+                                <div
+                                    class="contact-item"
                                     :class="{ 'active': selectedContact && selectedContact.id === contact.id }"
                                     v-for="contact in filteredContacts"
                                     :key="contact.id"
@@ -140,8 +139,8 @@
                                     <span class="chat-title">{{ selectedContact.name }}</span>
                                 </div>
                                 <div class="chat-messages" ref="chatMessages">
-                                    <div 
-                                        class="message-item" 
+                                    <div
+                                        class="message-item"
                                         :class="{ 'is-self': msg.isSelf }"
                                         v-for="msg in selectedContact.messages"
                                         :key="msg.id"
@@ -159,10 +158,10 @@
                                 <div class="chat-input-area">
                                     <button class="input-icon-btn">😊</button>
                                     <button class="input-icon-btn">📷</button>
-                                    <input 
-                                        type="text" 
-                                        class="chat-input" 
-                                        placeholder="输入消息..." 
+                                    <input
+                                        type="text"
+                                        class="chat-input"
+                                        placeholder="输入消息..."
                                         v-model="messageInput"
                                         @keyup.enter="sendMessage"
                                     >
@@ -173,7 +172,7 @@
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'system'" class="tab-content">
+                <div v-if="activeTab === 'system'" class="tab-content" @scroll="onScroll($event, 'system')">
                     <div class="notification-list">
                         <div class="notification-item" v-for="item in systemList" :key="item.id">
                             <div class="notify-content system-content">
@@ -193,6 +192,8 @@
 <script>
 import HomeBar from '@/components/bars/home_bar'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
+import request from '@/common/request'
+import conf from '@/common/conf'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -205,116 +206,22 @@ export default {
             selectedContact: null,
             messageInput: '',
             userAvatar: '',
-            commentList: [
-                {
-                    id: 1,
-                    userAvatar: '',
-                    userName: '用户85499312907',
-                    action: '回复了你在文章的评论',
-                    content: '22222',
-                    articleTitle: '《智谱GLM-5这次开源，让高级程序员也危险了...》',
-                    time: Date.now() - 86400000,
-                    isLiked: false,
-                    likeCount: 0
-                },
-                {
-                    id: 2,
-                    userAvatar: '',
-                    userName: '用户85499312907',
-                    action: '评论了你在文章',
-                    content: '35岁程序员的春天来了',
-                    articleTitle: '《智谱GLM-5这次开源，让高级程序员也危险了...》',
-                    time: Date.now() - 86400000 * 2,
-                    isLiked: true,
-                    likeCount: 5
-                }
-            ],
-            likeList: [
-                {
-                    id: 1,
-                    userAvatar: '',
-                    userName: '用户85499312907',
-                    action: '赞了你在文章的评论',
-                    content: '1111',
-                    articleTitle: '《智谱GLM-5这次开源，让高级程序员也危险了...》',
-                    time: Date.now() - 86400000
-                },
-                {
-                    id: 2,
-                    userAvatar: '',
-                    userName: '技术爱好者',
-                    action: '赞了你的文章',
-                    articleTitle: '《Vue3组合式API入门指南》',
-                    time: Date.now() - 86400000 * 2
-                },
-                {
-                    id: 3,
-                    userAvatar: '',
-                    userName: '前端工程师',
-                    action: '收藏了你的文章',
-                    articleTitle: '《TypeScript高级类型技巧》',
-                    time: Date.now() - 86400000 * 3
-                }
-            ],
-            followList: [
-                {
-                    id: 1,
-                    userAvatar: '',
-                    userName: '用户85499312907',
-                    action: '关注了你',
-                    time: Date.now() - 86400000,
-                    isFollowed: false
-                },
-                {
-                    id: 2,
-                    userAvatar: '',
-                    userName: '新来的小伙伴',
-                    action: '关注了你',
-                    time: Date.now() - 86400000 * 2,
-                    isFollowed: true
-                }
-            ],
-            contacts: [
-                {
-                    id: 1,
-                    name: '程序员小站',
-                    avatar: '',
-                    lastMessage: '',
-                    lastTime: Date.now(),
-                    isMutualFollow: false,
-                    sentCount: 0,
-                    messages: []
-                },
-                {
-                    id: 2,
-                    name: '技术交流群',
-                    avatar: '',
-                    lastMessage: '今天有什么技术分享？',
-                    lastTime: Date.now() - 3600000,
-                    isMutualFollow: true,
-                    messages: [
-                        { id: 1, content: '今天有什么技术分享？', time: Date.now() - 3600000, isSelf: false },
-                        { id: 2, content: '我准备分享一下Vue3的新特性', time: Date.now() - 3500000, isSelf: true }
-                    ]
-                }
-            ],
-            systemList: [
-                {
-                    id: 1,
-                    content: '欢迎加入黑马头条！',
-                    time: Date.now() - 86400000 * 7
-                },
-                {
-                    id: 2,
-                    content: '您的文章《Vue3组合式API入门指南》已审核通过',
-                    time: Date.now() - 86400000 * 2
-                },
-                {
-                    id: 3,
-                    content: '系统将于今晚22:00进行维护升级，预计持续2小时',
-                    time: Date.now() - 86400000
-                }
-            ]
+            commentList: [],
+            likeList: [],
+            followList: [],
+            systemList: [],
+            contacts: [],
+            // 游标分页状态
+            cursors: { comment: null, like: null, follow: null, system: null },
+            hasMore: { comment: true, like: true, follow: true, system: true },
+            loading: { comment: false, like: false, follow: false, system: false },
+            loadingMore: { comment: false, like: false, follow: false, system: false },
+            sessionsLoading: false,
+            messagesLoading: false,
+            messagesCursor: null,
+            messagesHasMore: true,
+            unreadCount: 0,
+            unreadTimer: null
         }
     },
     computed: {
@@ -323,67 +230,348 @@ export default {
         },
         filteredContacts() {
             if (!this.searchKeyword) return this.contacts
-            return this.contacts.filter(c => c.name.includes(this.searchKeyword))
+            return this.contacts.filter(c => (c.name || '').includes(this.searchKeyword))
         }
+    },
+    watch: {
+        activeTab: function(newTab) {
+            this.switchTab(newTab)
+        }
+    },
+    mounted() {
+        this.startUnreadPolling()
+        // activeTab watch will trigger initial load
+    },
+    beforeDestroy() {
+        this.stopUnreadPolling()
     },
     methods: {
         formatTime(timestamp) {
-            const now = Date.now()
-            const diff = now - timestamp
-            const hours = Math.floor(diff / 3600000)
-            const days = Math.floor(diff / 86400000)
-            const months = Math.floor(diff / 2592000000)
-            
+            if (!timestamp) return ''
+            var now = Date.now()
+            var t = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp
+            if (isNaN(t)) return ''
+            var diff = now - t
+            var hours = Math.floor(diff / 3600000)
+            var days = Math.floor(diff / 86400000)
+            var months = Math.floor(diff / 2592000000)
             if (hours < 1) return '刚刚'
             if (hours < 24) return hours + '小时前'
             if (days < 30) return days + '天前'
             if (months < 12) return months + '个月前'
             return Math.floor(months / 12) + '年前'
         },
+
+        getNotificationUrl(name) {
+            return conf.urls.get(name)
+        },
+
+        // 加载通知列表
+        loadNotifications(type) {
+            var self = this
+            var stateKey = type
+            if (self.loading[stateKey]) return
+            self.$set(self.loading, stateKey, true)
+            self.$set(self.cursors, stateKey, null)
+            self.$set(self.hasMore, stateKey, true)
+
+            var url = self.getNotificationUrl('notifications_list')
+            request.get(url, { type: type, size: 20 }).then(function(d) {
+                self.$set(self.loading, stateKey, false)
+                if (d && d.code === 200 && d.data) {
+                    var data = d.data
+                    self.$set(self.cursors, stateKey, data.next_cursor)
+                    self.$set(self.hasMore, stateKey, data.has_more)
+                    var list = (data.list || []).map(function(item) {
+                        return self.mapNotificationItem(item)
+                    })
+                    self.updateList(type, list, false)
+                }
+            }).catch(function() {
+                self.$set(self.loading, stateKey, false)
+            })
+        },
+
+        // 加载更多通知
+        loadMoreNotifications(type) {
+            var self = this
+            var stateKey = type
+            if (self.loadingMore[stateKey] || !self.hasMore[stateKey]) return
+            self.$set(self.loadingMore, stateKey, true)
+
+            var url = self.getNotificationUrl('notifications_list')
+            var cursor = self.cursors[stateKey]
+            request.get(url, { type: type, size: 20, cursor: cursor }).then(function(d) {
+                self.$set(self.loadingMore, stateKey, false)
+                if (d && d.code === 200 && d.data) {
+                    var data = d.data
+                    self.$set(self.cursors, stateKey, data.next_cursor)
+                    self.$set(self.hasMore, stateKey, data.has_more)
+                    var list = (data.list || []).map(function(item) {
+                        return self.mapNotificationItem(item)
+                    })
+                    self.updateList(type, list, true)
+                }
+            }).catch(function() {
+                self.$set(self.loadingMore, stateKey, false)
+            })
+        },
+
+        mapNotificationItem(item) {
+            return {
+                id: item.notification_id,
+                userAvatar: (item.trigger_user && item.trigger_user.avatar) || '',
+                userName: (item.trigger_user && item.trigger_user.name) || '用户',
+                action: item.action_type || '',
+                content: item.content_preview || '',
+                articleTitle: item.target_title || '',
+                time: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
+                isLiked: item.is_liked_by_me || false,
+                likeCount: item.interaction_stats ? (item.interaction_stats.likes || 0) : 0,
+                isFollowed: item.is_followed_back || false,
+                commentId: item.comment_id,
+                targetType: item.target_type,
+                targetId: item.target_id,
+                isRead: item.is_read
+            }
+        },
+
+        updateList(type, list, append) {
+            var key = type + 'List'
+            if (append) {
+                var current = this[key] || []
+                this.$set(this, key, current.concat(list))
+            } else {
+                this.$set(this, key, list)
+            }
+        },
+
+        switchTab(tab) {
+            if (tab === 'message') {
+                this.loadSessions()
+            } else {
+                this.loadNotifications(tab)
+            }
+        },
+
+        // Tab切换处理
+        handleTabClick(tab) {
+            this.switchTab(tab)
+        },
+
+        // 点赞
         toggleLike(item) {
-            item.isLiked = !item.isLiked
-            item.likeCount += item.isLiked ? 1 : -1
+            var self = this
+            var url = self.getNotificationUrl('notifications_like')
+            request.post(url, { comment_id: String(item.commentId) }, {}).then(function(d) {
+                if (d && d.code === 200) {
+                    item.isLiked = !item.isLiked
+                    item.likeCount += item.isLiked ? 1 : -1
+                }
+            }).catch(function() {
+                toast('操作失败', 2)
+            })
         },
+
+        // 回复
         handleReply(item) {
-            toast('回复功能开发中', 2)
+            var content = prompt('请输入回复内容:')
+            if (!content) return
+            var self = this
+            var url = self.getNotificationUrl('notifications_reply')
+            request.post(url, { comment_id: String(item.commentId), content: content }, {}).then(function(d) {
+                if (d && d.code === 200) {
+                    toast('回复成功', 2)
+                }
+            }).catch(function() {
+                toast('回复失败', 2)
+            })
         },
+
+        // 回关
         toggleFollow(item) {
-            item.isFollowed = !item.isFollowed
-            toast(item.isFollowed ? '已关注' : '已取消关注', 2)
+            var self = this
+            var url = self.getNotificationUrl('notifications_follow_back')
+            request.post(url, { follower_id: String(item.id) }, {}).then(function(d) {
+                if (d && d.code === 200) {
+                    item.isFollowed = !item.isFollowed
+                    toast(item.isFollowed ? '已关注' : '已取消关注', 2)
+                }
+            }).catch(function() {
+                toast('操作失败', 2)
+            })
         },
+
+        // 加载会话列表
+        loadSessions() {
+            var self = this
+            if (self.sessionsLoading) return
+            self.sessionsLoading = true
+            var url = self.getNotificationUrl('im_sessions')
+            request.get(url, {}).then(function(d) {
+                self.sessionsLoading = false
+                if (d && d.code === 200 && d.data) {
+                    var list = (d.data.list || []).map(function(s) {
+                        return {
+                            id: s.session_id,
+                            name: '用户' + s.peer_id,
+                            peerId: s.peer_id,
+                            avatar: '',
+                            lastMessage: s.last_message || '',
+                            lastTime: s.last_message_at ? new Date(s.last_message_at).getTime() : Date.now(),
+                            isMutualFollow: s.is_active || false,
+                            isActive: s.is_active || false,
+                            unreadCount: s.unread_count || 0,
+                            sentCount: 0,
+                            messages: []
+                        }
+                    })
+                    self.contacts = list
+                    // 如果当前有选中的会话，刷新消息
+                    if (self.selectedContact) {
+                        var found = list.find(function(c) { return c.id === self.selectedContact.id })
+                        if (found) {
+                            self.selectedContact = found
+                            self.loadMessages(self.selectedContact.id)
+                        }
+                    }
+                }
+            }).catch(function() {
+                self.sessionsLoading = false
+            })
+        },
+
+        // 加载消息列表
+        loadMessages(sessionId) {
+            var self = this
+            if (self.messagesLoading) return
+            self.messagesLoading = true
+            self.messagesCursor = null
+            self.messagesHasMore = true
+            var url = self.getNotificationUrl('im_messages')
+            request.get(url, { session_id: sessionId, size: 20 }).then(function(d) {
+                self.messagesLoading = false
+                if (d && d.code === 200 && d.data) {
+                    var data = d.data
+                    self.messagesCursor = data.next_cursor
+                    self.messagesHasMore = data.has_more
+                    var list = (data.list || []).map(function(m) {
+                        return {
+                            id: m.id,
+                            content: m.content,
+                            time: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
+                            isSelf: m.is_self,
+                            status: m.status
+                        }
+                    })
+                    if (self.selectedContact) {
+                        self.$set(self.selectedContact, 'messages', list)
+                    }
+                    // 标记已读
+                    if (list.length > 0) {
+                        self.markMessagesRead(sessionId, list[list.length - 1].id)
+                    }
+                }
+            }).catch(function() {
+                self.messagesLoading = false
+            })
+        },
+
+        // 标记已读
+        markMessagesRead(sessionId, lastReadId) {
+            var url = this.getNotificationUrl('im_read')
+            request.post(url, { session_id: sessionId, last_read_id: lastReadId }, {}).catch(function() {})
+        },
+
+        // 选择联系人
         selectContact(contact) {
             this.selectedContact = contact
+            this.loadMessages(contact.id)
         },
+
+        // 发送消息
         sendMessage() {
-            if (!this.messageInput.trim()) return
-            
-            const contact = this.selectedContact
+            var self = this
+            if (!self.messageInput.trim()) return
+            var contact = self.selectedContact
             if (!contact) return
-            
-            if (!contact.isMutualFollow && contact.sentCount >= 1) {
-                toast('对方未关注你，你最多只能发送1条消息', 2)
-                return
-            }
-            
-            const newMsg = {
-                id: Date.now(),
-                content: this.messageInput.trim(),
-                time: Date.now(),
-                isSelf: true
-            }
-            contact.messages.push(newMsg)
-            contact.sentCount++
-            contact.lastMessage = this.messageInput.trim()
-            contact.lastTime = Date.now()
-            
-            this.messageInput = ''
-            
-            setTimeout(() => {
-                const chatMessages = this.$refs.chatMessages
-                if (chatMessages) {
-                    chatMessages.scrollTop = chatMessages.scrollHeight
+
+            // 前端状态机检查
+            if (!contact.isActive && !contact.isMutualFollow) {
+                // 检查是否已发送过消息
+                var sentCount = 0
+                if (contact.messages) {
+                    sentCount = contact.messages.filter(function(m) { return m.isSelf }).length
                 }
-            }, 100)
+                if (sentCount >= 1) {
+                    toast('对方未关注你，你最多只能发送1条消息', 2)
+                    return
+                }
+            }
+
+            var content = self.messageInput.trim()
+            var url = self.getNotificationUrl('im_send')
+            request.post(url, { receiver_id: contact.peerId, content: content, msg_type: 1 }, {}).then(function(d) {
+                if (d && d.code === 200) {
+                    var newMsg = {
+                        id: d.data.message_id,
+                        content: content,
+                        time: Date.now(),
+                        isSelf: true,
+                        status: 0
+                    }
+                    if (!contact.messages) contact.messages = []
+                    contact.messages.push(newMsg)
+                    contact.lastMessage = content
+                    contact.lastTime = Date.now()
+                    contact.sentCount = (contact.sentCount || 0) + 1
+                    self.messageInput = ''
+                    self.$nextTick(function() {
+                        var el = self.$refs.chatMessages
+                        if (el) el.scrollTop = el.scrollHeight
+                    })
+                } else {
+                    var msg = (d && d.errorMessage) || '发送失败'
+                    if (d && d.code === 403) {
+                        msg = '由于对方并未关注你，在收到对方回复之前，你最多只能发送1条文字消息'
+                    }
+                    toast(msg, 2)
+                }
+            }).catch(function() {
+                toast('发送失败，请检查网络', 2)
+            })
+        },
+
+        // 未读计数轮询
+        startUnreadPolling() {
+            var self = this
+            self.fetchUnreadCount()
+            self.unreadTimer = setInterval(function() {
+                self.fetchUnreadCount()
+            }, 30000)
+        },
+        stopUnreadPolling() {
+            if (this.unreadTimer) {
+                clearInterval(this.unreadTimer)
+                this.unreadTimer = null
+            }
+        },
+        fetchUnreadCount() {
+            // 通过事件总线通知 home_bar 更新未读数
+            var url = this.getNotificationUrl('notifications_unread')
+            request.get(url, {}).then(function(d) {
+                if (d && d.code === 200 && d.data) {
+                    this.$emit('unread-update', d.data.total || 0)
+                }
+            }.bind(this)).catch(function() {})
+        },
+
+        // 滚动加载更多
+        onScroll(e, type) {
+            var el = e.target
+            if (el.scrollHeight - el.scrollTop - el.clientHeight < 100) {
+                this.loadMoreNotifications(type)
+            }
         }
     }
 }
@@ -444,6 +632,11 @@ export default {
     padding: 16px;
     min-height: 400px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.tab-content {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
 }
 
 .notification-list {

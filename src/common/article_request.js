@@ -47,6 +47,12 @@ service.interceptors.response.use(
     return data
   },
   error => {
+    // 401未授权 — 跳转到主页面，再弹出登录框
+    if (error.response && error.response.status === 401) {
+      sessionStorage.setItem('showLoginAfterRedirect', '1')
+      window.location.href = '/home'
+      return Promise.reject(error)
+    }
     // 444 — accessToken过期，尝试刷新后重放
     if (error.response && error.response.status === 444) {
       return refreshTokenAndRetry(error.config)
@@ -60,7 +66,8 @@ function refreshTokenAndRetry(config) {
   const accessToken = store.state.accessToken
   const refreshToken = store.state.refreshToken
   if (!refreshToken) {
-    store.dispatch('showLogin')
+    sessionStorage.setItem('showLoginAfterRedirect', '1')
+    window.location.href = '/home'
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }
   const refreshUrl = '/user/api/v1/token/refresh'
@@ -84,11 +91,13 @@ function refreshTokenAndRetry(config) {
       return axios(config).then(res => res.data)
     }
     store.dispatch('logout')
-    store.dispatch('showLogin')
+    sessionStorage.setItem('showLoginAfterRedirect', '1')
+    window.location.href = '/home'
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }).catch(() => {
     store.dispatch('logout')
-    store.dispatch('showLogin')
+    sessionStorage.setItem('showLoginAfterRedirect', '1')
+    window.location.href = '/home'
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   })
 }

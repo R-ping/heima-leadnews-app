@@ -20,10 +20,43 @@ export default {
         size: 10,
         max_behot_time: 0,
         min_behot_time: 20000000000000
-      }
+      },
+      // 每个标签页独立的推荐状态（seed + page）
+      recommendStates: [...Array(Config.tabTitles.length).keys()].map(() => ({
+        loaded: false,
+        loading: false,
+        loadingMore: false,
+        refreshing: false,
+        noMore: false,
+        error: false,
+        errorMsg: '',
+        seed: null,
+        page: 0
+      }))
     }
   },
   methods: {
+    /**
+     * 判断某个标签页是否应使用推荐算法
+     * 特殊标签（关注/阅读/排行榜）保留原有行为
+     */
+    shouldUseRecommend(tabId) {
+      if (tabId === '__follow__' || tabId === '__latest__' || tabId === '__hot__') {
+        return false
+      }
+      return true
+    },
+
+    /**
+     * 获取推荐API使用的channel参数
+     */
+    getRecommendChannel(tabId) {
+      if (tabId === '__recommend__' || tabId === '__all__') {
+        return '__all__'
+      }
+      return String(tabId)
+    },
+
     load(index, loaddir) {
       var idx = (index !== undefined) ? index : this.params.index
       var dir = (loaddir !== undefined) ? loaddir : this.params.loaddir
@@ -66,18 +99,29 @@ export default {
         self.$set(state, 'errorMsg', '网络请求失败，请检查网络连接')
       })
     },
+
     loadmore(index) {
       var state = this.tabStates[index]
       if (!state || state.loadingMore || state.noMore) return
       this.$set(state, 'loadingMore', true)
       this.load(index, 2)
     },
+
     loadnew(index) {
+      var tabId = Config.tabTitles[index].id
+      // 推荐标签页：刷新时重新生成种子
+      if (this.shouldUseRecommend(tabId)) {
+        this.resetRecommendState(index)
+        this.recommendLoad(index)
+        return
+      }
+      // 特殊标签页：保持原有行为
       var state = this.tabStates[index]
       if (!state || state.loading || state.refreshing) return
       this.$set(state, 'refreshing', true)
       this.load(index, 0)
     },
+
     tanfer(data, curIndex, loaddir) {
       if (!data || data.length === 0) {
         var state = this.tabStates[curIndex]
@@ -141,6 +185,7 @@ export default {
       this.showmore = false
       this.shownew = false
     },
+
     switchTab(index) {
       if (this.currentTab === index) return
       this.currentTab = index
@@ -149,6 +194,10 @@ export default {
       this.params.tag = Config.tabTitles[index].id
       this.params.max_behot_time = 0
       this.params.min_behot_time = 20000000000000
+
+      var tabId = Config.tabTitles[index].id
+
+      // 重置标签页状态
       this.$set(this.tabStates, index, {
         loaded: false, loading: false, loadingMore: false,
         refreshing: false, noMore: false, error: false, errorMsg: ''
@@ -156,8 +205,16 @@ export default {
       var newList = this.tabList.map(function (tab) { return tab.slice() })
       newList[index] = []
       this.tabList = newList
-      this.load(index, 1)
+
+      // 所有频道标签页（推荐/综合/后端/前端/Android/iOS/人工智能等）统一使用推荐算法
+      if (this.shouldUseRecommend(tabId)) {
+        this.resetRecommendState(index)
+        this.recommendLoad(index)
+      } else {
+        this.load(index, 1)
+      }
     },
+
     wxcTabPageCurrentTabSelected(e) {
       var index = e.page
       this.params.loaddir = 1
@@ -165,6 +222,9 @@ export default {
       this.params.tag = Config.tabTitles[index].id
       this.params.max_behot_time = 0
       this.params.min_behot_time = 20000000000000
+
+      var tabId = Config.tabTitles[index].id
+
       this.$set(this.tabStates, index, {
         loaded: false, loading: false, loadingMore: false,
         refreshing: false, noMore: false, error: false, errorMsg: ''
@@ -172,9 +232,148 @@ export default {
       var newList = this.tabList.map(function (tab) { return tab.slice() })
       newList[index] = []
       this.tabList = newList
-      this.load(index, 1)
+
+      if (this.shouldUseRecommend(tabId)) {
+        this.resetRecommendState(index)
+        this.recommendLoad(index)
+      } else {
+        this.load(index, 1)
+      }
     },
+
+    /**
+     * 重置推荐状态（清空种子和页码）
+     */
+    resetRecommendState(index) {
+      this.$set(this.recommendStates, index, {
+        loaded: false, loading: false, loadingMore: false,
+        refreshing: false, noMore: false, error: false, errorMsg: '',
+        seed: null, page: 0
+      })
+    },
+
+    /**
+     * 推荐加载（首屏/刷新）
+     * 每次调用不传 seed 时，后端生成新种子 → 不同的洗牌结果
+     */
+    recommendLoad(index) {
+      var self = this
+      var state = self.recommendStates[index]
+      if (state.loading) return
+      self.$set(state, 'loading', true)
+      self.$set(state, 'error', false)
+      // 同步 tabStates 状态给模板使用
+      self.$set(self.tabStates[index], 'loading', true)
+      self.$set(self.tabStates[index], 'error', false)
+      // 重置种子和页码（新请求）
+      self.$set(state, 'seed', null)
+      self.$set(state, 'page', 0)
+
+      var tabId = Config.tabTitles[index].id
+      var channel = self.getRecommendChannel(tabId)
+      var reqParams = {
+        channel: channel,
+        size: self.params.size || 10
+      }
+      Api.recommendLoad(reqParams).then(function(d) {
+        self.$set(state, 'loading', false)
+        self.$set(state, 'loaded', true)
+        self.$set(self.tabStates[index], 'loading', false)
+        self.$set(self.tabStates[index], 'loaded', true)
+        if (d && d.code === 200 && d.data) {
+          var data = d.data
+          self.$set(state, 'seed', data.seed)
+          self.$set(state, 'page', data.page || 0)
+          self.$set(state, 'noMore', !data.hasMore)
+          self.$set(self.tabStates[index], 'noMore', !data.hasMore)
+          if (data.list && data.list.length > 0) {
+            self.tanfer(data.list, index, 1)
+          }
+        } else {
+          self.$set(state, 'error', true)
+          self.$set(state, 'errorMsg', (d && d.errorMessage) || '加载失败，请检查网络')
+          self.$set(self.tabStates[index], 'error', true)
+          self.$set(self.tabStates[index], 'errorMsg', (d && d.errorMessage) || '加载失败，请检查网络')
+        }
+      }).catch(function() {
+        self.$set(state, 'loading', false)
+        self.$set(state, 'loaded', true)
+        self.$set(state, 'error', true)
+        self.$set(state, 'errorMsg', '网络请求失败，请检查网络连接')
+        self.$set(self.tabStates[index], 'loading', false)
+        self.$set(self.tabStates[index], 'loaded', true)
+        self.$set(self.tabStates[index], 'error', true)
+        self.$set(self.tabStates[index], 'errorMsg', '网络请求失败，请检查网络连接')
+      })
+    },
+
+    /**
+     * 推荐加载更多（无限滚动分页）
+     * 使用当前种子 + 递增页码，保证同一会话内分页一致性
+     */
+    recommendLoadMore(index) {
+      var self = this
+      var state = self.recommendStates[index]
+      if (state.loadingMore || state.noMore || state.loading) return
+      self.$set(state, 'loadingMore', true)
+      self.$set(self.tabStates[index], 'loadingMore', true)
+      var nextPage = (state.page || 0) + 1
+
+      var tabId = Config.tabTitles[index].id
+      var channel = self.getRecommendChannel(tabId)
+      var reqParams = {
+        channel: channel,
+        size: self.params.size || 10,
+        seed: state.seed,
+        page: nextPage
+      }
+      Api.recommendLoad(reqParams).then(function(d) {
+        self.$set(state, 'loadingMore', false)
+        self.$set(self.tabStates[index], 'loadingMore', false)
+        if (d && d.code === 200 && d.data) {
+          var data = d.data
+          self.$set(state, 'page', data.page || nextPage)
+          self.$set(state, 'noMore', !data.hasMore)
+          self.$set(self.tabStates[index], 'noMore', !data.hasMore)
+          if (data.list && data.list.length > 0) {
+            self.tanfer(data.list, index, 1)
+          } else {
+            self.$set(state, 'noMore', true)
+            self.$set(self.tabStates[index], 'noMore', true)
+          }
+        }
+      }).catch(function() {
+        self.$set(state, 'loadingMore', false)
+        self.$set(self.tabStates[index], 'loadingMore', false)
+      })
+    },
+
+    /**
+     * 推荐滚动事件处理（无限滚动检测）
+     */
+    recommendOnScroll(e, index) {
+      var el = e.target
+      var scrollTop = el.scrollTop
+      var scrollHeight = el.scrollHeight
+      var clientHeight = el.clientHeight
+      var state = this.recommendStates[index]
+      if (scrollHeight - scrollTop - clientHeight < 150) {
+        if (state && !state.loadingMore && !state.noMore && !state.loading && state.loaded) {
+          this.recommendLoadMore(index)
+        }
+      }
+    },
+
+    /**
+     * 滚动事件入口
+     * 所有推荐标签页走 recommendOnScroll，特殊标签页保持原有逻辑
+     */
     onScroll(e, index) {
+      var tabId = Config.tabTitles[index].id
+      if (this.shouldUseRecommend(tabId)) {
+        this.recommendOnScroll(e, index)
+        return
+      }
       var el = e.target
       var scrollTop = el.scrollTop
       var scrollHeight = el.scrollHeight
@@ -186,7 +385,13 @@ export default {
         }
       }
     },
+
     onDesktopScroll(e) {
+      var tabId = Config.tabTitles[this.currentTab].id
+      if (this.shouldUseRecommend(tabId)) {
+        this.recommendOnScroll(e, this.currentTab)
+        return
+      }
       var el = e.target
       var scrollTop = el.scrollTop
       var scrollHeight = el.scrollHeight
@@ -198,12 +403,14 @@ export default {
         }
       }
     },
+
     resetTabState(index) {
       this.$set(this.tabStates, index, {
         loaded: false, loading: false, loadingMore: false,
         refreshing: false, noMore: false, error: false, errorMsg: ''
       })
     },
+
     clearTabList(index) {
       var newList = this.tabList.map(function (tab) { return tab.slice() })
       newList[index] = []

@@ -48,9 +48,9 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
      */
     @Async
     @Override
-    public void buildHTMLAndSend(ApArticle apArticle, String content, long lastTime) {
-        //
-        sendObjExecutionMsg2Mq(apArticle.getId(), lastTime);
+    public void buildHTMLAndSend(ApArticle apArticle, String content, long lastExecuteInterval) {
+        //发送最终的延迟消息
+        sendObjExecutionMsg2Mq(apArticle.getId(), lastExecuteInterval);
         //已知文章的id
         SearchArticleVo vo = new SearchArticleVo();
         BeanUtils.copyProperties(apArticle, vo);
@@ -86,24 +86,21 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
 
     /**
      * 最后延迟，改变文章可见状态
-     * @param articleId
-     * @param lastTime
      */
-    public void sendObjExecutionMsg2Mq(Long articleId, long lastTime) {
+    public void sendObjExecutionMsg2Mq(Long articleId, long lastExecuteInterval) {
         SearchArticleVo vo = new SearchArticleVo();
         vo.setId(articleId);
-        vo.setPublishTime(new Date(lastTime));
         // mq发送延迟任务
-        sendDelayMsg2Mq("article.last.do", vo, getCorrelationData(vo, false));
+        sendDelayMsg2Mq("article.last.do", vo,lastExecuteInterval, getCorrelationData(vo, false));
         log.info("last延迟消息发送成功");
     }
 
     public void sendArticleVo2Mq(SearchArticleVo vo) {
-        CorrelationData minio_es = getCorrelationData(vo,false);
-        sendMsg2Mq("article.minio.es", vo,minio_es);
+        CorrelationData minio_es = getCorrelationData(vo, false);
+        sendMsg2Mq("article.minio.es", vo, minio_es);
     }
 
-    public CorrelationData getCorrelationData(SearchArticleVo vo,boolean retry) {
+    public CorrelationData getCorrelationData(SearchArticleVo vo, boolean retry) {
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         correlationData.getFuture().thenAcceptAsync(confirm -> {
             log.info("生产者投递消息confirmCallback 回执");
@@ -129,12 +126,12 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
         rabbitTemplate.convertAndSend("article.exchange", routingKey, vo, correlationData);
     }
 
-    public void sendDelayMsg2Mq(String routingKey, SearchArticleVo vo, CorrelationData correlationData) {
-        rabbitTemplate.convertAndSend("delay.exchange"  , routingKey, vo,
+    public void sendDelayMsg2Mq(String routingKey, SearchArticleVo vo, long lastExecuteInterval, CorrelationData correlationData) {
+        rabbitTemplate.convertAndSend("delay.exchange", routingKey, vo,
             message -> {
-                message.getMessageProperties().setDelayLong(vo.getPublishTime().getTime());
+                message.getMessageProperties().setDelayLong(lastExecuteInterval);
                 return message;
-            },correlationData);
+            }, correlationData);
     }
 
     private void buildFileNameAndPath(ApArticle apArticle, SearchArticleVo vo) {

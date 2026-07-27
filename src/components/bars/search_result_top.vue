@@ -1,9 +1,9 @@
-﻿<template>
+<template>
     <div class="bar_bg">
         <!-- 品牌标识 -->
         <div class="brand" @click="home">
             <img class="brand-logo" src="/static/images/logo-icon.svg" alt="logo" />
-            <span class="brand-text">黑马头条</span>
+            <span class="brand-text">逐日Coding</span>
         </div>
         <span class="icon back-icon" @click="back">&#xf104;</span>
         <Search

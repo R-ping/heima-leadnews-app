@@ -52,7 +52,7 @@
                         </div>
                     </div>
                     <div class="qr-tip">
-                        <span>打开黑马头条APP</span>
+                        <span>打开逐日Coding APP</span>
                         <span>点击"我的-扫一扫"登录</span>
                     </div>
                 </div>
