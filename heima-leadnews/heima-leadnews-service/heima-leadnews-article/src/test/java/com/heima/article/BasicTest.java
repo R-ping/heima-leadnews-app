@@ -4,10 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import com.heima.article.mapper.ApArticleMapper;
 import com.heima.model.article.pojos.ApArticle;
 import java.util.Arrays;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+@Disabled("Requires running services")
 @SpringBootTest
 public class BasicTest {
     @Autowired

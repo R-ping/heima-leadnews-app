@@ -10,6 +10,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled("Requires running services")
 @SpringBootTest(classes = ArticleApplication.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("BailianAiService单元测试")

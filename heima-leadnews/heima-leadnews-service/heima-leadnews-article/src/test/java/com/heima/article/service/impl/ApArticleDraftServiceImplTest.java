@@ -29,6 +29,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -187,15 +188,14 @@ class ApArticleDraftServiceImplTest {
         });
         when(apArticleConfigMapper.insert(any(ApArticleConfig.class))).thenReturn(1);
         when(apArticleContentMapper.insert(any(ApArticleContent.class))).thenReturn(1);
-        doNothing().when(articleAutoScanService).autoScanArticle(anyLong());
-        doNothing().when(articleTaskService).addArticleToTask(anyLong(), any(Date.class));
+        when(articleAutoScanService.autoScanArticle(anyLong())).thenReturn(CompletableFuture.completedFuture(true));
 
         ResponseResult result = apArticleDraftService.publishFromDraft(1L);
 
         assertNotNull(result);
         assertEquals(200, result.getCode());
         verify(apArticleMapper, times(1)).insert(any(ApArticle.class));
-        verify(articleTaskService, times(1)).addArticleToTask(anyLong(), any(Date.class));
+        verify(articleAutoScanService, times(1)).autoScanArticle(anyLong());
     }
 
     // ==================== getDraftById ====================

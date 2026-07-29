@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled("Requires running services")
 @SpringBootTest(classes = ArticleApplication.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("ArticleAutoScanService单元测试")

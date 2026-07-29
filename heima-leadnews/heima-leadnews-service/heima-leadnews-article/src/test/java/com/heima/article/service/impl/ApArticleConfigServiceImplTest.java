@@ -1,8 +1,12 @@
 package com.heima.article.service.impl;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.heima.article.mapper.ApArticleConfigMapper;
 import com.heima.model.article.pojos.ApArticleConfig;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +35,13 @@ class ApArticleConfigServiceImplTest {
 
     private Map<String, Object> map;
 
+    @BeforeAll
+    static void initTableInfo() {
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(configuration, "");
+        TableInfoHelper.initTableInfo(assistant, ApArticleConfig.class);
+    }
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(apArticleConfigService, "baseMapper", apArticleConfigMapper);
@@ -44,7 +55,7 @@ class ApArticleConfigServiceImplTest {
     @Test
     @DisplayName("修改文章配置 - enable=1上架，isDown=false")
     void testUpdateByMap_Enable() {
-        when(apArticleConfigMapper.update(any(), any(Wrapper.class))).thenReturn(1);
+        doReturn(1).when(apArticleConfigMapper).update(any(), any(Wrapper.class));
 
         apArticleConfigService.updateByMap(map);
 
@@ -55,7 +66,7 @@ class ApArticleConfigServiceImplTest {
     @DisplayName("修改文章配置 - enable=0下架，isDown=true")
     void testUpdateByMap_Disable() {
         map.put("enable", 0);
-        when(apArticleConfigMapper.update(any(), any(Wrapper.class))).thenReturn(1);
+        doReturn(1).when(apArticleConfigMapper).update(any(), any(Wrapper.class));
 
         apArticleConfigService.updateByMap(map);
 
