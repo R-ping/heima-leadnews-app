@@ -1,71 +1,71 @@
 import request from '@/common/request'
 
 export const getUserStatistics = () => {
-  return request.get('/api/v1/user/statistics')
+  return request.get('/user/api/v1/user/statistics')
 }
 
 export const getUserProfile = () => {
-  return request.get('/api/v1/user/profile')
+  return request.get('/user/api/v1/user/profile')
 }
 
 export const updateUserProfile = (data) => {
-  return request.put('/api/v1/user/profile', data)
+  return request.put('/user/api/v1/user/profile', data)
 }
 
 export const uploadAvatar = (file) => {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/api/v1/user/avatar', formData, {
+  return request.post('/user/api/v1/user/avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
 
 // 获取账号绑定状态
 export const getBindings = () => {
-  return request.get('/api/v1/user/bindings')
+  return request.get('/user/api/v1/user/bindings')
 }
 
 // 修改密码
 export const updatePassword = (data) => {
-  return request.put('/api/v1/user/password', data)
+  return request.put('/user/api/v1/user/password', data)
 }
 
 // 注销账号
 export const deleteAccount = () => {
-  return request.del('/api/v1/user/account')
+  return request.del('/user/api/v1/user/account')
 }
 
 // 更新私信权限
 export const updatePrivacyMessage = (data) => {
-  return request.put('/api/v1/user/privacy/message', data)
+  return request.put('/user/api/v1/user/privacy/message', data)
 }
 
 // 获取屏蔽列表
 export const getBlocks = (type, page = 1, size = 10) => {
-  return request.get('/api/v1/user/blocks', { params: { type, page, size } })
+  return request.get('/user/api/v1/user/blocks', { params: { type, page, size } })
 }
 
 // 解除屏蔽
 export const removeBlock = (id) => {
-  return request.del(`/api/v1/user/blocks/${id}`)
+  return request.del(`/user/api/v1/user/blocks/${id}`)
 }
 
 // 获取标签发现列表
 export const getTagsDiscover = (params) => {
-  return request.get('/api/v1/tags/discover', { params })
+  return request.get('/user/api/v1/tags/discover', { params })
 }
 
 // 获取已关注标签
 export const getFollowedTags = () => {
-  return request.get('/api/v1/tags/followed')
+  return request.get('/user/api/v1/tags/followed')
 }
 
 // 关注标签
 export const followTag = (tagId) => {
-  return request.post(`/api/v1/tags/follow/${tagId}`)
+  return request.post(`/user/api/v1/tags/follow/${tagId}`)
 }
 
 // 取关标签
 export const unfollowTag = (tagId) => {
-  return request.del(`/api/v1/tags/follow/${tagId}`)
+  return request.del(`/user/api/v1/tags/follow/${tagId}`)
 }

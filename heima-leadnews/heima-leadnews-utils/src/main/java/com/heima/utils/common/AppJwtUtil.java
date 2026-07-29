@@ -26,7 +26,7 @@ public class AppJwtUtil {
     // 生产ID
     public static String getToken(Long id) {
         Map<String, Object> claimMaps = new HashMap<>();
-        claimMaps.put("id", id);
+        claimMaps.put("userId", id);
         long currentTime = System.currentTimeMillis();
         return Jwts.builder()
             .setId(UUID.randomUUID().toString())
@@ -49,7 +49,7 @@ public class AppJwtUtil {
      */
     public static String getToken(Long id, Map<String, Object> extraClaims) {
         Map<String, Object> claimMaps = new HashMap<>();
-        claimMaps.put("id", id);
+        claimMaps.put("userId", id);
         if (extraClaims != null) {
             claimMaps.putAll(extraClaims);
         }
@@ -124,7 +124,7 @@ public class AppJwtUtil {
      * 由字符串生成加密key
      */
     public static SecretKey generalKey() {
-        byte[] encodedKey = Base64.getEncoder().encode(getTokenEncryKey().getBytes());
+        byte[] encodedKey = Base64.getDecoder().decode(getTokenEncryKey());
         return new SecretKeySpec(encodedKey, SignatureAlgorithm.HS512.getJcaName()); // HmacSHA512
     }
 

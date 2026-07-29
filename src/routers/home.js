@@ -71,6 +71,11 @@ let routes = [
                 path:'/user/:id',
                 name:'user-profile',
                 component:User
+            },
+            {
+                path:'/notification',
+                name:'notification',
+                component:Notification
             }
         ]
     },{
@@ -94,10 +99,6 @@ let routes = [
         path:'/oauth/callback',
         name:'oauth-callback',
         component:OAuthCallback
-    },{
-        path:'/notification',
-        name:'notification',
-        component:Notification
     },{
         path:'/pins',
         name:'pins',

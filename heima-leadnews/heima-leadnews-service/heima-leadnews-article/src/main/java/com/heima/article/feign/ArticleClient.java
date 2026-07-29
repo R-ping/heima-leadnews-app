@@ -60,12 +60,8 @@ public class ArticleClient implements IArticleClient {
     }
 
     @GetMapping("/api/v1/article/info")
-    public ResponseResult getArticleInfo(@RequestParam("articleId") Long articleId) {
-        ApArticle apArticle = apArticleService.getById(articleId);
-        if (apArticle == null) {
-            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST);
-        }
-        return ResponseResult.okResult(apArticle);
+    public ApArticle getArticleInfo(@RequestParam("articleId") Long articleId) {
+        return apArticleService.getById(articleId);
     }
     @PostMapping("/api/v1/article/generate/event")
     public boolean generateArticleEvent(@RequestBody ApArticle article, @RequestParam("lastExecuteInterval") long lastExecuteInterval) {
@@ -75,7 +71,7 @@ public class ArticleClient implements IArticleClient {
     @PostMapping("/api/v1/article/publish")
     public ResponseResult publishArticle(@RequestParam("articleId") Long articleId) {
         articleTaskService.publishArticle(articleId);
-        return ResponseResult.okResult();
+           return ResponseResult.okResult();
     }
 
     @PostMapping("/api/v1/article/list")

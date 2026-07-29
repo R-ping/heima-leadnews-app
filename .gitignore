@@ -51,3 +51,6 @@ opencode.jsonc
 generate_static.cjs
 publish_article.cjs
 article_*.html
+
+# 覆盖率报告
+jacoco-0.8.15/

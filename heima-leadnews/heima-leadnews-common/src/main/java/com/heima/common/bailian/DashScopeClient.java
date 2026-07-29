@@ -12,47 +12,29 @@ import com.alibaba.dashscope.exception.ApiException;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.utils.Constants;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class DashScopeClient {
 
-    @Value("${bailian.dashscope.api-key}")
-    private String apiKey;
+    @Autowired
+    private BailianConfig bailianConfig;
 
-    @Value("${bailian.dashscope.api-host:https://dashscope.aliyuncs.com}")
-    private String apiHost;
+    private final int maxRetries=3;
 
-    @Value("${bailian.dashscope.model:qwen-plus}")
-    private String model;
-
-    @Value("${bailian.dashscope.embedding-model:text-embedding-v2}")
-    private String embeddingModel;
-
-    @Value("${bailian.dashscope.timeout.connect:5000}")
-    private int connectTimeout;
-
-    @Value("${bailian.dashscope.timeout.read:30000}")
-    private int readTimeout;
-
-    @Value("${bailian.dashscope.retry.max-attempts:3}")
-    private int maxRetries;
-
-    @Value("${bailian.dashscope.retry.backoff-delay:1000}")
-    private long backoffDelay;
+    private final long backoffDelay=1000;
 
     @PostConstruct
     public void init() {
-        if (apiKey != null && !apiKey.isEmpty()) {
-            Constants.apiKey = apiKey;
+        if (bailianConfig.getApiKey() != null && !bailianConfig.getApiKey().isEmpty()) {
+            Constants.apiKey = bailianConfig.getApiKey();
             log.info("DashScope API Key configured successfully");
         } else {
             log.warn("DASH_SCOPE_API_KEY environment variable is not set. AI analysis will be disabled.");
@@ -66,7 +48,7 @@ public class DashScopeClient {
      * @return 模型响应文本
      */
     public String callGeneration(String systemPrompt, String userMessage) {
-        if (apiKey == null || apiKey.isEmpty()) {
+        if (bailianConfig.getApiKey() == null || bailianConfig.getApiKey().isEmpty()) {
             log.warn("DashScope API Key not configured, skipping AI call");
             return null;
         }
@@ -88,8 +70,8 @@ public class DashScopeClient {
                         .build();
 
                 GenerationParam param = GenerationParam.builder()
-                        .apiKey(apiKey)
-                        .model(model)
+                        .apiKey(bailianConfig.getApiKey())
+                        .model(bailianConfig.getModel())
                         .messages(Arrays.asList(systemMsg, userMsg))
                         .resultFormat(GenerationParam.ResultFormat.MESSAGE)
                         .topP(0.8)
@@ -139,7 +121,7 @@ public class DashScopeClient {
      * @return 向量嵌入（double数组）
      */
     public double[] callEmbedding(String text) {
-        if (apiKey == null || apiKey.isEmpty()) {
+        if (bailianConfig.getApiKey() == null || bailianConfig.getApiKey().isEmpty()) {
             log.warn("DashScope API Key not configured, skipping embedding call");
             return null;
         }
@@ -151,8 +133,8 @@ public class DashScopeClient {
                 TextEmbedding embedding = new TextEmbedding();
                 
                 TextEmbeddingParam param = TextEmbeddingParam.builder()
-                        .apiKey(apiKey)
-                        .model(embeddingModel)
+                        .apiKey(bailianConfig.getApiKey())
+                        .model(bailianConfig.getEmbeddingModel())
                         .texts(Collections.singletonList(text))
                         .build();
 

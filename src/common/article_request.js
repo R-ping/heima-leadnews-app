@@ -2,6 +2,9 @@ import axios from 'axios'
 import BigInt from 'json-bigint'
 import store from '@/stores/store'
 
+// 防止并发刷新
+var _refreshing = false
+
 // create an axios instance
 const service = axios.create({
   baseURL: '/article',
@@ -47,10 +50,10 @@ service.interceptors.response.use(
     return data
   },
   error => {
-    // 401未授权 — 跳转到主页面，再弹出登录框
+    // 401未授权 — 清除过期token后弹出登录弹窗
     if (error.response && error.response.status === 401) {
-      sessionStorage.setItem('showLoginAfterRedirect', '1')
-      window.location.href = '/home'
+      store.dispatch('logout')
+      store.dispatch('showLogin')
       return Promise.reject(error)
     }
     // 444 — accessToken过期，尝试刷新后重放
@@ -66,10 +69,15 @@ function refreshTokenAndRetry(config) {
   const accessToken = store.state.accessToken
   const refreshToken = store.state.refreshToken
   if (!refreshToken) {
-    sessionStorage.setItem('showLoginAfterRedirect', '1')
-    window.location.href = '/home'
+    store.dispatch('logout')
+    store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }
+  // 防止并发刷新：多个请求同时触发444时，只执行一次刷新
+  if (_refreshing) {
+    return Promise.reject({ code: 444, errorMessage: '正在刷新登录状态，请稍候' })
+  }
+  _refreshing = true
   const refreshUrl = '/user/api/v1/token/refresh'
   const refreshTime = new Date().getTime()
   return axios({
@@ -86,18 +94,19 @@ function refreshTokenAndRetry(config) {
     const d = response.data
     if (d && d.code === 200 && d.data && d.data.accessToken) {
       store.dispatch('login', d.data)
+      _refreshing = false
       // 用新token重放原请求
       config.headers['accToken'] = d.data.accessToken
-      return axios(config).then(res => res.data)
+      return service(config)
     }
+    _refreshing = false
     store.dispatch('logout')
-    sessionStorage.setItem('showLoginAfterRedirect', '1')
-    window.location.href = '/home'
+    store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }).catch(() => {
+    _refreshing = false
     store.dispatch('logout')
-    sessionStorage.setItem('showLoginAfterRedirect', '1')
-    window.location.href = '/home'
+    store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   })
 }

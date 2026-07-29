@@ -37,6 +37,12 @@ public class ApUserLevel implements Serializable {
     @TableField("power_value_today")
     private Integer powerValueToday;
 
+    /**
+     * 钻石余额
+     */
+    @TableField("diamond_balance")
+    private Integer diamondBalance;
+
     @TableField("created_time")
     private Date createdTime;
 

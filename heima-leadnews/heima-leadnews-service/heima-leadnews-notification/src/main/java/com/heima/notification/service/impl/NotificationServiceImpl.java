@@ -75,6 +75,9 @@ public class NotificationServiceImpl implements NotificationService {
         if (userId == null || commentId == null || content == null || content.trim().isEmpty()) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "参数不能为空");
         }
+        if (commentClient == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "评论服务暂不可用");
+        }
         try {
             ResponseResult commentResult = commentClient.getCommentById(commentId);
             if (commentResult == null || commentResult.getCode() != AppHttpCodeEnum.SUCCESS.getCode()) {
@@ -100,6 +103,9 @@ public class NotificationServiceImpl implements NotificationService {
         if (userId == null || commentId == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "参数不能为空");
         }
+        if (commentClient == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "评论服务暂不可用");
+        }
         try {
             CommentDto dto = new CommentDto();
             dto.setCommentId(commentId);
@@ -117,6 +123,9 @@ public class NotificationServiceImpl implements NotificationService {
         }
         if (userId.equals(followerId)) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "不能自己关注自己");
+        }
+        if (followClient == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "关注服务暂不可用");
         }
         try {
             return followClient.follow(userId, followerId);
@@ -175,6 +184,39 @@ public class NotificationServiceImpl implements NotificationService {
         incrUnreadCache(userId);
 
         return ResponseResult.okResult(notification.getId());
+    }
+
+    @Override
+    public ResponseResult sendActivityNotification(Long userId, String title, String content, String link) {
+        if (userId == null || title == null || content == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "参数不能为空");
+        }
+        try {
+            // 构建content JSON
+            Map<String, Object> contentMap = new HashMap<>();
+            contentMap.put("title", title);
+            contentMap.put("content", content);
+            contentMap.put("link", link);
+            contentMap.put("notification_type", "activity");
+            String contentJson = objectMapper.writeValueAsString(contentMap);
+
+            Notification notification = new Notification();
+            notification.setUserId(userId);
+            notification.setType(4); // system类型
+            notification.setSourceId(null);
+            notification.setContent(contentJson);
+            notification.setIsRead(0);
+            notification.setCreatedAt(java.time.LocalDateTime.now());
+            notificationMapper.insert(notification);
+
+            // 更新Redis未读计数
+            incrUnreadCache(userId);
+
+            return ResponseResult.okResult(notification.getId());
+        } catch (Exception e) {
+            log.error("sendActivityNotification error: userId={}, title={}", userId, title, e);
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "发送活动通知失败");
+        }
     }
 
     @Override

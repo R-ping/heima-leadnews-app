@@ -20,7 +20,6 @@
                     </nav>
                     <div class="header-center">
                         <div class="web-search-box" ref="searchBox">
-                            <span class="web-search-icon">&#xf002;</span>
                             <input
                                 v-model="searchKeyword"
                                 type="text"
@@ -71,6 +70,17 @@
                             <span class="btn-icon">&#xf040;</span>创作者中心
                         </span>
                         <span v-if="!isLoggedIn" class="header-btn login-btn" @click="showLogin">登录</span>
+                        <div class="notification-bell" v-if="isLoggedIn" @mouseenter="showNotificationDropdown = true">
+                            <span class="bell-icon" @click.stop="goToNotification('comment')">&#xf0f3;</span>
+                            <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                            <div class="notification-dropdown" v-if="showNotificationDropdown" @mouseleave="showNotificationDropdown = false">
+                                <div class="dropdown-item" @click.stop="goToNotification('comment')">评论</div>
+                                <div class="dropdown-item" @click.stop="goToNotification('like')">赞和收藏</div>
+                                <div class="dropdown-item" @click.stop="goToNotification('follow')">新增粉丝</div>
+                                <div class="dropdown-item" @click.stop="goToNotification('message')">私信</div>
+                                <div class="dropdown-item" @click.stop="goToNotification('system')">系统通知</div>
+                            </div>
+                        </div>
                         <div v-if="isLoggedIn" class="header-user" @click="toggleUserDropdown">
                             <img v-if="userAvatar" class="header-avatar" :src="userAvatar" alt="头像"/>
                             <span v-else class="header-avatar-default">&#xf007;</span>
@@ -214,6 +224,8 @@
     import { getRecommendTopics } from '@/apis/topic'
     import { getTodayStatus, doCheckIn } from '@/apis/checkin'
     import UserDropdown from '@/components/bars/UserDropdown.vue'
+    import conf from '@/common/conf'
+    import request from '@/common/request'
 
     var SEARCH_HISTORY_KEY = 'HEIMA_SEARCH_HISTORY'
     var MAX_HISTORY_COUNT = 6
@@ -294,7 +306,10 @@
                     consecutiveDays: 0,
                     totalOre: 0
                 },
-                recommendTopics: []
+                recommendTopics: [],
+                unreadCount: 0,
+                unreadTimer: null,
+                showNotificationDropdown: false
             }
         },
         computed: {
@@ -328,7 +343,7 @@
                 return this.levelScore + ' / ' + this.levelMax
             },
             isUserPage() {
-                return this.$route.path.startsWith('/user/');
+                return this.$route.path.startsWith('/user/') || this.$route.path === '/notification';
             },
             isHotPage() {
                 return this.$route.path === '/hot'
@@ -358,6 +373,8 @@
             this.searchHistory = getSearchHistory()
             this.loadRecommendTopics()
             this.loadCheckinStatus()
+            this.fetchUnreadCount()
+            this.unreadTimer = setInterval(() => this.fetchUnreadCount(), 30000)
         },
         watch: {
             '$route.path': function(newPath) {
@@ -366,14 +383,20 @@
             isLoggedIn: function(newVal) {
                 if (newVal) {
                     this.loadCheckinStatus()
+                    this.fetchUnreadCount()
                 } else {
                     this.checkinTodayStatus = { isSignedIn: false, consecutiveDays: 0, totalOre: 0 }
+                    this.unreadCount = 0
                 }
             }
         },
         beforeDestroy() {
             window.removeEventListener('resize', this.handleResize)
             document.removeEventListener('click', this.closeDropdown)
+            if (this.unreadTimer) {
+                clearInterval(this.unreadTimer)
+                this.unreadTimer = null
+            }
             if (this.searchTimer) {
                 clearTimeout(this.searchTimer)
                 this.searchTimer = null
@@ -676,6 +699,18 @@
             },
             goToTopic(topicId) {
                 this.$router.push('/topic/' + topicId)
+            },
+            goToNotification(type = 'comment') {
+                this.showNotificationDropdown = false
+                this.$router.push('/notification?tab=' + type)
+            },
+            fetchUnreadCount() {
+                if (!this.isLoggedIn) return
+                request.get(conf.urls.get('notifications_unread'), {}).then(d => {
+                    if (d && d.code === 200 && d.data) {
+                        this.unreadCount = d.data.total || 0
+                    }
+                }).catch(() => {})
             }
         }
     };
@@ -768,6 +803,7 @@
             align-items: center;
             padding: 0 24PX;
             box-sizing: border-box;
+            justify-content: space-between;
         }
 
         .header-left {
@@ -845,9 +881,9 @@
         }
 
         .header-center {
-            flex: 1;
-            max-width: 380PX;
-            margin: 0 0;
+            flex: 0;
+            width: 220PX;
+            margin: 0 16PX;
         }
 
         .web-search-box {
@@ -857,21 +893,21 @@
             height: 40PX;
             background-color: #f4f5f5;
             border-radius: 20PX;
-            padding: 0 16PX 0 20PX;
+            padding: 0 16PX;
             width: 100%;
             box-sizing: border-box;
             transition: background-color 0.2s;
         }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12PX;
+            flex-shrink: 0;
+        }
         .web-search-box:focus-within {
             background-color: #ffffff;
             box-shadow: 0 0 0 2PX rgba(49,148,255,0.2);
-        }
-        .web-search-icon {
-            font-family: fontawesome;
-            font-size: 15PX;
-            color: #999;
-            margin-right: 10PX;
-            flex-shrink: 0;
         }
         .web-search-input {
             flex: 1;
@@ -1111,6 +1147,64 @@
 
         .header-user {
             position: relative;
+        }
+
+        .notification-bell {
+            position: relative;
+            width: 36PX;
+            height: 36PX;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+        .notification-bell:hover {
+            background-color: #f4f5f5;
+        }
+        .bell-icon {
+            font-family: fontawesome;
+            font-size: 20PX;
+            color: #515767;
+        }
+        .unread-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 16PX;
+            height: 16PX;
+            line-height: 16PX;
+            text-align: center;
+            background: #ff4d4f;
+            color: #fff;
+            font-size: 10PX;
+            border-radius: 8PX;
+            padding: 0 4PX;
+            transform: translate(30%, -30%);
+        }
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: #ffffff;
+            border-radius: 8PX;
+            box-shadow: 0 4PX 20PX rgba(0,0,0,0.12);
+            z-index: 300;
+            overflow: hidden;
+            min-width: 120PX;
+        }
+        .dropdown-item {
+            padding: 10PX 16PX;
+            font-size: 14PX;
+            color: #333;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f5f7fa;
         }
 
         .desktop-container {

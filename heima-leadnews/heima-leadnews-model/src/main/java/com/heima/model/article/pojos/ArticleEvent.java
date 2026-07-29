@@ -13,10 +13,6 @@ public class ArticleEvent {
      */
     private Long articleId;
 
-//    private Integer wmNewsId;
-    // 1 事务失败，2 事务成功
-//    private Byte transactionalStatus;
-
     private Byte retryCount; // 重试次数，默认0，理想情况minio、es都可重试1次
     private Byte maxRetryCount = 2; // 最大重试次数
     private Date retryTime; // 重试时间

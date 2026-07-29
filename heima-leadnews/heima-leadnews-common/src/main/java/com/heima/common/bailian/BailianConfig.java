@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 public class BailianConfig {
 
     private String apiKey;
-    private String apiHost = "https://dashscope.aliyuncs.com";
-    private String model = "qwen-plus";
-    private String embeddingModel = "text-embedding-v2";
+    private String apiHost;
+    private String model = "qwen3.7-plus";
+    private String embeddingModel = "qwen3.7-text-embedding";
     private Timeout timeout = new Timeout();
     private Retry retry = new Retry();
 

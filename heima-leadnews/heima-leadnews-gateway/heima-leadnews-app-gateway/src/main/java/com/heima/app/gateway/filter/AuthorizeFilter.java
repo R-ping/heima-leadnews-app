@@ -26,12 +26,12 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
         ServerHttpResponse response = exchange.getResponse();
         String path = request.getURI().getPath();
         //2.判断是否是登录/注册/token刷新/社交登录相关接口（放行）
-        // 注意：使用路径后缀精确匹配，避免 /login 被路径中包含 login 的任意请求绕过
+        // 注意：使用精确前缀/后缀匹配，避免 path.contains() 被路径中包含关键词的任意请求绕过
         if (path.endsWith("/login") || path.endsWith("/login_auth")
-            || path.contains("/using") || path.contains("/oauth2/code/")
-            || path.contains("/token/refresh") || path.contains("/token/logout")
-            || path.contains("/social_auth") || path.contains("/social_bind") || path.contains("/social_register")
-            || path.contains("/load")||path.contains("/login/code")) {
+            || path.startsWith("/api/v1/login/")
+            || path.startsWith("/api/v1/oauth2/")
+            || path.startsWith("/api/v1/token/")
+            || path.startsWith("/load") || path.startsWith("/using")) {
 //        if(true){
             //放行
             return chain.filter(exchange);
@@ -56,13 +56,15 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
                 return response.setComplete();
             }
             //获取用户信息
-            Object userId = claimsBody.get("id");
+            Object userId = claimsBody.get("userId");
+            String nickName = (String) claimsBody.get("nickName");
             //存储header中
             ServerHttpRequest serverHttpRequest = request.mutate().headers(httpHeaders -> {
                 httpHeaders.add("userId", userId.toString());
+                httpHeaders.add("nickName", nickName);
             }).build();
             //重置请求
-            exchange.mutate().request(serverHttpRequest);
+            exchange = exchange.mutate().request(serverHttpRequest).build();
         } catch (Exception e) {
 //            e.printStackTrace();
             log.error("app端jwt解析失败：" + e.getMessage());

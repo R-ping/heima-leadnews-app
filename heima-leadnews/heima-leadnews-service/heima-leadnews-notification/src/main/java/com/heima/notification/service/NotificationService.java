@@ -20,4 +20,6 @@ public interface NotificationService {
     ResponseResult createNotification(Long userId, Integer type, String sourceId, String content);
 
     void incrUnreadCache(Long userId);
+
+    ResponseResult sendActivityNotification(Long userId, String title, String content, String link);
 }

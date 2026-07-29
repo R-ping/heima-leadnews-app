@@ -1,6 +1,5 @@
 <template>
     <div class="notification-page">
-        <div class="art-top"><HomeBar/></div>
         <div class="notification-content">
             <div class="tabs-bar">
                 <div
@@ -42,7 +41,11 @@
 
             <div class="content-area">
                 <div v-if="activeTab === 'comment'" class="tab-content" @scroll="onScroll($event, 'comment')">
-                    <div class="notification-list">
+                    <div class="empty-state" v-if="loading['comment'] === false && commentList.length === 0">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=empty%20notification%20illustration%20cute%20blue%20fish%20with%20speech%20bubble%20minimalist%20flat%20design%20for%20website&image_size=square" class="empty-img" alt="暂无消息">
+                        <span class="empty-text">暂无消息</span>
+                    </div>
+                    <div class="notification-list" v-else>
                         <div class="notification-item" v-for="item in commentList" :key="item.id">
                             <img :src="item.userAvatar || defaultAvatar" class="notify-avatar" alt="avatar">
                             <div class="notify-content">
@@ -69,7 +72,11 @@
                 </div>
 
                 <div v-if="activeTab === 'like'" class="tab-content" @scroll="onScroll($event, 'like')">
-                    <div class="notification-list">
+                    <div class="empty-state" v-if="loading['like'] === false && likeList.length === 0">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=empty%20notification%20illustration%20cute%20blue%20fish%20with%20speech%20bubble%20minimalist%20flat%20design%20for%20website&image_size=square" class="empty-img" alt="暂无消息">
+                        <span class="empty-text">暂无消息</span>
+                    </div>
+                    <div class="notification-list" v-else>
                         <div class="notification-item" v-for="item in likeList" :key="item.id">
                             <img :src="item.userAvatar || defaultAvatar" class="notify-avatar" alt="avatar">
                             <div class="notify-content">
@@ -85,7 +92,11 @@
                 </div>
 
                 <div v-if="activeTab === 'follow'" class="tab-content" @scroll="onScroll($event, 'follow')">
-                    <div class="notification-list">
+                    <div class="empty-state" v-if="loading['follow'] === false && followList.length === 0">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=empty%20notification%20illustration%20cute%20blue%20fish%20with%20speech%20bubble%20minimalist%20flat%20design%20for%20website&image_size=square" class="empty-img" alt="暂无消息">
+                        <span class="empty-text">暂无消息</span>
+                    </div>
+                    <div class="notification-list" v-else>
                         <div class="notification-item" v-for="item in followList" :key="item.id">
                             <img :src="item.userAvatar || defaultAvatar" class="notify-avatar" alt="avatar">
                             <div class="notify-content">
@@ -173,13 +184,19 @@
                 </div>
 
                 <div v-if="activeTab === 'system'" class="tab-content" @scroll="onScroll($event, 'system')">
-                    <div class="notification-list">
+                    <div class="empty-state" v-if="loading['system'] === false && systemList.length === 0">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=empty%20notification%20illustration%20cute%20blue%20fish%20with%20speech%20bubble%20minimalist%20flat%20design%20for%20website&image_size=square" class="empty-img" alt="暂无消息">
+                        <span class="empty-text">暂无消息</span>
+                    </div>
+                    <div class="notification-list" v-else>
                         <div class="notification-item" v-for="item in systemList" :key="item.id">
                             <div class="notify-content system-content">
                                 <div class="notify-header">
+                                    <span class="system-type-tag" :class="'tag-' + (item.notificationType || 'system')">{{ getSystemTypeLabel(item.notificationType) }}</span>
                                     <span class="notify-time">{{ formatTime(item.time) }}</span>
                                 </div>
                                 <div class="notify-text">{{ item.content }}</div>
+                                <a v-if="item.link" :href="item.link" class="notify-link" target="_blank">查看详情</a>
                             </div>
                         </div>
                     </div>
@@ -190,7 +207,6 @@
 </template>
 
 <script>
-import HomeBar from '@/components/bars/home_bar'
 import defaultAvatar from '@/static/images/creator/avatar.jpg'
 import request from '@/common/request'
 import conf from '@/common/conf'
@@ -198,9 +214,9 @@ import { toast } from '@/utils/toast'
 
 export default {
     name: 'Notification',
-    components: { HomeBar },
     data() {
         return {
+            _initialized: false,
             activeTab: 'comment',
             searchKeyword: '',
             selectedContact: null,
@@ -211,7 +227,6 @@ export default {
             followList: [],
             systemList: [],
             contacts: [],
-            // 游标分页状态
             cursors: { comment: null, like: null, follow: null, system: null },
             hasMore: { comment: true, like: true, follow: true, system: true },
             loading: { comment: false, like: false, follow: false, system: false },
@@ -219,9 +234,7 @@ export default {
             sessionsLoading: false,
             messagesLoading: false,
             messagesCursor: null,
-            messagesHasMore: true,
-            unreadCount: 0,
-            unreadTimer: null
+            messagesHasMore: true
         }
     },
     computed: {
@@ -235,15 +248,25 @@ export default {
     },
     watch: {
         activeTab: function(newTab) {
+            if (!this._initialized) return
             this.switchTab(newTab)
+        },
+        '$route.query.tab': function(newTab) {
+            if (!this._initialized) return
+            if (newTab && ['comment', 'like', 'follow', 'message', 'system'].includes(newTab) && newTab !== this.activeTab) {
+                this.activeTab = newTab
+            }
         }
     },
     mounted() {
-        this.startUnreadPolling()
-        // activeTab watch will trigger initial load
-    },
-    beforeDestroy() {
-        this.stopUnreadPolling()
+        const tab = this.$route.query.tab
+        if (tab && ['comment', 'like', 'follow', 'message', 'system'].includes(tab)) {
+            this.activeTab = tab
+        } else {
+            this.activeTab = 'comment'
+        }
+        this._initialized = true
+        this.switchTab(this.activeTab)
     },
     methods: {
         formatTime(timestamp) {
@@ -266,7 +289,6 @@ export default {
             return conf.urls.get(name)
         },
 
-        // 加载通知列表
         loadNotifications(type) {
             var self = this
             var stateKey = type
@@ -292,7 +314,6 @@ export default {
             })
         },
 
-        // 加载更多通知
         loadMoreNotifications(type) {
             var self = this
             var stateKey = type
@@ -323,8 +344,8 @@ export default {
                 userAvatar: (item.trigger_user && item.trigger_user.avatar) || '',
                 userName: (item.trigger_user && item.trigger_user.name) || '用户',
                 action: item.action_type || '',
-                content: item.content_preview || '',
-                articleTitle: item.target_title || '',
+                content: item.message || item.content_preview || '',
+                articleTitle: item.target_title || item.title || '',
                 time: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
                 isLiked: item.is_liked_by_me || false,
                 likeCount: item.interaction_stats ? (item.interaction_stats.likes || 0) : 0,
@@ -332,7 +353,9 @@ export default {
                 commentId: item.comment_id,
                 targetType: item.target_type,
                 targetId: item.target_id,
-                isRead: item.is_read
+                isRead: item.is_read,
+                notificationType: item.notification_type || '',
+                link: item.link || ''
             }
         },
 
@@ -354,12 +377,6 @@ export default {
             }
         },
 
-        // Tab切换处理
-        handleTabClick(tab) {
-            this.switchTab(tab)
-        },
-
-        // 点赞
         toggleLike(item) {
             var self = this
             var url = self.getNotificationUrl('notifications_like')
@@ -373,7 +390,6 @@ export default {
             })
         },
 
-        // 回复
         handleReply(item) {
             var content = prompt('请输入回复内容:')
             if (!content) return
@@ -388,7 +404,6 @@ export default {
             })
         },
 
-        // 回关
         toggleFollow(item) {
             var self = this
             var url = self.getNotificationUrl('notifications_follow_back')
@@ -402,7 +417,6 @@ export default {
             })
         },
 
-        // 加载会话列表
         loadSessions() {
             var self = this
             if (self.sessionsLoading) return
@@ -427,7 +441,6 @@ export default {
                         }
                     })
                     self.contacts = list
-                    // 如果当前有选中的会话，刷新消息
                     if (self.selectedContact) {
                         var found = list.find(function(c) { return c.id === self.selectedContact.id })
                         if (found) {
@@ -441,7 +454,6 @@ export default {
             })
         },
 
-        // 加载消息列表
         loadMessages(sessionId) {
             var self = this
             if (self.messagesLoading) return
@@ -467,7 +479,6 @@ export default {
                     if (self.selectedContact) {
                         self.$set(self.selectedContact, 'messages', list)
                     }
-                    // 标记已读
                     if (list.length > 0) {
                         self.markMessagesRead(sessionId, list[list.length - 1].id)
                     }
@@ -477,28 +488,23 @@ export default {
             })
         },
 
-        // 标记已读
         markMessagesRead(sessionId, lastReadId) {
             var url = this.getNotificationUrl('im_read')
             request.post(url, { session_id: sessionId, last_read_id: lastReadId }, {}).catch(function() {})
         },
 
-        // 选择联系人
         selectContact(contact) {
             this.selectedContact = contact
             this.loadMessages(contact.id)
         },
 
-        // 发送消息
         sendMessage() {
             var self = this
             if (!self.messageInput.trim()) return
             var contact = self.selectedContact
             if (!contact) return
 
-            // 前端状态机检查
             if (!contact.isActive && !contact.isMutualFollow) {
-                // 检查是否已发送过消息
                 var sentCount = 0
                 if (contact.messages) {
                     sentCount = contact.messages.filter(function(m) { return m.isSelf }).length
@@ -520,11 +526,13 @@ export default {
                         isSelf: true,
                         status: 0
                     }
-                    if (!contact.messages) contact.messages = []
+                    if (!contact.messages) {
+                        self.$set(contact, 'messages', [])
+                    }
                     contact.messages.push(newMsg)
-                    contact.lastMessage = content
-                    contact.lastTime = Date.now()
-                    contact.sentCount = (contact.sentCount || 0) + 1
+                    self.$set(contact, 'lastMessage', content)
+                    self.$set(contact, 'lastTime', Date.now())
+                    self.$set(contact, 'sentCount', (contact.sentCount || 0) + 1)
                     self.messageInput = ''
                     self.$nextTick(function() {
                         var el = self.$refs.chatMessages
@@ -542,36 +550,19 @@ export default {
             })
         },
 
-        // 未读计数轮询
-        startUnreadPolling() {
-            var self = this
-            self.fetchUnreadCount()
-            self.unreadTimer = setInterval(function() {
-                self.fetchUnreadCount()
-            }, 30000)
-        },
-        stopUnreadPolling() {
-            if (this.unreadTimer) {
-                clearInterval(this.unreadTimer)
-                this.unreadTimer = null
-            }
-        },
-        fetchUnreadCount() {
-            // 通过事件总线通知 home_bar 更新未读数
-            var url = this.getNotificationUrl('notifications_unread')
-            request.get(url, {}).then(function(d) {
-                if (d && d.code === 200 && d.data) {
-                    this.$emit('unread-update', d.data.total || 0)
-                }
-            }.bind(this)).catch(function() {})
-        },
-
-        // 滚动加载更多
         onScroll(e, type) {
             var el = e.target
             if (el.scrollHeight - el.scrollTop - el.clientHeight < 100) {
                 this.loadMoreNotifications(type)
             }
+        },
+
+        getSystemTypeLabel(type) {
+            var labels = {
+                'activity': '活动',
+                'system': '系统'
+            }
+            return labels[type] || '系统'
         }
     }
 }
@@ -637,6 +628,26 @@ export default {
 .tab-content {
     overflow-y: auto;
     max-height: calc(100vh - 200px);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+}
+
+.empty-img {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+}
+
+.empty-text {
+    font-size: 14px;
+    color: #8a919f;
 }
 
 .notification-list {
@@ -861,11 +872,6 @@ export default {
     margin-bottom: 16px;
 }
 
-.empty-text {
-    font-size: 14px;
-    color: #8a919f;
-}
-
 .chat-content {
     display: flex;
     flex-direction: column;
@@ -993,6 +999,34 @@ export default {
 
 .system-content {
     padding-left: 0;
+}
+
+.system-type-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 8px;
+    &.tag-activity {
+        background: #fff0e6;
+        color: #fa8c16;
+    }
+    &.tag-system {
+        background: #e8f3ff;
+        color: #1e80ff;
+    }
+}
+
+.notify-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #1e80ff;
+    text-decoration: none;
+    &:hover {
+        text-decoration: underline;
+    }
 }
 
 @media screen and (max-width: 768px) {

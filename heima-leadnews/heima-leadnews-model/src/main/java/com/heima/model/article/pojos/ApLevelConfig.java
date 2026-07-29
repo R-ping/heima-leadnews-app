@@ -37,6 +37,12 @@ public class ApLevelConfig implements Serializable {
     @TableField("description")
     private String description;
 
+    /**
+     * 等级升级钻石奖励数量
+     */
+    @TableField("diamond_reward")
+    private Integer diamondReward;
+
     @TableField("created_time")
     private Date createdTime;
 

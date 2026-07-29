@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(value = "leadnews-article", fallback = IFollowClientFallback.class)
+@FeignClient(value = "leadnews-article", contextId = "leadnews-article-followClient", fallback = IFollowClientFallback.class)
 public interface IFollowClient {
 
     @PostMapping("/api/v1/follow/do")

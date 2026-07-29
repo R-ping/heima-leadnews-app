@@ -57,7 +57,8 @@ export default defineConfig({
         changeOrigin: true,
         bypass(req) {
           // 前端路由 /user/* 由 SPA 处理，不代理到后端
-          if (req.url && req.url.startsWith('/user/')) {
+          // 但 /user/api/* 的 API 请求需要代理到后端（如 token 刷新）
+          if (req.url && req.url.startsWith('/user/') && !req.url.includes('/api/')) {
             return req.url;
           }
         }
@@ -69,6 +70,16 @@ export default defineConfig({
       '/wemedia': {
         target: 'http://127.0.0.1:51601/',
         changeOrigin: true
+      },
+      '/notification': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true,
+        bypass(req) {
+          // 前端路由 /notification 由 SPA 处理，不代理到后端
+          if (req.url === '/notification' || req.url.startsWith('/notification?')) {
+            return req.url;
+          }
+        }
       },
       '/minio-static': {
         target: 'http://127.0.0.1:9005',

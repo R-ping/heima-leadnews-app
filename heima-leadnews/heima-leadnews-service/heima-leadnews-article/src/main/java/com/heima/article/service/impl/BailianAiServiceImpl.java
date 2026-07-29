@@ -84,6 +84,24 @@ public class BailianAiServiceImpl implements BailianAiService {
             "{\"is_tech\": true/false, \"confidence\": <0.0-1.0的浮点数, 置信度>, \"reason\": \"<判断理由，50字以内>\"}\n\n" +
             "标题：%s\n\n内容：%s";
 
+    // 违规内容检测提示词
+    private static final String VIOLATION_CHECK_PROMPT =
+            "请对以下文章内容进行违规内容检测，判断是否包含违规信息。\n\n" +
+            "违规类型包括但不限于：\n" +
+            "1. 色情低俗：包含色情描写、性暗示、低俗图片描述、不雅用语等\n" +
+            "2. 暴力恐怖：包含暴力血腥描写、恐怖主义内容、极端行为描述等\n" +
+            "3. 政治敏感：包含政治敏感话题、攻击性言论、危害国家安全的内容等\n" +
+            "4. 违法信息：包含赌博、毒品、诈骗、传销等违法内容\n" +
+            "5. 其他违规：人身攻击、侮辱谩骂、散布谣言、侵犯隐私等\n\n" +
+            "请以JSON格式输出：\n" +
+            "{\"is_violation\": true/false, \"violation_type\": \"<违规类型，无违规时为空字符串>\", \"violation_reason\": \"<违规原因，100字以内，无违规时为空字符串>\"}\n\n" +
+            "注意：\n" +
+            "- 技术文章中讨论安全漏洞、渗透测试等内容属于正常技术讨论，不属于违规\n" +
+            "- 对技术政策、行业动态的客观分析属于正常内容\n" +
+            "- 只有明显违规的内容才标记为违规\n" +
+            "- 请严格以JSON格式输出，不要添加任何额外说明\n\n" +
+            "标题：%s\n\n内容：%s";
+
     @Override
     public Map<String, Object> analyzeArticle(ApArticle article, String content) {
         Map<String, Object> result = new HashMap<>();
@@ -174,6 +192,91 @@ public class BailianAiServiceImpl implements BailianAiService {
         }
 
         return result;
+    }
+
+    @Override
+    public Map<String, Object> checkViolation(ApArticle article, String content) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", false);
+        result.put("is_violation", false);
+        result.put("violation_type", "");
+        result.put("violation_reason", "");
+
+        if (content == null || content.isEmpty()) {
+            log.warn("Article content is empty for violation check, articleId={}", article.getId());
+            result.put("success", true);
+            return result;
+        }
+
+        // 截断内容，避免token超限
+        String truncatedContent = content.length() > 4000 ? content.substring(0, 4000) : content;
+        String title = article.getTitle() != null ? article.getTitle() : "";
+
+        try {
+            log.info("Starting AI violation check for articleId={}", article.getId());
+            String violationPrompt = String.format(VIOLATION_CHECK_PROMPT, title, truncatedContent);
+            String violationResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, violationPrompt);
+
+            if (violationResponse != null) {
+                JSONObject violationJson = parseJsonResponse(violationResponse);
+                if (violationJson != null) {
+                    Boolean isViolation = violationJson.getBoolean("is_violation");
+                    String violationType = violationJson.getString("violation_type");
+                    String violationReason = violationJson.getString("violation_reason");
+
+                    result.put("is_violation", isViolation != null && isViolation);
+                    result.put("violation_type", violationType != null ? violationType : "");
+                    result.put("violation_reason", violationReason != null ? violationReason : "");
+
+                    // 持久化违规检测结果
+                    saveViolationResult(article.getId(), result, violationResponse);
+
+                    log.info("AI violation check completed for articleId={}, is_violation={}, type={}",
+                            article.getId(), result.get("is_violation"), result.get("violation_type"));
+                }
+            }
+            result.put("success", true);
+        } catch (Exception e) {
+            log.error("AI violation check failed for articleId={}: {}", article.getId(), e.getMessage(), e);
+            // 检测失败不阻塞流程，降级通过
+            result.put("success", true);
+            result.put("is_violation", false);
+        }
+
+        return result;
+    }
+
+    /**
+     * 保存违规检测结果到AI分析表
+     */
+    private void saveViolationResult(Long articleId, Map<String, Object> violationResult, String rawResponse) {
+        try {
+            QueryWrapper<ApArticleAiAnalysis> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("article_id", articleId);
+            ApArticleAiAnalysis analysis = aiAnalysisMapper.selectOne(queryWrapper);
+
+            if (analysis == null) {
+                analysis = new ApArticleAiAnalysis();
+                analysis.setArticleId(articleId);
+                analysis.setCreatedTime(new Date());
+            }
+
+            analysis.setIsViolation((Boolean) violationResult.get("is_violation"));
+            analysis.setViolationType((String) violationResult.get("violation_type"));
+            analysis.setViolationReason((String) violationResult.get("violation_reason"));
+
+            // 追加违规检测原始响应
+            String existingRaw = analysis.getRawResponse() != null ? analysis.getRawResponse() : "";
+            analysis.setRawResponse(existingRaw + "\n===VIOLATION_CHECK===\n" + rawResponse + "\n\n");
+
+            if (analysis.getId() != null) {
+                aiAnalysisMapper.updateById(analysis);
+            } else {
+                aiAnalysisMapper.insert(analysis);
+            }
+        } catch (Exception e) {
+            log.error("Failed to save violation result for articleId={}: {}", articleId, e.getMessage());
+        }
     }
 
     /**

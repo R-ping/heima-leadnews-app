@@ -147,7 +147,18 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
             }
         }
 
-        return ResponseResult.okResult(comment);
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", comment.getId());
+        result.put("articleId", comment.getArticleId());
+        result.put("userId", comment.getUserId());
+        result.put("userName", comment.getUserName() != null ? comment.getUserName() : "");
+        result.put("userAvatar", comment.getUserAvatar() != null ? comment.getUserAvatar() : "");
+        result.put("parentId", comment.getParentId() != null ? comment.getParentId() : 0);
+        result.put("content", comment.getContent() != null ? comment.getContent() : "");
+        result.put("likeCount", comment.getLikeCount() != null ? comment.getLikeCount() : 0);
+        result.put("replyCount", comment.getReplyCount() != null ? comment.getReplyCount() : 0);
+        result.put("createdTime", comment.getCreatedTime());
+        return ResponseResult.okResult(result);
     }
 
     @Override
@@ -201,7 +212,18 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
         if (comment == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "评论不存在");
         }
-        return ResponseResult.okResult(comment);
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", comment.getId());
+        result.put("articleId", comment.getArticleId());
+        result.put("userId", comment.getUserId());
+        result.put("userName", comment.getUserName() != null ? comment.getUserName() : "");
+        result.put("userAvatar", comment.getUserAvatar() != null ? comment.getUserAvatar() : "");
+        result.put("parentId", comment.getParentId() != null ? comment.getParentId() : 0);
+        result.put("content", comment.getContent() != null ? comment.getContent() : "");
+        result.put("likeCount", comment.getLikeCount() != null ? comment.getLikeCount() : 0);
+        result.put("replyCount", comment.getReplyCount() != null ? comment.getReplyCount() : 0);
+        result.put("createdTime", comment.getCreatedTime());
+        return ResponseResult.okResult(result);
     }
 
     private boolean isLiked(Long commentId, Integer userId) {

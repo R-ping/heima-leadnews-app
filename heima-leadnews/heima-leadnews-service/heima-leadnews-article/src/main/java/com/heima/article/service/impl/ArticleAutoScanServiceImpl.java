@@ -1,19 +1,25 @@
 package com.heima.article.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heima.apis.notification.INotificationClient;
+import com.heima.article.mapper.ApArticleAuditRecordMapper;
 import com.heima.article.mapper.ApArticleConfigMapper;
 import com.heima.article.mapper.ApArticleContentMapper;
 import com.heima.article.mapper.ApArticleMapper;
 import com.heima.article.service.ArticleAutoScanService;
 import com.heima.article.service.ArticleSimilarityService;
+import com.heima.article.service.ArticleTaskService;
 import com.heima.article.service.BailianAiService;
 import com.heima.article.service.LevelService;
 import com.heima.common.aliyun.GreenImageScanPlus;
 import com.heima.common.aliyun.GreenTextScanPlus;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticle.Status;
+import com.heima.model.article.pojos.ApArticleAuditRecord;
 import com.heima.model.article.pojos.ApArticleConfig;
 import com.heima.model.article.pojos.ApArticleContent;
 import com.heima.model.article.pojos.ApArticleDraft.ContPic;
+import com.heima.model.common.dtos.ResponseResult;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +37,6 @@ import java.util.regex.Pattern;
 
 @Service
 @Slf4j
-@Transactional
 public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
 
     @Autowired
@@ -56,7 +62,16 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
 
     @Autowired
     private LevelService levelService;
+    @Autowired
+    private ArticleTaskService articleTaskService;
 
+    @Autowired(required = false)
+    private INotificationClient notificationClient;
+
+    @Autowired
+    private ApArticleAuditRecordMapper apArticleAuditRecordMapper;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     @Override
     @Async
     public CompletableFuture<Boolean> autoScanArticle(Long articleId) {
@@ -77,13 +92,23 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
         ApArticleContent articleContent = apArticleContentMapper.selectOne(contentQuery);
         String content = articleContent != null ? articleContent.getContent() : "";
 
-        // 1. 文本审核
-        boolean isTextScan = handleTextMsg(article.getTitle(), content, article);
-        if (!isTextScan) {
-            return CompletableFuture.completedFuture(false);
+        // 1. AI违规内容检测（替代原有文本审核，解决greeTextScan 600字符限制问题）
+        log.info("开始AI违规内容检测, articleId={}", articleId);
+        try {
+            Map<String, Object> violationResult = bailianAiService.checkViolation(article, content);
+            if (violationResult != null && Boolean.TRUE.equals(violationResult.get("is_violation"))) {
+                String violationType = (String) violationResult.getOrDefault("violation_type", "违规内容");
+                String violationReason = (String) violationResult.getOrDefault("violation_reason", "文章内容违反社区规范");
+                String reason = violationType + ": " + violationReason;
+                updateArticle(article, Status.FAIL.getCode(), reason);
+                log.info("AI违规检测未通过, articleId={}, type={}, reason={}", articleId, violationType, violationReason);
+                return CompletableFuture.completedFuture(false);
+            }
+            log.info("AI违规检测通过, articleId={}", articleId);
+        } catch (Exception e) {
+            log.error("AI违规检测异常, articleId={}, 降级通过", articleId, e);
         }
-
-        // 2. 图片审核 - 从内容中提取图片
+        // 2. 图片审核
         if (content != null && !content.isEmpty()) {
             List<ContPic> contPics = article.getContPics();
             if (contPics == null) {
@@ -97,10 +122,11 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
             }
             boolean isImageScan = handleImageMsg(contPics, article);
             if (!isImageScan) {
+                log.info("文章图片审核未通过, articleId={}", articleId);
                 return CompletableFuture.completedFuture(false);
             }
         }
-
+        log.info("文章图片审核通过, articleId={}", articleId);
         // 3. AI内容分析（百炼平台）
         log.info("开始AI内容分析, articleId={}", articleId);
         Map<String, Object> aiResult = null;
@@ -117,8 +143,8 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
                 Map<String, Object> similarityResult = articleSimilarityService.checkSimilarity(article, content);
                 if (similarityResult != null && Boolean.TRUE.equals(similarityResult.get("isSimilar"))) {
                     isHighSimilarity = true;
-                    log.info("检测到高相似度文章, articleId={}, similarity={}", 
-                            articleId, similarityResult.get("maxSimilarity"));
+                    log.info("检测到高相似度文章, articleId={}, similarity={}",
+                        articleId, similarityResult.get("maxSimilarity"));
                 }
             }
         } catch (Exception e) {
@@ -136,13 +162,38 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
             }
         }
 
+        // 审核全部通过
+//        updateArticle(article, Status.PUBLISHED.getCode(), null);
         log.info("文章审核完成, articleId={}, isHighSimilarity={}", articleId, isHighSimilarity);
+
+        // 7. 审核通过，增加经验值
+        try {
+            if (article.getAuthorId() != null) {
+                Map<String, Object> expResult = levelService.recordActionWithLimit(
+                    article.getAuthorId(), "publish_article", 
+                    "发布文章: " + (article.getTitle() != null ? article.getTitle() : ""));
+                if (expResult != null && Boolean.TRUE.equals(expResult.get("success"))) {
+                    log.info("文章发布经验值增加成功, articleId={}, authorId={}, score={}",
+                        articleId, article.getAuthorId(), expResult.get("score"));
+                } else {
+                    log.info("文章发布经验值: {}, articleId={}, authorId={}",
+                        expResult != null ? expResult.get("message") : "未获得",
+                        articleId, article.getAuthorId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("经验值增加异常, articleId={}, 不影响审核流程", articleId, e);
+        }
+
+        // 不管是不是延迟发布，都添加到调度任务，只不过不延迟时interval：0，多经过了Task任务类流转
+        articleTaskService.addArticleToTask(article.getId(), article.getPublishTime());
         return CompletableFuture.completedFuture(true);
     }
 
     /**
      * 更新文章配置的推荐状态
      */
+    @Transactional
     private void updateArticleConfig(Long articleId, boolean isRecommend) {
         try {
             QueryWrapper<ApArticleConfig> queryWrapper = new QueryWrapper<>();
@@ -163,8 +214,7 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
     }
 
     /**
-     * 根据AI质量评分计算逐力值加成
-     * 80分以上+3，60-79分+1，60分以下+0
+     * 根据AI质量评分计算逐力值加成 80分以上+3，60-79分+1，60分以下+0
      */
     private void calculatePowerBonus(ApArticle article, Integer qualityScore) {
         try {
@@ -177,18 +227,23 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
 
             if (powerBonus > 0 && article.getAuthorId() != null) {
                 Map<String, Object> powerResult = levelService.calculatePowerWithLimit(
-                        article.getAuthorId(), article.getId(), "ai_quality_score", powerBonus);
-                
+                    article.getAuthorId(), article.getId(), "ai_quality_score", powerBonus);
+
                 if (powerResult != null && Boolean.TRUE.equals(powerResult.get("success"))) {
-                    log.info("AI质量评分逐力值加成, articleId={}, authorId={}, qualityScore={}, powerBonus={}", 
-                            article.getId(), article.getAuthorId(), qualityScore, powerBonus);
-                    
+                    log.info("AI质量评分逐力值加成, articleId={}, authorId={}, qualityScore={}, powerBonus={}",
+                        article.getId(), article.getAuthorId(), qualityScore, powerBonus);
+
+                    // 质量优秀（>=80分），发送首页推荐通知
+                    if (qualityScore >= 80) {
+                        sendQualityRecommendNotification(article, qualityScore);
+                    }
+
                     // 检查是否达到4级，自动推荐到首页
                     Integer newLevel = (Integer) powerResult.get("newLevel");
                     if (newLevel != null && newLevel >= 4) {
                         updateArticleConfig(article.getId(), true);
-                        log.info("作者逐力值达到4级，文章自动推荐到首页, articleId={}, authorId={}, level={}", 
-                                article.getId(), article.getAuthorId(), newLevel);
+                        log.info("作者逐力值达到4级，文章自动推荐到首页, articleId={}, authorId={}, level={}",
+                            article.getId(), article.getAuthorId(), newLevel);
                     }
                 }
             }
@@ -228,12 +283,12 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
             for (ContPic contPic : imageUrls) {
                 Map map = greenImageScan.imageScan(contPic.getPicUrl());
                 if (map != null) {
-                    if (map.get("level").equals("high")) {
+                    if ("high".equals(map.get("level"))) {
                         flag = false;
                         updateArticle(article, Status.FAIL.getCode(), "当前文章中的图片存在违规内容");
                         return flag;
                     }
-                    if (map.get("level").equals("medium")) {
+                    if ("medium".equals(map.get("level"))) {
                         flag = false;
                         updateArticle(article, Status.FAIL.getCode(), "当前文章中的图片存在不确定内容");
                         return flag;
@@ -258,15 +313,17 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
         }
         try {
             Map map = greenTextScan.greeTextScan(textToScan);
-            if (map != null) {
-                if (map.get("level").equals("high")) {
-                    flag = false;
-                    updateArticle(article, Status.FAIL.getCode(), "当前文章中的内容存在违规内容");
-                }
-                if (map.get("level").equals("medium")) {
-                    flag = false;
-                    updateArticle(article, Status.FAIL.getCode(), "当前文章中的内容存在不确定内容");
-                }
+            if (map == null) {
+                return false;
+            }
+            if ("high".equals(map.get("level"))) {
+                flag = false;
+                updateArticle(article, Status.FAIL.getCode(), "当前文章中的内容存在违规内容");
+            }
+
+            if ("medium".equals(map.get("level"))) {
+                flag = false;
+                updateArticle(article, Status.FAIL.getCode(), "当前文章中的内容存在不确定内容");
             }
         } catch (Exception e) {
             flag = false;
@@ -277,13 +334,149 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
 
     /**
      * 更新文章状态
+     * FAIL状态：设置reason，写审计记录，发送通知（不软删除，保留用于申诉）
+     * PUBLISHED状态：仅设置status
      */
+    @Transactional
     private void updateArticle(ApArticle article, byte status, String reason) {
         article.setStatus(status);
-        article.setReason(reason);
-        if (status == Status.FAIL.getCode() && !article.getIsDeleted()) {
-            article.setIsDeleted(true);
+        if (status == Status.FAIL.getCode()) {
+            article.setReason(reason);
+            // 不再设置 isDeleted=true，保留文章数据供申诉使用
+            
+            // 写入审计记录
+            saveAuditRecord(article, reason);
+            
+            // 发送系统通知
+            sendModerationFailNotification(article, reason);
         }
         apArticleMapper.updateById(article);
+    }
+
+    /**
+     * 保存审核失败记录到审计表
+     */
+    @Transactional
+    private void saveAuditRecord(ApArticle article, String reason) {
+        try {
+            ApArticleAuditRecord record = new ApArticleAuditRecord();
+            record.setArticleId(article.getId());
+            record.setAuthorId(article.getAuthorId());
+            record.setTitle(article.getTitle() != null ? article.getTitle() : "");
+            record.setReason(reason != null ? reason : "");
+            record.setAuditType("text"); // 默认文本审核，图片审核时可在调用方指定
+            record.setStatus(2); // 失败
+            record.setCreatedAt(java.time.LocalDateTime.now());
+            
+            // 获取文章内容
+            QueryWrapper<ApArticleContent> contentQuery = new QueryWrapper<>();
+            contentQuery.eq("article_id", article.getId());
+            ApArticleContent articleContent = apArticleContentMapper.selectOne(contentQuery);
+            record.setContent(articleContent != null ? articleContent.getContent() : "");
+            
+            apArticleAuditRecordMapper.insert(record);
+            log.info("审核失败记录已写入审计表, articleId={}, reason={}", article.getId(), reason);
+        } catch (Exception e) {
+            log.error("写入审计记录失败, articleId={}", article.getId(), e);
+        }
+    }
+
+    /**
+     * 发送审核失败系统通知
+     * 通知模板："你的文章《{article_title}》因违反社区规范已被删除。详细规则请见《社区规范》。文章内容: {violation_details}"
+     */
+    private void sendModerationFailNotification(ApArticle article, String reason) {
+        try {
+            if (notificationClient == null) {
+                log.warn("通知服务不可用，跳过发送审核失败通知, articleId={}", article.getId());
+                return;
+            }
+            
+            String articleTitle = article.getTitle() != null ? article.getTitle() : "无标题";
+            String violationDetails = reason != null ? reason : "违反社区规范";
+            
+            String message = String.format(
+                "你的文章《%s》因违反社区规范已被删除。详细规则请见《社区规范》。文章内容: %s",
+                articleTitle, violationDetails
+            );
+            
+            // 构建通知内容JSON
+            Map<String, Object> contentMap = new HashMap<>();
+            contentMap.put("articleId", String.valueOf(article.getId()));
+            contentMap.put("title", articleTitle);
+            contentMap.put("reason", violationDetails);
+            contentMap.put("message", message);
+            contentMap.put("notification_type", "system");
+            
+            String contentJson = objectMapper.writeValueAsString(contentMap);
+            
+            // 构建请求参数
+            Map<String, Object> params = new HashMap<>();
+            params.put("userId", article.getAuthorId());
+            params.put("type", 4); // 系统通知
+            params.put("sourceId", String.valueOf(article.getId()));
+            params.put("content", contentJson);
+            
+            ResponseResult result = notificationClient.createNotification(params);
+            if (result != null && result.getCode() == 200) {
+                log.info("审核失败通知已发送, articleId={}, authorId={}", article.getId(), article.getAuthorId());
+            } else {
+                log.warn("审核失败通知发送失败, articleId={}, result={}", article.getId(), result);
+            }
+        } catch (Exception e) {
+            log.error("发送审核失败通知异常, articleId={}, 不影响审核流程", article.getId(), e);
+        }
+    }
+
+    /**
+     * 发送质量优秀推荐通知
+     * 通知模板："恭喜！你的文章《{article_title}》因内容质量优秀，已被推荐至首页。"
+     */
+    private void sendQualityRecommendNotification(ApArticle article, Integer qualityScore) {
+        try {
+            if (notificationClient == null) {
+                log.warn("通知服务不可用，跳过发送质量推荐通知, articleId={}", article.getId());
+                return;
+            }
+
+            if (article.getAuthorId() == null) {
+                log.warn("作者ID为空，跳过发送质量推荐通知, articleId={}", article.getId());
+                return;
+            }
+
+            String articleTitle = article.getTitle() != null ? article.getTitle() : "无标题";
+
+            String message = String.format(
+                "恭喜！你的文章《%s》因内容质量优秀，已被推荐至首页。",
+                articleTitle
+            );
+
+            // 构建通知内容JSON
+            Map<String, Object> contentMap = new HashMap<>();
+            contentMap.put("articleId", String.valueOf(article.getId()));
+            contentMap.put("title", articleTitle);
+            contentMap.put("qualityScore", qualityScore);
+            contentMap.put("message", message);
+            contentMap.put("notification_type", "system");
+
+            String contentJson = objectMapper.writeValueAsString(contentMap);
+
+            // 构建请求参数
+            Map<String, Object> params = new HashMap<>();
+            params.put("userId", article.getAuthorId());
+            params.put("type", 4); // 系统通知
+            params.put("sourceId", String.valueOf(article.getId()));
+            params.put("content", contentJson);
+
+            ResponseResult result = notificationClient.createNotification(params);
+            if (result != null && result.getCode() == 200) {
+                log.info("质量推荐通知已发送, articleId={}, authorId={}, qualityScore={}",
+                    article.getId(), article.getAuthorId(), qualityScore);
+            } else {
+                log.warn("质量推荐通知发送失败, articleId={}, result={}", article.getId(), result);
+            }
+        } catch (Exception e) {
+            log.error("发送质量推荐通知异常, articleId={}, 不影响审核流程", article.getId(), e);
+        }
     }
 }

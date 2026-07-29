@@ -10,6 +10,10 @@
       </router-link>
     </div>
     <div class="right-menu">
+      <div class="notification-bell right-menu-item" v-if="isLoggedIn" @click="goToNotification">
+        <span class="bell-icon">&#xf0f3;</span>
+        <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+      </div>
       <el-dropdown class="avatar-container right-menu-item" trigger="click">
         <div class="avatar-wrapper">
           <img class="user-avatar" :src="avatarUrl" alt="头像">
@@ -36,13 +40,24 @@ import { mapGetters } from 'vuex'
 import Hamburger from '../../components/Hamburger/index.vue'
 import { clearUser } from '../../utils/store'
 import emitter from '../../utils/event'
+import request from '@/common/request'
+import conf from '@/common/conf'
 import defaultAvatar from '@/static/images/avatar_head_1.png'
 export default {
   components: {
     Hamburger
   },
+  data() {
+    return {
+      unreadCount: 0,
+      unreadTimer: null
+    }
+  },
   computed: {
     ...mapGetters(['userInfo']),
+    isLoggedIn() {
+      return this.$store.getters.isLoggedIn
+    },
     avatarUrl () {
       if (this.userInfo && this.userInfo.avatar) {
         return '/static/images/' + this.userInfo.avatar + '.png'
@@ -62,6 +77,27 @@ export default {
       clearUser() // 退出前要清除掉用户的信息
       this.$store.dispatch('logout')
       this.$router.replace({ path: '/login' })
+    },
+    fetchUnreadCount() {
+      if (!this.isLoggedIn) return
+      request.get(conf.urls.get('notifications_unread'), {}).then(d => {
+        if (d && d.code === 200 && d.data) {
+          this.unreadCount = d.data.total || 0
+        }
+      }).catch(() => {})
+    },
+    goToNotification() {
+      this.$router.push('/notification')
+    }
+  },
+  mounted() {
+    this.fetchUnreadCount()
+    this.unreadTimer = setInterval(() => this.fetchUnreadCount(), 30000)
+  },
+  beforeDestroy() {
+    if (this.unreadTimer) {
+      clearInterval(this.unreadTimer)
+      this.unreadTimer = null
     }
   }
 }
@@ -168,6 +204,46 @@ export default {
           color: @textMuted;
           vertical-align: middle;
         }
+      }
+    }
+
+    .notification-bell {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      flex-shrink: 0;
+      margin-top: 12px;
+
+      &:hover {
+        background-color: #f4f5f5;
+      }
+
+      .bell-icon {
+        font-family: fontawesome;
+        font-size: 20px;
+        color: #515767;
+      }
+
+      .unread-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 16px;
+        height: 16px;
+        line-height: 16px;
+        text-align: center;
+        background: #ff4d4f;
+        color: #fff;
+        font-size: 10px;
+        border-radius: 8px;
+        padding: 0 4px;
+        transform: translate(30%, -30%);
       }
     }
   }

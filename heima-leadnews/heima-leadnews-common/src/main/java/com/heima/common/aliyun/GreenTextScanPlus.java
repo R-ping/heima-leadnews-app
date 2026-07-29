@@ -9,9 +9,11 @@ import com.aliyun.green20220302.models.TextModerationPlusResponseBody;
 import com.aliyun.teaopenapi.models.Config;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class GreenTextScanPlus {
 
     public Map greeTextScan(String content) throws Exception {
@@ -27,14 +29,14 @@ public class GreenTextScanPlus {
          *     获取RAM用户AccessKey ID：System.getProperty("ALIBABA_CLOUD_ACCESS_KEY_ID");
          *     获取RAM用户AccessKey Secret：System.getProperty("ALIBABA_CLOUD_ACCESS_KEY_SECRET");
          */
-        String accessId = System.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID");
-        String accessSecret = System.getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET");
-        System.out.println("accessId:" + accessId+","+"accessSecret:"+accessSecret);
+        String accessId = System.getenv("ALIBABA_RAM_ACCESS_KEY");
+        String accessSecret = System.getenv("ALIBABA_RAM_ACCESS_SECRET");
+        System.out.println("accessId:" + accessId + "," + "accessSecret:" + accessSecret);
         config.setAccessKeyId(accessId);
         config.setAccessKeySecret(accessSecret);
         //接入区域和地址请根据实际情况修改
-        config.setRegionId("cn-shanghai");
-        config.setEndpoint("green-cip.cn-shanghai.aliyuncs.com");
+        config.setRegionId("cn-beijing");
+        config.setEndpoint("green-cip.cn-beijing.aliyuncs.com");
         //读取时超时时间，单位毫秒（ms）。
         config.setReadTimeout(6000);
         //连接时超时时间，单位毫秒（ms）。
@@ -57,29 +59,29 @@ public class GreenTextScanPlus {
             TextModerationPlusResponse response = client.textModerationPlus(textModerationPlusRequest);
             if (response.getStatusCode() == 200) {
                 TextModerationPlusResponseBody result = response.getBody();
-                System.out.println(JSON.toJSONString(result));
-                System.out.println("requestId = " + result.getRequestId());
-                System.out.println("code = " + result.getCode());
-                System.out.println("msg = " + result.getMessage());
+                log.info("result json:{}", JSON.toJSONString(result));
+                log.info("requestId = {}", result.getRequestId());
+                log.info("code = {}", result.getCode());
+                log.info("msg = {}", result.getMessage());
                 Integer code = result.getCode();
                 if (200 == code) {
                     TextModerationPlusResponseBody.TextModerationPlusResponseBodyData data = result.getData();
                     System.out.println(JSON.toJSONString(data, true));
                     resultMap.put("level", data.getRiskLevel());
+                    log.info("text moderation cost time:" + (System.currentTimeMillis() - start));
                     return resultMap;
                 } else {
-                    System.out.println("text moderation not success. code:" + code);
+                    log.info("text moderation not success. code:" + code);
                     return null;
                 }
             } else {
-                System.out.println("response not success. status:" + response.getStatusCode());
+                log.info("response not success. status:" + response.getStatusCode());
                 return null;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("text moderation exception", e);
+            return null;
         }
-        System.out.println("cost time:" + (System.currentTimeMillis() - start));
-        return null;
 
     }
 }

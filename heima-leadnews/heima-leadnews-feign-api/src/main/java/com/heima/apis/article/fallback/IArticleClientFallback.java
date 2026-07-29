@@ -33,8 +33,9 @@ public class IArticleClientFallback implements IArticleClient {
     }
 
     @Override
-    public ResponseResult getArticleInfo(Long articleId) {
-        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"获取文章信息异常");
+    public ApArticle getArticleInfo(Long articleId) {
+        log.error("远程获取文章信息异常");
+        return null;
     }
 
     @Override

@@ -73,6 +73,12 @@ public class UserProfileServiceImpl implements UserProfileService {
         } else {
             // 使用默认用户名
             vo.setUsername(currentUser.getNickname() != null ? currentUser.getNickname() : "");
+            vo.setAvatarUrl("");
+            vo.setCareerDirection("");
+            vo.setPosition("");
+            vo.setCompany("");
+            vo.setWebsite("");
+            vo.setBio("");
         }
 
         // 查询已选标签

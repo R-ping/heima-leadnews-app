@@ -4,6 +4,8 @@ import store from '@/stores/store'
 
 function Request() {
     this.store = null;
+    this._refreshing = false;  // 防止并发刷新
+    this._pendingRequests = [];  // 待重放请求队列
 }
 Request.prototype = {
     setStore: function (store) {
@@ -154,11 +156,10 @@ Request.prototype = {
             if (error.response && error.response.status === 444 && retryCount < 1 && usedUserToken) {
                 return _this.__refreshAndRetry(type, path, time, parms, body, retryCount)
             }
-            // 401未授权 — 仅当原请求使用用户token时才弹出登录窗口
+            // 401未授权 — 仅当原请求使用用户token时才清除过期token并弹出登录窗口
             if (error.response && error.response.status === 401 && retryCount < 1 && usedUserToken) {
-                // 先跳转到主页面，再弹出登录框
-                sessionStorage.setItem('showLoginAfterRedirect', '1')
-                window.location.href = '/home'
+                _this.store.dispatch('logout')
+                _this.store.dispatch('showLogin')
                 return Promise.reject(error.response || error)
             }
             // 网络错误
@@ -174,7 +175,7 @@ Request.prototype = {
     /**
      * 444状态码处理：用refreshToken刷新双Token后重放原请求
      * - 无accessToken：用户从未登录，直接reject，不触发logout和showLogin
-     * - 有accessToken无refreshToken：无法刷新，弹出登录弹窗，不清除accessToken
+     * - 有accessToken无refreshToken：无法刷新，清除过期token后弹出登录弹窗
      * - 有accessToken和refreshToken：尝试刷新，失败才清除全部登录状态
      */
     __refreshAndRetry: function (type, path, time, parms, body, retryCount) {
@@ -186,12 +187,19 @@ Request.prototype = {
         }
         var refreshToken = _this.store.state.refreshToken
         if (!refreshToken) {
-            // 有accessToken但没有refreshToken，无法刷新，跳转主页并弹出登录弹窗
-            sessionStorage.setItem('showLoginAfterRedirect', '1')
-            window.location.href = '/home'
+            // 有accessToken但没有refreshToken，无法刷新，清除过期token后弹出登录弹窗
+            _this.store.dispatch('logout')
+            _this.store.dispatch('showLogin')
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         }
         // 有accessToken和refreshToken，尝试刷新token后重放
+        // 防止并发刷新：多个请求同时触发444时，只执行一次刷新
+        if (_this._refreshing) {
+            return new Promise(function (resolve, reject) {
+                _this._pendingRequests.push({ resolve: resolve, reject: reject, type: type, path: path, time: time, parms: parms, body: body, retryCount: retryCount })
+            })
+        }
+        _this._refreshing = true
         var refreshUrl = '/user/api/v1/token/refresh'
         var refreshTime = new Date().getTime()
         var refreshHeaders = {
@@ -211,21 +219,28 @@ Request.prototype = {
             if (d && d.code === 200 && d.data && d.data.accessToken) {
                 // 刷新成功，存储新token
                 _this.store.dispatch('login', d.data)
+                _this._refreshing = false
                 // 重放原请求
                 return _this.store.getToken().then(function (newToken) {
+                    // 重放所有等待中的请求
+                    var pending = _this._pendingRequests.splice(0)
+                    pending.forEach(function (req) {
+                        _this.__fetch(req.type, req.path, newToken, req.time, req.parms, req.body, req.retryCount + 1)
+                            .then(req.resolve).catch(req.reject)
+                    })
                     return _this.__fetch(type, path, newToken, time, parms, body, retryCount + 1)
                 })
             }
-            // 刷新失败，清除登录状态，跳转主页并弹出登录弹窗
+            // 刷新失败，清除登录状态，弹出登录弹窗
+            _this._refreshing = false
             _this.store.dispatch('logout')
-            sessionStorage.setItem('showLoginAfterRedirect', '1')
-            window.location.href = '/home'
+            _this.store.dispatch('showLogin')
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         }).catch(function () {
-            // 刷新失败，清除登录状态，跳转主页并弹出登录弹窗
+            // 刷新失败，清除登录状态，弹出登录弹窗
+            _this._refreshing = false
             _this.store.dispatch('logout')
-            sessionStorage.setItem('showLoginAfterRedirect', '1')
-            window.location.href = '/home'
+            _this.store.dispatch('showLogin')
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         })
     },

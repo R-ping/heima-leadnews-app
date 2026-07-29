@@ -24,7 +24,7 @@ public final class LevelScoreConstants {
         ACTION_SCORE_MAP.put("like_pin", 1);
         ACTION_SCORE_MAP.put("share", 3);
         ACTION_SCORE_MAP.put("follow_user", 4);
-        ACTION_SCORE_MAP.put("publish_article", 8);
+        ACTION_SCORE_MAP.put("publish_article", 10);
         ACTION_SCORE_MAP.put("publish_pins", 2);
         ACTION_SCORE_MAP.put("daily_checkin", 2);
         ACTION_SCORE_MAP.put("upload_avatar", 1);

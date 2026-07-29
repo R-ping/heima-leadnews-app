@@ -1,17 +1,35 @@
 package com.heima.article.service.impl;
 
+import static com.heima.article.constants.LevelScoreConstants.ACTION_SCORE_MAP;
+import static com.heima.article.constants.LevelScoreConstants.DAILY_ACTION_LIMIT;
+import static com.heima.article.constants.LevelScoreConstants.DAILY_SCORE_LIMIT;
+import static com.heima.article.constants.LevelScoreConstants.POWER_ACTION_LIMIT;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.heima.article.mapper.*;
+import com.heima.article.mapper.ApLevelConfigMapper;
+import com.heima.article.mapper.ApPermissionDefinitionMapper;
+import com.heima.article.mapper.ApUserActionLogMapper;
+import com.heima.article.mapper.ApUserDiamondLogMapper;
+import com.heima.article.mapper.ApUserLevelMapper;
+import com.heima.article.mapper.ApUserPermissionMapper;
+import com.heima.article.mapper.ApUserPowerLogMapper;
 import com.heima.article.service.LevelService;
-import com.heima.model.article.pojos.*;
+import com.heima.model.article.pojos.ApLevelConfig;
+import com.heima.model.article.pojos.ApPermissionDefinition;
+import com.heima.model.article.pojos.ApUserActionLog;
+import com.heima.model.article.pojos.ApUserDiamondLog;
+import com.heima.model.article.pojos.ApUserLevel;
+import com.heima.model.article.pojos.ApUserPermission;
+import com.heima.model.article.pojos.ApUserPowerLog;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-
-import static com.heima.article.constants.LevelScoreConstants.*;
 
 @Slf4j
 @Service
@@ -37,6 +55,9 @@ public class LevelServiceImpl implements LevelService {
 
     @Autowired
     private LevelTaskProgressBuilder taskProgressBuilder;
+
+    @Autowired
+    private ApUserDiamondLogMapper diamondLogMapper;
 
     @Override
     public ApUserLevel getUserLevel(Long userId) {
@@ -69,7 +90,7 @@ public class LevelServiceImpl implements LevelService {
 
         ApUserLevel userLevel = getUserLevel(userId);
 
-        String today = new java.sql.Date(System.currentTimeMillis()).toString();
+        String today = new Date(System.currentTimeMillis()).toString();
 
         Integer dailyLimit = DAILY_ACTION_LIMIT.get(actionType);
         if (dailyLimit != null) {
@@ -100,6 +121,8 @@ public class LevelServiceImpl implements LevelService {
             int oldLevel = userLevel.getDailyLevel();
             userLevel.setDailyLevel(newDailyLevel);
             updateUserPermissions(userId, 1, oldLevel, newDailyLevel);
+            // 等级升级发放钻石奖励
+            grantDiamondOnLevelUp(userId, 1, newDailyLevel);
         }
 
         userLevelMapper.updateById(userLevel);
@@ -148,6 +171,8 @@ public class LevelServiceImpl implements LevelService {
             userLevel.setPowerLevel(newPowerLevel);
             updateUserPermissions(userId, 2, oldLevel, newPowerLevel);
             levelChanged = true;
+            // 等级升级发放钻石奖励
+            grantDiamondOnLevelUp(userId, 2, newPowerLevel);
         }
 
         userLevelMapper.updateById(userLevel);
@@ -174,7 +199,7 @@ public class LevelServiceImpl implements LevelService {
             LambdaQueryWrapper<ApUserPowerLog> limitQuery = new LambdaQueryWrapper<>();
             limitQuery.eq(ApUserPowerLog::getUserId, userId);
             limitQuery.eq(ApUserPowerLog::getChangeType, changeType);
-            limitQuery.apply("DATE(calculated_at) = '" + today + "'");
+            limitQuery.apply("DATE(calculated_at) = {0}", today);
             long todayCount = powerLogMapper.selectCount(limitQuery);
             if (todayCount >= dailyLimit) {
                 return 0;
@@ -266,7 +291,7 @@ public class LevelServiceImpl implements LevelService {
         LambdaQueryWrapper<ApUserActionLog> logQuery = new LambdaQueryWrapper<>();
         logQuery.eq(ApUserActionLog::getUserId, userId);
         logQuery.eq(ApUserActionLog::getActionType, "daily_checkin");
-        logQuery.apply("DATE(created_time) = '" + today + "'");
+        logQuery.apply("DATE(created_time) = {0}", today);
         long todayCheckinCount = actionLogMapper.selectCount(logQuery);
 
         if (todayCheckinCount > 0) {
@@ -376,6 +401,8 @@ public class LevelServiceImpl implements LevelService {
             int oldLevel = userLevel.getDailyLevel();
             userLevel.setDailyLevel(newDailyLevel);
             updateUserPermissions(userId, 1, oldLevel, newDailyLevel);
+            // 等级升级发放钻石奖励
+            grantDiamondOnLevelUp(userId, 1, newDailyLevel);
         }
 
         userLevelMapper.updateById(userLevel);
@@ -480,7 +507,7 @@ public class LevelServiceImpl implements LevelService {
     private int getTodayScore(Long userId, String today) {
         LambdaQueryWrapper<ApUserActionLog> query = new LambdaQueryWrapper<>();
         query.eq(ApUserActionLog::getUserId, userId);
-        query.apply("DATE(created_time) = '" + today + "'");
+        query.apply("DATE(created_time) = {0}", today);
         return actionLogMapper.selectList(query).stream()
                 .mapToInt(ApUserActionLog::getScoreChange).sum();
     }
@@ -492,7 +519,54 @@ public class LevelServiceImpl implements LevelService {
         LambdaQueryWrapper<ApUserActionLog> query = new LambdaQueryWrapper<>();
         query.eq(ApUserActionLog::getUserId, userId);
         query.eq(ApUserActionLog::getActionType, actionType);
-        query.apply("DATE(created_time) = '" + today + "'");
+        query.apply("DATE(created_time) = {0}", today);
         return actionLogMapper.selectCount(query);
+    }
+
+    /**
+     * 等级升级时发放钻石奖励
+     * @param userId 用户ID
+     * @param levelType 等级类型：1-逐日等级，2-逐力值等级
+     * @param newLevel 新等级
+     */
+    private void grantDiamondOnLevelUp(Long userId, int levelType, int newLevel) {
+        try {
+            // 查询等级配置获取钻石奖励数量
+            LambdaQueryWrapper<ApLevelConfig> configQuery = new LambdaQueryWrapper<>();
+            configQuery.eq(ApLevelConfig::getLevelType, levelType);
+            configQuery.eq(ApLevelConfig::getLevelValue, newLevel);
+            ApLevelConfig config = levelConfigMapper.selectOne(configQuery);
+
+            if (config == null || config.getDiamondReward() == null || config.getDiamondReward() <= 0) {
+                log.info("等级{}无钻石奖励配置, levelType={}, newLevel={}", newLevel, levelType, newLevel);
+                return;
+            }
+
+            int diamondAmount = config.getDiamondReward();
+
+            // 查询用户当前钻石余额
+            ApUserLevel userLevel = getUserLevel(userId);
+            int currentBalance = userLevel.getDiamondBalance() != null ? userLevel.getDiamondBalance() : 0;
+            int newBalance = currentBalance + diamondAmount;
+
+            // 更新用户钻石余额
+            userLevel.setDiamondBalance(newBalance);
+            userLevelMapper.updateById(userLevel);
+
+            // 写入钻石交易日志
+            ApUserDiamondLog diamondLog = new ApUserDiamondLog();
+            diamondLog.setUserId(userId);
+            diamondLog.setChangeType("level_up");
+            diamondLog.setChangeAmount(diamondAmount);
+            diamondLog.setBalance(newBalance);
+            diamondLog.setSourceId(String.valueOf(newLevel));
+            diamondLog.setCreatedAt(java.time.LocalDateTime.now());
+            diamondLogMapper.insert(diamondLog);
+
+            log.info("等级升级钻石奖励发放, userId={}, levelType={}, newLevel={}, diamondAmount={}, newBalance={}",
+                userId, levelType, newLevel, diamondAmount, newBalance);
+        } catch (Exception e) {
+            log.error("钻石奖励发放异常, userId={}, levelType={}, newLevel={}", userId, levelType, newLevel, e);
+        }
     }
 }

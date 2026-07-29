@@ -2,12 +2,15 @@ package com.heima.schedule.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.alibaba.fastjson.JSON;
+import com.heima.apis.article.IArticleClient;
 import com.heima.common.constants.ScheduleConstants;
 import com.heima.common.redis.CacheService;
+import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.model.schedule.pojos.TaskinfoLogs;
 import com.heima.schedule.mapper.TaskinfoLogsMapper;
 import com.heima.schedule.service.TaskService;
+import com.heima.utils.common.ProtostuffUtil;
 import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -28,6 +31,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Autowired
     private TaskinfoLogsMapper taskinfoLogsMapper;
+    @Autowired
+    private IArticleClient articleClient;
+
     /**
      * 添加延迟任务
      */
@@ -81,17 +87,26 @@ public class TaskServiceImpl implements TaskService {
      */
     private boolean addTaskToDb(Task task) {
         boolean flag = false;
+        ApArticle article = ProtostuffUtil.deserialize(task.getParameters(), ApArticle.class);
         try {
             //保存任务日志数据
             TaskinfoLogs taskinfoLogs = new TaskinfoLogs();
             BeanUtils.copyProperties(task, taskinfoLogs);
             taskinfoLogs.setStatus(ScheduleConstants.EXECUTED);
+            ApArticle apArticle = articleClient.getArticleInfo(article.getId());
+            if (apArticle == null) {
+                log.error("article is not exist可能有由于审核逻辑出问题，导致文章回滚掉了，task延迟任务也不应该继续 taskId={}, articleId={}",
+                    task.getTaskId(), article.getId());
+                return false;
+            }
             taskinfoLogsMapper.insert(taskinfoLogs);
             //设置taskID
             task.setTaskId(taskinfoLogs.getTaskId());
             flag = true;
+            log.info("task add success taskId={}", task.getTaskId());
         } catch (Exception e) {
 
+            log.error("task延迟任务 add exception，articleId={}", article.getId(), e);
         }
         return flag;
     }
@@ -99,21 +114,16 @@ public class TaskServiceImpl implements TaskService {
     /**
      * 更新任务日志
      */
-    private Task updateDb(long taskId, int status) {
-
-        Task task = null;
+    private void updateDb(long taskId, int status) {
         try {
             //更新任务日志
             TaskinfoLogs taskinfoLogs = taskinfoLogsMapper.selectById(taskId);
             taskinfoLogs.setStatus(status);
             taskinfoLogsMapper.updateById(taskinfoLogs);
-            task = BeanUtil.copyProperties(taskinfoLogs, Task.class);
             log.info("taskInfoLogs update success taskId={}, status={}", taskId, status);
         } catch (Exception e) {
             log.error("task cancel exception taskId={}", taskId);
         }
-
-        return task;
     }
 
     /**

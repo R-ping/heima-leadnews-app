@@ -51,6 +51,15 @@ public class ApArticleAiAnalysis implements Serializable {
     @TableField("tech_confidence")
     private BigDecimal techConfidence;
 
+    @TableField("is_violation")
+    private Boolean isViolation;
+
+    @TableField("violation_type")
+    private String violationType;
+
+    @TableField("violation_reason")
+    private String violationReason;
+
     @TableField("raw_response")
     private String rawResponse;
 

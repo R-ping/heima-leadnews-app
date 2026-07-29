@@ -2,6 +2,11 @@ import axios from 'axios'
 import BigInt from 'json-bigint'
 import store from '@/stores/store'
 
+// 防止并发刷新
+var _refreshing = false
+// 待重放请求队列
+var _pendingRequests = []
+
 // create an axios instance
 const service = axios.create({
   baseURL: '/wemedia',
@@ -24,7 +29,8 @@ service.interceptors.request.use(
       if (!isImgUpload(config)) {
         config.headers['Content-Type'] = 'application/json'
       } else {
-        config.headers['Content-Type'] = 'multipart/form-data'
+        // FormData 上传：删除手动 Content-Type，让浏览器自动设置带 boundary 的值
+        delete config.headers['Content-Type']
       }
       config.headers['accToken'] = accessToken
     }
@@ -54,9 +60,17 @@ function refreshTokenAndRetry(config) {
   const accessToken = store.state.accessToken
   const refreshToken = store.state.refreshToken
   if (!refreshToken) {
+    store.dispatch('logout')
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }
+  // 防止并发刷新：多个请求同时触发444时，只执行一次刷新，其余请求进入队列等待
+  if (_refreshing) {
+    return new Promise(function (resolve, reject) {
+      _pendingRequests.push({ resolve: resolve, reject: reject, config: config })
+    })
+  }
+  _refreshing = true
   const refreshUrl = '/user/api/v1/token/refresh'
   const refreshTime = new Date().getTime()
   return axios({
@@ -73,14 +87,33 @@ function refreshTokenAndRetry(config) {
     const d = response.data
     if (d && d.code === 200 && d.data && d.data.accessToken) {
       store.dispatch('login', d.data)
-      // 用新token重放原请求
+      _refreshing = false
+      // 用新token重放所有等待中的请求
+      var pending = _pendingRequests.splice(0)
+      pending.forEach(function (req) {
+        req.config.headers['accToken'] = d.data.accessToken
+        service(req.config).then(req.resolve).catch(req.reject)
+      })
+      // 重放当前请求
       config.headers['accToken'] = d.data.accessToken
-      return axios(config).then(res => res.data)
+      return service(config)
     }
+    _refreshing = false
+    // 刷新失败，拒绝所有等待队列
+    var failPending = _pendingRequests.splice(0)
+    failPending.forEach(function (req) {
+      req.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+    })
     store.dispatch('logout')
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }).catch(() => {
+    _refreshing = false
+    // 刷新失败，拒绝所有等待队列
+    var failPending = _pendingRequests.splice(0)
+    failPending.forEach(function (req) {
+      req.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+    })
     store.dispatch('logout')
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })

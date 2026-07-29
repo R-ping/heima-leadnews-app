@@ -24,4 +24,11 @@ public interface INotificationClient {
      */
     @PostMapping("/api/v1/notifications/feign/incr-unread")
     void incrUnread(@RequestParam("userId") Long userId);
+
+    /**
+     * 发送活动/促销系统通知
+     * @param params 包含: userId(Long), title(String), content(String), link(String, 可选)
+     */
+    @PostMapping("/api/v1/notifications/feign/activity")
+    ResponseResult sendActivityNotification(@RequestBody Map<String, Object> params);
 }

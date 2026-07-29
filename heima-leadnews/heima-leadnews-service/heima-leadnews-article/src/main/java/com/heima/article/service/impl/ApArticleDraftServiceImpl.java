@@ -10,7 +10,6 @@ import com.heima.article.mapper.ApArticleDraftMapper;
 import com.heima.article.mapper.ApArticleMapper;
 import com.heima.article.service.ApArticleDraftService;
 import com.heima.article.service.ArticleAutoScanService;
-import com.heima.article.service.ArticleTaskService;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticleConfig;
 import com.heima.model.article.pojos.ApArticleContent;
@@ -19,12 +18,11 @@ import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Date;
 
 @Service
 @Slf4j
@@ -41,9 +39,6 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
 
     @Autowired
     private ArticleAutoScanService articleAutoScanService;
-
-    @Autowired
-    private ArticleTaskService articleTaskService;
 
     @Override
     @Transactional
@@ -101,11 +96,18 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         article.setPublishTime(draft.getPublishTime() != null ? draft.getPublishTime() : new Date());
         article.setStatus(ApArticle.Status.SUBMIT.getCode()); // 审核中
 
+        // 初始化统计字段默认值
+        article.setViews(0);
+        article.setLikes(0);
+        article.setCollection(0);
+        article.setComment(0);
+        article.setScore(0);
+
         // 查询作者信息
         ApUser apUser = AppThreadLocalUtil.getUser();
         if (apUser != null) {
-            article.setAuthorName(apUser.getNickname());
-            article.setAuthorImage(apUser.getImage());
+            article.setAuthorName(apUser.getNickname() != null ? apUser.getNickname() : "");
+            article.setAuthorImage(apUser.getImage() != null ? apUser.getImage() : "");
         }
 
         apArticleMapper.insert(article);
@@ -126,15 +128,14 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         removeById(draftId);
 
         // 异步提交审核
+        // 不能直接抛异常触发回滚，因为有用户申诉业务（其实就是一个专门的“反馈 & 建议”的沸点的圈子），如果直接回滚掉整个文章信息，用户申诉成功也拿不回文章了
+        // 审核失败还缺少站内信的“系统通知”业务逻辑，如“你的文章 你知道的，我们上午是不写代码的 因违反社区规范已被删除， 详细规则请见  社区规范
+        // 文章内容: 存在色情低俗内容，建议删除带有低俗导向的图片/文字”
+        // 审核成功发布，需要通知等级服务，是否满足增加经验要求，如每天发2篇文章+10经验等，然后经验是否满足等级升级，升级后解锁相关权限或赠送“钻石”物品。
+        // 异步提交审核，审核结果由 ArticleAutoScanService 内部处理（经验值、通知、状态更新等）
+        // 不再同步等待审核结果，直接返回成功
         articleAutoScanService.autoScanArticle(article.getId());
-
-        // 如果是延迟发布，添加到调度任务
-//        if (draft.getPublishTime() != null && draft.getPublishTime().after(new Date())) {
-//            articleTaskService.addArticleToTask(article.getId(), draft.getPublishTime());
-//        }
-
-        // 不管是不是延迟发布，都添加到调度任务，只不过不延迟时interval：0，多经过了Task任务类流转
-        articleTaskService.addArticleToTask(article.getId(), article.getPublishTime());
+        log.info("文章已提交审核（异步）, articleId: {}", article.getId());
 
         return ResponseResult.okResult(article);
     }

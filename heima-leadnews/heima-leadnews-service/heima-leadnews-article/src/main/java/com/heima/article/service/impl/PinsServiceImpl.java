@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heima.apis.notification.INotificationClient;
 import com.heima.article.mapper.ApPinsMapper;
 import com.heima.article.service.PinsService;
 import com.heima.model.article.pojos.ApPins;
@@ -12,6 +14,7 @@ import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,11 @@ import java.util.Map;
 @Service
 @Slf4j
 public class PinsServiceImpl extends ServiceImpl<ApPinsMapper, ApPins> implements PinsService {
+
+    @Autowired(required = false)
+    private INotificationClient notificationClient;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public ResponseResult list(Long authorId, Integer page, Integer size, String status) {
@@ -97,7 +105,49 @@ public class PinsServiceImpl extends ServiceImpl<ApPinsMapper, ApPins> implement
         pins.setCreatedTime(new Date());
         pins.setPublishTime(new Date());
         save(pins);
+
+        // 发送系统通知（best-effort，失败不影响沸点创建流程）
+        sendPinsCreatedNotification(pins);
+
         return ResponseResult.okResult(pins);
+    }
+
+    /**
+     * 发送沸点发布成功系统通知
+     */
+    private void sendPinsCreatedNotification(ApPins pins) {
+        try {
+            if (notificationClient == null) {
+                log.warn("通知服务不可用，跳过发送沸点发布通知, pinsId={}", pins.getId());
+                return;
+            }
+
+            String message = "你的沸点已发布成功，并推荐至'最新'板块。";
+
+            // 构建通知内容JSON
+            Map<String, Object> contentMap = new HashMap<>();
+            contentMap.put("pinsId", String.valueOf(pins.getId()));
+            contentMap.put("message", message);
+            contentMap.put("notification_type", "system");
+
+            String contentJson = objectMapper.writeValueAsString(contentMap);
+
+            // 构建请求参数
+            Map<String, Object> params = new HashMap<>();
+            params.put("userId", Long.valueOf(pins.getAuthorId()));
+            params.put("type", 4); // 系统通知
+            params.put("sourceId", String.valueOf(pins.getId()));
+            params.put("content", contentJson);
+
+            ResponseResult result = notificationClient.createNotification(params);
+            if (result != null && result.getCode() == 200) {
+                log.info("沸点发布通知已发送, pinsId={}, authorId={}", pins.getId(), pins.getAuthorId());
+            } else {
+                log.warn("沸点发布通知发送失败, pinsId={}, result={}", pins.getId(), result);
+            }
+        } catch (Exception e) {
+            log.error("发送沸点发布通知异常, pinsId={}, 不影响沸点创建流程", pins.getId(), e);
+        }
     }
 
     @Override

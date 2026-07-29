@@ -41,6 +41,7 @@
     import { toast } from "@/utils/toast"
     import { getUserStatistics } from '@/apis/user'
     import request from '@/common/request'
+    import conf from '@/common/conf'
 
     export default {
         name: "HomeBar",
@@ -189,16 +190,22 @@
                 this.$router.push('/notification')
             },
             fetchUnreadCount() {
-                request.get('/NOTIFICATION/api/v1/notifications/unread-count', {}).then(d => {
+                if (!this.isLoggedIn) return
+                request.get(conf.urls.get('notifications_unread'), {}).then(d => {
                     if (d && d.code === 200 && d.data) {
                         this.unreadCount = d.data.total || 0
                     }
                 }).catch(() => {})
             }
         },
+        watch: {
+            isLoggedIn(newVal) {
+                if (!newVal) {
+                    this.unreadCount = 0
+                }
+            }
+        },
         mounted() {
-            this.fetchUnreadCount()
-            this.unreadTimer = setInterval(() => this.fetchUnreadCount(), 30000)
             this.closeDropdown = (e) => {
                 if (this.showUserDropdown && !this.$el.querySelector('.user-info').contains(e.target)) {
                     this.showUserDropdown = false

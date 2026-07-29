@@ -24,6 +24,12 @@ public class INotificationClientFallback implements FallbackFactory<INotificatio
             public void incrUnread(Long userId) {
                 log.error("NotificationClient.incrUnread fallback, error: {}", cause.getMessage());
             }
+
+            @Override
+            public ResponseResult sendActivityNotification(Map<String, Object> params) {
+                log.error("NotificationClient.sendActivityNotification fallback, error: {}", cause.getMessage());
+                return ResponseResult.errorResult(500, "通知服务不可用");
+            }
         };
     }
 }

@@ -146,6 +146,10 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
             log.error("文章保存失败，参数为空");
             return false;
         }
+        if(getById(article.getId())==null){
+            log.error("文章不存在，可能有由于审核逻辑出问题，导致文章回滚掉了，文章id：{}", article.getId());
+            return false;
+        }
         try {
             // 本地消息表入库（事务内）
             ArticleEvent event = buildArticleEvent();

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(value = "leadnews-article",fallback = IArticleClientFallback.class)
+@FeignClient(value = "leadnews-article", contextId = "leadnews-article-articleClient", fallback = IArticleClientFallback.class)
 public interface IArticleClient {
 
     @PostMapping("/api/v1/article/save")
@@ -26,7 +26,7 @@ public interface IArticleClient {
     public ResponseResult getContent(@RequestParam("articleId") Long articleId);
 
     @GetMapping("/api/v1/article/info")
-    public ResponseResult getArticleInfo(@RequestParam("articleId") Long articleId);
+    public ApArticle getArticleInfo(@RequestParam("articleId") Long articleId);
     @PostMapping("/api/v1/article/generate/event")
     public boolean generateArticleEvent(@RequestBody ApArticle article, @RequestParam("lastExecuteInterval") long executeTimeInterval);
     @PostMapping("/api/v1/article/publish")

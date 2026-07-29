@@ -349,6 +349,7 @@
         draftTimer: null,
         draftSaving: false,
         draftContent: '',
+        draftHash: '',
         saveStatus: '' // idle | saving | saved | error
       };
     },
@@ -356,14 +357,31 @@
       selectedTags: {
         handler(newVal) {
           this.FormData.labels = newVal.join(',')
+          this.saveStatus = ''
+          this.scheduleDraftSave()
         },
         deep: true
       },
       'FormData.content': {
-        handler() { this.scheduleDraftSave() }
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
       },
       'FormData.title': {
-        handler() { this.scheduleDraftSave() }
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
+      },
+      'FormData.channel_id': {
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
+      },
+      'FormData.topic': {
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
+      },
+      'FormData.summary': {
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
+      },
+      'FormData.publish_time': {
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
+      },
+      singlePic: {
+        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
       }
     },
     beforeMount() {
@@ -530,15 +548,29 @@
           this.autoSaveDraft()
         }, 2000)
       },
+      // 计算当前草稿哈希（包含所有属性，用于检测变更）
+      computeDraftHash() {
+        const parts = [
+          this.FormData.content || '',
+          this.FormData.title || '',
+          this.FormData.channel_id || '',
+          this.FormData.labels || '',
+          this.FormData.topic || '',
+          this.FormData.summary || '',
+          this.FormData.publish_time || '',
+          this.singlePic || ''
+        ]
+        return parts.join('|||')
+      },
       async autoSaveDraft() {
         if (!this.FormData.content && !this.FormData.title) return
-        const currentContent = this.FormData.content + this.FormData.title
-        if (currentContent === this.draftContent) return
+        const currentHash = this.computeDraftHash()
+        if (currentHash === this.draftHash) return
         if (this.draftSaving) return
 
         this.draftSaving = true
         this.saveStatus = 'saving'
-        this.draftContent = currentContent
+        this.draftHash = currentHash
         try {
           let images = this.getImages()
           let data = {
@@ -740,7 +772,13 @@
           return;
         }
 
-        // 先确保草稿已保存最新内容
+        // 取消防抖，立即强制保存最新属性到草稿
+        if (this.draftTimer) {
+          clearTimeout(this.draftTimer)
+          this.draftTimer = null
+        }
+        // 强制标记变更（绕过 draftHash 比较），确保本次一定发起 /update 请求
+        this.draftHash = ''
         await this.autoSaveDraft();
         if (this.saveStatus !== 'saved') {
           this.$message({ type: "warning", message: "草稿保存失败，请重试" });
