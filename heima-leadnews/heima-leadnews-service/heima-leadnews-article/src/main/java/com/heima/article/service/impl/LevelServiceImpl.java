@@ -90,7 +90,7 @@ public class LevelServiceImpl implements LevelService {
 
         ApUserLevel userLevel = getUserLevel(userId);
 
-        String today = new Date(System.currentTimeMillis()).toString();
+        String today = new java.sql.Date(System.currentTimeMillis()).toString();
 
         Integer dailyLimit = DAILY_ACTION_LIMIT.get(actionType);
         if (dailyLimit != null) {

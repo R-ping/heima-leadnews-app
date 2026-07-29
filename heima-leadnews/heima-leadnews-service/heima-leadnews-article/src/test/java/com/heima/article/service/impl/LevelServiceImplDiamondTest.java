@@ -74,8 +74,8 @@ class LevelServiceImplDiamondTest {
         List<ApUserActionLog> emptyLogs = new ArrayList<>();
         when(actionLogMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(emptyLogs);
 
-        doAnswer(invocation -> null).when(userLevelMapper).updateById(any());
-        doAnswer(invocation -> null).when(diamondLogMapper).insert(any());
+        doAnswer(invocation -> null).when(userLevelMapper).updateById(any(ApUserLevel.class));
+        doAnswer(invocation -> null).when(diamondLogMapper).insert(any(ApUserDiamondLog.class));
 
         // When: 记录行为触发等级升级
         levelService.recordAction(1L, "publish_article", "发布文章: 测试");
@@ -84,7 +84,7 @@ class LevelServiceImplDiamondTest {
         // 验证钻石奖励发放（等级升级时）
         // 注意：由于 recordAction 内部调用链，实际验证取决于 getTodayScore 的返回值
         // 这里主要验证方法调用链不抛出异常
-        verify(userLevelMapper, atLeastOnce()).updateById(any());
+        verify(userLevelMapper, atLeastOnce()).updateById(any(ApUserLevel.class));
     }
 
     @Test
@@ -108,13 +108,13 @@ class LevelServiceImplDiamondTest {
         List<ApUserActionLog> emptyLogs = new ArrayList<>();
         when(actionLogMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(emptyLogs);
 
-        doAnswer(invocation -> null).when(userLevelMapper).updateById(any());
+        doAnswer(invocation -> null).when(userLevelMapper).updateById(any(ApUserLevel.class));
 
         // When
         levelService.recordAction(1L, "publish_article", "发布文章: 测试");
 
         // Then: 钻石日志不应被写入（等级未变化）
-        verify(diamondLogMapper, never()).insert(any());
+        verify(diamondLogMapper, never()).insert(any(ApUserDiamondLog.class));
     }
 
     @Test
@@ -127,8 +127,8 @@ class LevelServiceImplDiamondTest {
         List<ApUserActionLog> emptyLogs = new ArrayList<>();
         when(actionLogMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(emptyLogs);
 
-        doAnswer(invocation -> null).when(userLevelMapper).updateById(any());
-        doAnswer(invocation -> null).when(diamondLogMapper).insert(any());
+        doAnswer(invocation -> null).when(userLevelMapper).updateById(any(ApUserLevel.class));
+        doAnswer(invocation -> null).when(diamondLogMapper).insert(any(ApUserDiamondLog.class));
 
         // When
         Map<String, Object> result = levelService.recordActionWithLimit(1L, "publish_article", "发布文章");
@@ -137,7 +137,7 @@ class LevelServiceImplDiamondTest {
         assert result != null;
         assert Boolean.TRUE.equals(result.get("success"));
         // 验证等级升级时钻石发放被调用
-        verify(userLevelMapper, atLeastOnce()).updateById(any());
+        verify(userLevelMapper, atLeastOnce()).updateById(any(ApUserLevel.class));
     }
 
     @Test
@@ -155,6 +155,6 @@ class LevelServiceImplDiamondTest {
         levelService.recordAction(1L, "publish_article", "发布文章: 测试");
 
         // Then: 不应写入新的 action log
-        verify(actionLogMapper, never()).insert(any());
+        verify(actionLogMapper, never()).insert(any(ApUserActionLog.class));
     }
 }

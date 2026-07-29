@@ -24,7 +24,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.heima.model.article.pojos.ApArticleAuditRecord;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,47 +76,46 @@ class ArticleAutoScanServiceImplTest {
     }
 
     @Test
-    void testTextScanHigh_ShouldSaveAuditRecordAndNotSetIsDeleted() {
+    void testAiViolationHigh_ShouldSaveAuditRecordAndNotSetIsDeleted() {
         // Given
         when(apArticleMapper.selectById(1L)).thenReturn(article);
         when(apArticleContentMapper.selectOne(any(QueryWrapper.class))).thenReturn(articleContent);
 
-        Map<String, Object> textScanResult = new HashMap<>();
-        textScanResult.put("level", "high");
-        when(greenTextScan.greeTextScan(anyString())).thenReturn(textScanResult);
+        Map<String, Object> violationResult = new HashMap<>();
+        violationResult.put("is_violation", true);
+        violationResult.put("violation_type", "违规内容");
+        violationResult.put("violation_reason", "文章内容违反社区规范");
+        when(bailianAiService.checkViolation(any(), anyString())).thenReturn(violationResult);
 
         // When
         articleAutoScanService.autoScanArticle(1L);
 
         // Then
         // 验证审计记录已写入
-        verify(apArticleAuditRecordMapper, times(1)).insert(any());
-        // 验证文章状态更新为 FAIL
-        verify(apArticleMapper, times(1)).updateById(argThat(a ->
-            a.getStatus().equals(ApArticle.Status.FAIL.getCode())
-        ));
-        // 验证 isDeleted 仍为 false
-        verify(apArticleMapper, times(1)).updateById(argThat(a ->
-            !a.getIsDeleted()
+        verify(apArticleAuditRecordMapper, times(1)).insert(any(ApArticleAuditRecord.class));
+        verify(apArticleMapper, times(1)).updateById(argThat((ApArticle a) ->
+            a.getStatus().equals(ApArticle.Status.FAIL.getCode()) && !a.getIsDeleted()
         ));
     }
 
     @Test
-    void testTextScanMedium_ShouldSaveAuditRecord() {
+    void testAiViolationMedium_ShouldSaveAuditRecord() {
         // Given
         when(apArticleMapper.selectById(1L)).thenReturn(article);
         when(apArticleContentMapper.selectOne(any(QueryWrapper.class))).thenReturn(articleContent);
 
-        Map<String, Object> textScanResult = new HashMap<>();
-        textScanResult.put("level", "medium");
-        when(greenTextScan.greeTextScan(anyString())).thenReturn(textScanResult);
+        Map<String, Object> violationResult = new HashMap<>();
+        violationResult.put("is_violation", true);
+        violationResult.put("violation_type", "medium");
+        violationResult.put("violation_reason", "不确定内容");
+        when(bailianAiService.checkViolation(any(), anyString())).thenReturn(violationResult);
 
         // When
         articleAutoScanService.autoScanArticle(1L);
 
         // Then
-        verify(apArticleAuditRecordMapper, times(1)).insert(any());
-        verify(apArticleMapper, times(1)).updateById(argThat(a ->
+        verify(apArticleAuditRecordMapper, times(1)).insert(any(ApArticleAuditRecord.class));
+        verify(apArticleMapper, times(1)).updateById(argThat((ApArticle a) ->
             a.getStatus().equals(ApArticle.Status.FAIL.getCode()) && !a.getIsDeleted()
         ));
     }
@@ -124,9 +126,8 @@ class ArticleAutoScanServiceImplTest {
         when(apArticleMapper.selectById(1L)).thenReturn(article);
         when(apArticleContentMapper.selectOne(any(QueryWrapper.class))).thenReturn(articleContent);
 
-        Map<String, Object> textScanResult = new HashMap<>();
-        textScanResult.put("level", "normal");
-        when(greenTextScan.greeTextScan(anyString())).thenReturn(textScanResult);
+        // AI违规检测通过
+        when(bailianAiService.checkViolation(any(), anyString())).thenReturn(null);
 
         Map<String, Object> expResult = new HashMap<>();
         expResult.put("success", true);
@@ -148,9 +149,8 @@ class ArticleAutoScanServiceImplTest {
         when(apArticleMapper.selectById(1L)).thenReturn(article);
         when(apArticleContentMapper.selectOne(any(QueryWrapper.class))).thenReturn(articleContent);
 
-        Map<String, Object> textScanResult = new HashMap<>();
-        textScanResult.put("level", "normal");
-        when(greenTextScan.greeTextScan(anyString())).thenReturn(textScanResult);
+        // AI违规检测通过
+        when(bailianAiService.checkViolation(any(), anyString())).thenReturn(null);
 
         when(levelService.recordActionWithLimit(anyLong(), anyString(), anyString()))
             .thenThrow(new RuntimeException("经验值服务异常"));
@@ -174,7 +174,7 @@ class ArticleAutoScanServiceImplTest {
         articleAutoScanService.autoScanArticle(1L);
 
         // Then - no audit actions should be called
-        verify(greenTextScan, never()).greeTextScan(anyString());
-        verify(apArticleAuditRecordMapper, never()).insert(any());
+        verify(bailianAiService, never()).checkViolation(any(), anyString());
+        verify(apArticleAuditRecordMapper, never()).insert(any(ApArticleAuditRecord.class));
     }
 }
