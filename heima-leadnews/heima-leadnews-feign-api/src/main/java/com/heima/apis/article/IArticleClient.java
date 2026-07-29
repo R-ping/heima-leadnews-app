@@ -6,6 +6,7 @@ import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.common.dtos.ResponseResult;
 import java.util.List;
+import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,7 +33,7 @@ public interface IArticleClient {
     public ResponseResult publishArticle(@RequestParam("articleId") Long articleId);
 
     @PostMapping("/api/v1/article/list")
-    public List<ApArticle> listByAuthorId(@RequestBody ArticleDto dto);
+    public List<Map<String, Object>> listByAuthorId(@RequestBody ArticleDto dto);
 
     @GetMapping("/api/v1/article/feign/statistics")
     public ResponseResult getStatisticsFeign(@RequestParam("userId") Long userId);

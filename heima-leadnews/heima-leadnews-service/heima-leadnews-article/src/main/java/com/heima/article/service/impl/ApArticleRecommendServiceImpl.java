@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -84,9 +85,11 @@ public class ApArticleRecommendServiceImpl implements ApArticleRecommendService 
                 ? shuffled.subList(fromIndex, toIndex)
                 : Collections.emptyList();
 
-        // 7. 构建响应
+        // 7. 构建响应 - null-safe 处理
+        List<Map<String, Object>> safeList = pageResult.stream()
+                .map(ApArticle::nullSafeToMap).collect(Collectors.toList());
         Map<String, Object> result = new HashMap<>();
-        result.put("list", pageResult);
+        result.put("list", safeList);
         result.put("seed", seed);
         result.put("page", page);
         result.put("size", size);

@@ -14,6 +14,7 @@ import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -78,7 +79,7 @@ public class ArticleClient implements IArticleClient {
     }
 
     @PostMapping("/api/v1/article/list")
-    public List<ApArticle> listByAuthorId(@RequestBody ArticleDto dto) {
+    public List<Map<String, Object>> listByAuthorId(@RequestBody ArticleDto dto) {
         return apArticleService.listByAuthorId(dto);
     }
 

@@ -27,4 +27,9 @@ public class CommentController {
     public ResponseResult likeComment(@RequestBody CommentDto dto) {
         return apCommentService.likeComment(dto);
     }
+
+    @GetMapping("/{id}")
+    public ResponseResult getCommentById(@PathVariable Long id) {
+        return apCommentService.getCommentById(id);
+    }
 }

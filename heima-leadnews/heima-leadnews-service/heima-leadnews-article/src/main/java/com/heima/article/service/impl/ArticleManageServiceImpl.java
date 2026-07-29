@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -46,7 +47,7 @@ public class ArticleManageServiceImpl extends ServiceImpl<ApArticleMapper, ApArt
         wrapper.orderByDesc(ApArticle::getCreatedTime);
         IPage<ApArticle> result = page(pageParam, wrapper);
         Map<String, Object> data = new HashMap<>();
-        data.put("list", result.getRecords());
+        data.put("list", result.getRecords().stream().map(ApArticle::nullSafeToMap).collect(Collectors.toList()));
         data.put("total", result.getTotal());
         return ResponseResult.okResult(data);
     }

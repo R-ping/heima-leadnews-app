@@ -7,4 +7,5 @@ public interface ApCommentService {
     ResponseResult getCommentList(CommentDto dto);
     ResponseResult addComment(CommentDto dto);
     ResponseResult likeComment(CommentDto dto);
+    ResponseResult getCommentById(Long id);
 }

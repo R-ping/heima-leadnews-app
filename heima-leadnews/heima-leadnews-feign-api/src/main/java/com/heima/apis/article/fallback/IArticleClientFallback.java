@@ -8,6 +8,7 @@ import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -48,7 +49,7 @@ public class IArticleClientFallback implements IArticleClient {
     }
 
     @Override
-    public List<ApArticle> listByAuthorId(ArticleDto dto) {
+    public List<Map<String, Object>> listByAuthorId(ArticleDto dto) {
         return Collections.emptyList();
     }
 

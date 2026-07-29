@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -134,7 +135,7 @@ public class ApArticleServiceImplTest {
         dto.setAuthorId(1L);
         dto.setIsDeleted(false);
 
-        List<ApArticle> result = apArticleService.listByAuthorId(dto);
+        List<Map<String, Object>> result = apArticleService.listByAuthorId(dto);
         assertNotNull(result);
     }
 
@@ -144,7 +145,7 @@ public class ApArticleServiceImplTest {
     void testListByAuthorId_NoAuthorId() {
         ArticleDto dto = new ArticleDto();
 
-        List<ApArticle> result = apArticleService.listByAuthorId(dto);
+        List<Map<String, Object>> result = apArticleService.listByAuthorId(dto);
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }

@@ -22,6 +22,8 @@ import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.mess.ArticleVisitStreamMess;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -83,8 +85,9 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
         }
         //2.查询
         List<ApArticle> articleList = apArticleMapper.loadArticleList(dto, type);
-        //3.结果返回
-        return ResponseResult.okResult(articleList);
+        //3.结果返回 - null-safe 处理
+        List<Map<String, Object>> resultList = articleList.stream().map(ApArticle::nullSafeToMap).collect(Collectors.toList());
+        return ResponseResult.okResult(resultList);
     }
 
     /**
@@ -194,7 +197,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
     }
 
     @Override
-    public List<ApArticle> listByAuthorId(ArticleDto dto) {
+    public List<Map<String, Object>> listByAuthorId(ArticleDto dto) {
         // 构建查询条件
         LambdaQueryWrapper<ApArticle> wrapper = new LambdaQueryWrapper<>();
 
@@ -213,7 +216,8 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
         // 可选条件：删除状态
         wrapper.eq(dto.getIsDeleted() != null, ApArticle::getIsDeleted, dto.getIsDeleted());
 
-        return list(wrapper);
+        List<ApArticle> articles = list(wrapper);
+        return articles.stream().map(ApArticle::nullSafeToMap).collect(Collectors.toList());
     }
 
     /**

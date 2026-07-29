@@ -192,6 +192,18 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
         }
     }
 
+    @Override
+    public ResponseResult getCommentById(Long id) {
+        if (id == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+        ApComment comment = getById(id);
+        if (comment == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "评论不存在");
+        }
+        return ResponseResult.okResult(comment);
+    }
+
     private boolean isLiked(Long commentId, Integer userId) {
         if (userId == null) return false;
         LambdaQueryWrapper<ApCommentLike> wrapper = new LambdaQueryWrapper<>();

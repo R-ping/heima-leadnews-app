@@ -7,6 +7,7 @@ import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.mess.ArticleVisitStreamMess;
 import java.util.List;
+import java.util.Map;
 
 public interface ApArticleService extends IService<ApArticle> {
 
@@ -30,5 +31,5 @@ public interface ApArticleService extends IService<ApArticle> {
 
     public void updateScore(ArticleVisitStreamMess message);
 
-    List<ApArticle> listByAuthorId(ArticleDto dto);
+    List<Map<String, Object>> listByAuthorId(ArticleDto dto);
 }

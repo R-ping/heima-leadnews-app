@@ -2,6 +2,10 @@ package com.heima.notification.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heima.apis.article.ICommentClient;
+import com.heima.apis.article.IFollowClient;
+import com.heima.model.article.dtos.CommentDto;
+import com.heima.model.article.pojos.ApComment;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.notification.dtos.NotificationDto;
@@ -30,6 +34,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired(required = false)
+    private ICommentClient commentClient;
+
+    @Autowired(required = false)
+    private IFollowClient followClient;
 
     @Override
     public ResponseResult list(NotificationDto dto) {
@@ -62,24 +72,58 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public ResponseResult reply(Long userId, Long commentId, String content) {
-        // TODO: 集成评论服务后，调用评论服务插入子回复
-        // 1. 校验评论存在
-        // 2. 插入子回复 (parent_id = commentId)
-        // 3. 触发新通知给原作者
-        return ResponseResult.okResult(null);
+        if (userId == null || commentId == null || content == null || content.trim().isEmpty()) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "参数不能为空");
+        }
+        try {
+            ResponseResult commentResult = commentClient.getCommentById(commentId);
+            if (commentResult == null || commentResult.getCode() != AppHttpCodeEnum.SUCCESS.getCode()) {
+                return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "评论不存在");
+            }
+            ApComment comment = objectMapper.convertValue(commentResult.getData(), ApComment.class);
+            if (comment == null || comment.getArticleId() == null) {
+                return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "评论数据异常");
+            }
+            CommentDto dto = new CommentDto();
+            dto.setArticleId(comment.getArticleId());
+            dto.setParentId(commentId);
+            dto.setContent(content.trim());
+            return commentClient.addComment(dto);
+        } catch (Exception e) {
+            log.error("reply error: userId={}, commentId={}", userId, commentId, e);
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "回复失败");
+        }
     }
 
     @Override
     public ResponseResult toggleLike(Long userId, Long commentId) {
-        // TODO: 集成评论服务后，调用评论点赞Toggle
-        // 幂等：已点赞则取消，未点赞则点赞
-        return ResponseResult.okResult(null);
+        if (userId == null || commentId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "参数不能为空");
+        }
+        try {
+            CommentDto dto = new CommentDto();
+            dto.setCommentId(commentId);
+            return commentClient.likeComment(dto);
+        } catch (Exception e) {
+            log.error("toggleLike error: userId={}, commentId={}", userId, commentId, e);
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "点赞操作失败");
+        }
     }
 
     @Override
     public ResponseResult followBack(Long userId, Long followerId) {
-        // TODO: 集成用户服务后，调用关注接口
-        return ResponseResult.okResult(null);
+        if (userId == null || followerId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "参数不能为空");
+        }
+        if (userId.equals(followerId)) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "不能自己关注自己");
+        }
+        try {
+            return followClient.follow(userId, followerId);
+        } catch (Exception e) {
+            log.error("followBack error: userId={}, followerId={}", userId, followerId, e);
+            return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, "关注操作失败");
+        }
     }
 
     @Override

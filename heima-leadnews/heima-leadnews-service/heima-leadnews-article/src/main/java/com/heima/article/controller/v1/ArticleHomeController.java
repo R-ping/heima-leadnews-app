@@ -4,6 +4,7 @@ import com.heima.article.service.ApArticleRecommendService;
 import com.heima.article.service.ApArticleService;
 import com.heima.common.constants.ArticleConstants;
 import com.heima.model.article.dtos.ArticleHomeDto;
+import com.heima.model.article.dtos.ArticleRecommendDto;
 import com.heima.model.common.dtos.ResponseResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -56,7 +57,7 @@ public class ArticleHomeController {
      * 推荐文章（非确定性排序，基于种子随机洗牌）
      */
     @PostMapping("/recommend")
-    public ResponseResult recommend(@RequestBody com.heima.model.article.dtos.ArticleRecommendDto dto) {
+    public ResponseResult recommend(@RequestBody ArticleRecommendDto dto) {
         return apArticleRecommendService.recommend(dto);
     }
 }
