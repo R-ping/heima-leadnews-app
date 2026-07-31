@@ -149,7 +149,7 @@ export default {
       if (res && res.code === 200 && res.data) {
         const data = res.data
         this.articleStatusTabs = [
-          { label: '全部', value: 'all', count: data.published || 0 },
+          { label: '全部', value: 'all', count: (data.published || 0) + (data.reviewing || 0) + (data.rejected || 0) },
           { label: '已发布', value: 'published', count: data.published || 0 },
           { label: '审核中', value: 'reviewing', count: data.reviewing || 0 },
           { label: '未通过', value: 'rejected', count: data.rejected || 0 }
@@ -296,7 +296,7 @@ export default {
 
   .status-tabs {
     margin-bottom: 16px;
-    el-tag {
+    .el-tag {
       cursor: pointer;
       margin-right: 8px;
       padding: 4px 16px;

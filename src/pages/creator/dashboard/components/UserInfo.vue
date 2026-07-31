@@ -70,9 +70,6 @@ export default {
         console.error('获取用户统计数据失败', err)
       }
     },
-    goPublish() {
-      window.open('/creator/publish', '_blank')
-    }
   }
 }
 </script>

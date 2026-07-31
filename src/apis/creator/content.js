@@ -48,10 +48,6 @@ export const createColumn = (data) => {
   return request.post('/api/v1/column/manage/create', data)
 }
 
-export const updateColumn = (data) => {
-  return request.post('/api/v1/column/manage/update', data)
-}
-
 export const deleteColumn = (id) => {
   return request.post('/api/v1/column/manage/delete', { id })
 }
