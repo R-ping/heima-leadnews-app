@@ -150,7 +150,7 @@ public class ArticleEmbeddingServiceImpl implements ArticleEmbeddingService {
             return null;
         }
         // 截断过长内容（embedding模型有token限制）
-        String truncated = content.length() > 6000 ? content.substring(0, 6000) : content;
+        String truncated = content.length() > 1500 ? content.substring(0, 1500) : content;
         return dashScopeClient.callEmbedding(truncated);
     }
 }
