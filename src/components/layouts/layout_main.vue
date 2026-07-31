@@ -188,7 +188,7 @@
                         <div class="topic-list" v-if="recommendTopics.length > 0">
                             <div class="topic-item" v-for="topic in recommendTopics" :key="topic.id" @click="goToTopic(topic.id)">
                                 <span class="topic-name">{{ topic.name }}</span>
-                                <span class="topic-count">{{ formatTopicCount(topic.count) }} 讨论</span>
+                                <span class="topic-count">{{ formatTopicCount(topic.postCount || topic.count || topic.participantCount || 0) }} 讨论</span>
                             </div>
                         </div>
                         <div class="topic-empty" v-else>
@@ -653,7 +653,8 @@
                 try {
                     const res = await getRecommendTopics()
                     if (res && res.code === 200) {
-                        this.recommendTopics = res.data || []
+                        const data = res.data
+                        this.recommendTopics = Array.isArray(data) ? data : (data && data.list ? data.list : [])
                     }
                 } catch (e) {
                     console.error('加载推荐话题失败', e)
@@ -698,6 +699,7 @@
                 }
             },
             formatTopicCount(count) {
+                if (!count) return '0'
                 if (count >= 1000) {
                     return (count / 1000).toFixed(1) + 'k'
                 }
