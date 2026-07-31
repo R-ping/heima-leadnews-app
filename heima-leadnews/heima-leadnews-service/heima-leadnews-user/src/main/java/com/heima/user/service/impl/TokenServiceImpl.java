@@ -1,18 +1,17 @@
 package com.heima.user.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.heima.common.redis.CacheService;
 import com.heima.model.user.dtos.LoginResultVo;
 import com.heima.user.service.TokenService;
 import com.heima.utils.common.AppJwtUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 双Token认证服务实现
@@ -27,7 +26,7 @@ public class TokenServiceImpl implements TokenService {
     private static final TimeUnit REFRESH_TOKEN_UNIT = TimeUnit.DAYS;
 
     @Autowired
-    private StringRedisTemplate redisTemplate;
+    private CacheService cacheService;
 
     @Override
     public LoginResultVo generateDualToken(Integer userId, String nickName, String phone, String image) {
@@ -46,7 +45,7 @@ public class TokenServiceImpl implements TokenService {
         userInfo.put("image", image);
 
         String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
-        redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(userInfo),
+        cacheService.setEx(redisKey, JSON.toJSONString(userInfo),
                 REFRESH_TOKEN_TTL, REFRESH_TOKEN_UNIT);
         log.info("生成双token成功: userId={}, refreshToken={}", userId, refreshToken);
         // 4. 构建返回结果
@@ -69,7 +68,7 @@ public class TokenServiceImpl implements TokenService {
         }
 
         String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
-        String userInfoJson = redisTemplate.opsForValue().get(redisKey);
+        String userInfoJson = cacheService.get(redisKey);
 
         if (userInfoJson == null) {
             log.warn("refresh_token无效或已过期: {}", refreshToken);
@@ -85,7 +84,7 @@ public class TokenServiceImpl implements TokenService {
         String image = userInfo.get("image");
 
         // 删除旧的 refresh_token（一次性使用，防止重放攻击）
-        redisTemplate.delete(redisKey);
+        cacheService.delete(redisKey);
 
         // 生成新的双token
         LoginResultVo result = generateDualToken(userId, nickName, phone, image);
@@ -99,7 +98,7 @@ public class TokenServiceImpl implements TokenService {
             return;
         }
         String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
-        redisTemplate.delete(redisKey);
+        cacheService.delete(redisKey);
         log.info("吊销refresh_token成功: {}", refreshToken);
     }
 }

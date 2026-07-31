@@ -9,16 +9,20 @@ import com.heima.article.mapper.ApCourseMapper;
 import com.heima.article.mapper.ApCourseReadingProgressMapper;
 import com.heima.article.mapper.ApUserCourseMapper;
 import com.heima.article.service.ApCourseService;
+import com.heima.article.service.LevelService;
+import com.heima.model.article.dtos.CourseDto;
 import com.heima.model.article.pojos.ApCourse;
 import com.heima.model.article.pojos.ApCourseChapter;
 import com.heima.model.article.pojos.ApCourseReadingProgress;
 import com.heima.model.article.pojos.ApUserCourse;
-import com.heima.model.common.dtos.PageResponseResult;
+import com.heima.model.article.pojos.ApUserLevel;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -38,6 +42,11 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
     @Autowired
     private ApCourseChapterMapper chapterMapper;
 
+    @Autowired
+    private LevelService levelService;
+
+    private static final int COURSE_AUTHOR_REQUIRED_POWER_LEVEL = 5;
+
     @Override
     public ResponseResult findList(Integer page, Integer size, Byte status) {
         IPage<ApCourse> iPage = new Page<>(page, size);
@@ -51,7 +60,10 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
         
         IPage<ApCourse> resultPage = page(iPage, queryWrapper);
         
-        return new PageResponseResult(page, size, (int) resultPage.getTotal(), resultPage.getRecords());
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", resultPage.getRecords());
+        data.put("total", resultPage.getTotal());
+        return ResponseResult.okResult(data);
     }
 
     @Override
@@ -99,7 +111,6 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
             return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
         }
 
-        // Query user_course records by filter type
         LambdaQueryWrapper<ApUserCourse> ucQuery = new LambdaQueryWrapper<>();
         ucQuery.eq(ApUserCourse::getUserId, userId.intValue());
         ucQuery.eq(ApUserCourse::getIsActive, (byte) 1);
@@ -109,12 +120,10 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
         } else if ("vip".equals(filter)) {
             ucQuery.eq(ApUserCourse::getAccessType, 2);
         }
-        // "all" or null: no access_type filter
 
         ucQuery.orderByDesc(ApUserCourse::getLastLearnAt);
         List<ApUserCourse> userCourses = userCourseMapper.selectList(ucQuery);
 
-        // If no records found, return empty list
         if (userCourses.isEmpty()) {
             Map<String, Object> result = new HashMap<>();
             result.put("list", Collections.emptyList());
@@ -122,19 +131,16 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
             return ResponseResult.okResult(result);
         }
 
-        // Collect course IDs
         List<Long> courseIds = userCourses.stream()
                 .map(ApUserCourse::getCourseId)
                 .collect(Collectors.toList());
 
-        // Query course info
         LambdaQueryWrapper<ApCourse> courseQuery = new LambdaQueryWrapper<>();
         courseQuery.in(ApCourse::getId, courseIds);
         List<ApCourse> courses = list(courseQuery);
         Map<Long, ApCourse> courseMap = courses.stream()
                 .collect(Collectors.toMap(ApCourse::getId, c -> c));
 
-        // Build result list
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         List<Map<String, Object>> list = new ArrayList<>();
         for (ApUserCourse uc : userCourses) {
@@ -174,7 +180,6 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
         }
 
-        // Check user has access to this course
         LambdaQueryWrapper<ApUserCourse> ucQuery = new LambdaQueryWrapper<>();
         ucQuery.eq(ApUserCourse::getUserId, userId.intValue());
         ucQuery.eq(ApUserCourse::getCourseId, courseId);
@@ -185,7 +190,6 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
             return ResponseResult.errorResult(AppHttpCodeEnum.NO_OPERATOR_AUTH, "您未拥有该课程");
         }
 
-        // Update or insert reading progress
         if (chapterId != null) {
             LambdaQueryWrapper<ApCourseReadingProgress> rpQuery = new LambdaQueryWrapper<>();
             rpQuery.eq(ApCourseReadingProgress::getUserId, userId.intValue());
@@ -211,13 +215,11 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
                 readingProgressMapper.updateById(progress);
             }
 
-            // Recalculate overall progress
             ApCourse course = getById(courseId);
             if (course != null && course.getChapterCount() != null && course.getChapterCount() > 0) {
                 LambdaQueryWrapper<ApCourseReadingProgress> countQuery = new LambdaQueryWrapper<>();
                 countQuery.eq(ApCourseReadingProgress::getUserId, userId.intValue());
                 countQuery.in(ApCourseReadingProgress::getChapterId, 
-                    // get all chapters for this course
                     chapterMapper.selectList(
                         new LambdaQueryWrapper<ApCourseChapter>()
                             .eq(ApCourseChapter::getCourseId, courseId)
@@ -240,5 +242,204 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
         Map<String, Object> result = new HashMap<>();
         result.put("progress", userCourse.getProgress());
         return ResponseResult.okResult(result);
+    }
+
+    @Override
+    public ResponseResult getPublicDetail(Long courseId) {
+        if (courseId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+
+        ApCourse course = getById(courseId);
+        if (course == null || course.getIsDeleted() == 1) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "课程不存在");
+        }
+
+        // 查询所有章节
+        LambdaQueryWrapper<ApCourseChapter> chapterQuery = new LambdaQueryWrapper<>();
+        chapterQuery.eq(ApCourseChapter::getCourseId, courseId);
+        chapterQuery.orderByAsc(ApCourseChapter::getSortOrder);
+        List<ApCourseChapter> chapters = chapterMapper.selectList(chapterQuery);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("course", course);
+        result.put("chapters", chapters != null ? chapters : Collections.emptyList());
+        return ResponseResult.okResult(result);
+    }
+
+    // ==================== 课程创作管理 ====================
+
+    @Override
+    public ResponseResult checkAuthorPermission(Long userId) {
+        if (userId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+
+        ApUserLevel userLevel = levelService.getUserLevel(userId);
+        int powerLevel = userLevel.getPowerLevel() != null ? userLevel.getPowerLevel() : 1;
+        boolean hasPermission = powerLevel >= COURSE_AUTHOR_REQUIRED_POWER_LEVEL;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("hasPermission", hasPermission);
+        result.put("powerLevel", powerLevel);
+        result.put("requiredLevel", COURSE_AUTHOR_REQUIRED_POWER_LEVEL);
+        return ResponseResult.okResult(result);
+    }
+
+    @Override
+    @Transactional
+    public ResponseResult createCourse(CourseDto dto, Long userId) {
+        if (userId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+
+        // 权限检查
+        ApUserLevel userLevel = levelService.getUserLevel(userId);
+        if (userLevel.getPowerLevel() == null || userLevel.getPowerLevel() < COURSE_AUTHOR_REQUIRED_POWER_LEVEL) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NO_OPERATOR_AUTH,
+                    "课程创作权限需要逐力值 Lv" + COURSE_AUTHOR_REQUIRED_POWER_LEVEL + "，继续努力吧！");
+        }
+
+        ApCourse course = new ApCourse();
+        course.setTitle(dto.getTitle() != null ? dto.getTitle() : "未命名课程");
+        course.setSubtitle(dto.getSubtitle() != null ? dto.getSubtitle() : "");
+        course.setDescription(dto.getDescription() != null ? dto.getDescription() : "");
+        course.setCoverImage(dto.getCoverImage() != null ? dto.getCoverImage() : "");
+        course.setPrice(dto.getPrice() != null ? dto.getPrice() : BigDecimal.ZERO);
+        course.setOriginalPrice(dto.getOriginalPrice() != null ? dto.getOriginalPrice() : BigDecimal.ZERO);
+        course.setCategoryId(dto.getCategoryId() != null ? dto.getCategoryId() : 0);
+        course.setAuthorId(userId.intValue());
+        course.setAuthorName("");
+        course.setAuthorAvatar("");
+        course.setStatus((byte) 0);
+        course.setChapterCount(0);
+        course.setStudyCount(0);
+        course.setEstimatedHours(BigDecimal.ZERO);
+        course.setIsDeleted(0);
+        course.setVersion(1);
+        course.setSalesCount(0);
+        course.setTotalRevenue(BigDecimal.ZERO);
+        course.setCreatedTime(new Date());
+        course.setUpdatedTime(new Date());
+
+        save(course);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", course.getId());
+        result.put("title", course.getTitle());
+        return ResponseResult.okResult(result);
+    }
+
+    @Override
+    @Transactional
+    public ResponseResult updateCourse(CourseDto dto, Long userId) {
+        if (dto.getId() == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+
+        ApCourse course = getById(dto.getId());
+        if (course == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "课程不存在");
+        }
+
+        if (!course.getAuthorId().equals(userId.intValue())) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NO_OPERATOR_AUTH, "只能编辑自己的课程");
+        }
+
+        if (course.getStatus() == ApCourse.Status.PUBLISHED.getCode()) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NO_OPERATOR_AUTH, "已上架课程不可编辑，请先下架");
+        }
+
+        if (dto.getTitle() != null) course.setTitle(dto.getTitle());
+        if (dto.getSubtitle() != null) course.setSubtitle(dto.getSubtitle());
+        if (dto.getDescription() != null) course.setDescription(dto.getDescription());
+        if (dto.getCoverImage() != null) course.setCoverImage(dto.getCoverImage());
+        if (dto.getPrice() != null) course.setPrice(dto.getPrice());
+        if (dto.getOriginalPrice() != null) course.setOriginalPrice(dto.getOriginalPrice());
+        if (dto.getCategoryId() != null) course.setCategoryId(dto.getCategoryId());
+        course.setUpdatedTime(new Date());
+
+        updateById(course);
+
+        return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
+    }
+
+    @Override
+    public ResponseResult manageList(Integer page, Integer size, Byte status, String keyword, Long userId) {
+        if (userId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+
+        IPage<ApCourse> iPage = new Page<>(page, size);
+        LambdaQueryWrapper<ApCourse> query = new LambdaQueryWrapper<>();
+        query.eq(ApCourse::getAuthorId, userId.intValue());
+        query.eq(ApCourse::getIsDeleted, 0);
+
+        if (status != null) {
+            query.eq(ApCourse::getStatus, status);
+        }
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            query.like(ApCourse::getTitle, keyword.trim());
+        }
+
+        query.orderByDesc(ApCourse::getUpdatedTime);
+
+        IPage<ApCourse> resultPage = page(iPage, query);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", resultPage.getRecords());
+        data.put("total", resultPage.getTotal());
+        return ResponseResult.okResult(data);
+    }
+
+    @Override
+    public ResponseResult manageDetail(Long courseId, Long userId) {
+        if (courseId == null || userId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+
+        ApCourse course = getById(courseId);
+        if (course == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "课程不存在");
+        }
+
+        if (!course.getAuthorId().equals(userId.intValue())) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NO_OPERATOR_AUTH, "只能查看自己的课程");
+        }
+
+        // 查询所有章节
+        LambdaQueryWrapper<ApCourseChapter> chapterQuery = new LambdaQueryWrapper<>();
+        chapterQuery.eq(ApCourseChapter::getCourseId, courseId);
+        chapterQuery.orderByAsc(ApCourseChapter::getSortOrder);
+        List<ApCourseChapter> chapters = chapterMapper.selectList(chapterQuery);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("course", course);
+        result.put("chapters", chapters != null ? chapters : Collections.emptyList());
+        return ResponseResult.okResult(result);
+    }
+
+    @Override
+    @Transactional
+    public ResponseResult softDelete(Long courseId, Long userId) {
+        if (courseId == null || userId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
+
+        ApCourse course = getById(courseId);
+        if (course == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST, "课程不存在");
+        }
+
+        if (!course.getAuthorId().equals(userId.intValue())) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NO_OPERATOR_AUTH, "只能删除自己的课程");
+        }
+
+        course.setIsDeleted(1);
+        course.setUpdatedTime(new Date());
+        updateById(course);
+
+        return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
     }
 }

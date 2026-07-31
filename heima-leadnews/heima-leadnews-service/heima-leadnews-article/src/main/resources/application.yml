@@ -6,8 +6,8 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/leadnews_article?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
-    username: root
-    password: 123456
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
   kafka:
     bootstrap-servers: 127.0.0.1:9092
     producer:
@@ -53,7 +53,7 @@ spring:
           min-idle: 8
 mybatis-plus:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.nologging.NoLoggingImpl}
     default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
   global-config:
     db-config:
@@ -64,11 +64,11 @@ mybatis-plus:
   type-aliases-package: com.heima.model.article.pojos
 
 minio:
-  accessKey: minio
-  secretKey: minio123
-  bucket: leadnews
-  endpoint: http://127.0.0.1:9000
-  readPath: http://127.0.0.1:9000
+  accessKey: ${MINIO_ACCESS_KEY:minio}
+  secretKey: ${MINIO_SECRET_KEY:minio123}
+  bucket: ${MINIO_BUCKET:leadnews}
+  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  readPath: ${MINIO_READ_PATH:http://127.0.0.1:9000}
 
 aliyun:
   oss:

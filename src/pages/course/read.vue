@@ -13,26 +13,33 @@
     <div class="read-body">
       <div class="chapter-sidebar">
         <div class="sidebar-header">目录</div>
-        <div class="chapter-list">
+        <div class="chapter-list" v-if="!loading">
           <div 
             v-for="chapter in chapters" 
             :key="chapter.id"
             class="chapter-item"
             :class="{ 
               active: currentChapterId === chapter.id,
-              locked: !chapter.isFree && !isPurchased 
+              locked: chapter.isFree !== 1 && !isPurchased 
             }"
             @click="switchChapter(chapter)"
           >
             <span class="chapter-title">{{ chapter.title }}</span>
-            <span class="free-tag" v-if="chapter.isFree">免费</span>
+            <span class="free-tag" v-if="chapter.isFree === 1">免费</span>
             <span class="lock-icon" v-else-if="!isPurchased">&#xf023;</span>
           </div>
+        </div>
+        <div class="chapter-loading" v-else>
+          <span class="loading-spinner"></span>
         </div>
       </div>
 
       <div class="content-area">
-        <div v-if="!hasAccess" class="locked-content">
+        <div v-if="loading" class="content-loading">
+          <span class="loading-spinner"></span>
+          <p>加载中...</p>
+        </div>
+        <div v-else-if="!hasAccess" class="locked-content">
           <div class="lock-icon-lg">&#xf023;</div>
           <div class="locked-title">该章节需要购买后才能阅读</div>
           <div class="locked-desc">购买课程后即可阅读全部内容，支持7天无理由退款</div>
@@ -73,9 +80,10 @@
 
 <script>
 import { marked } from 'marked'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { toast } from "@/utils/toast"
-import { courseMockData } from './mockData'
 import Utils from '@/utils/env'
+import courseApi from '@/apis/course'
 
 marked.setOptions({
   gfm: true,
@@ -91,7 +99,9 @@ export default {
       course: {},
       chapters: [],
       isPurchased: false,
-      renderedContent: ''
+      renderedContent: '',
+      loading: true,
+      chapterLoading: false
     }
   },
   computed: {
@@ -111,41 +121,86 @@ export default {
     },
     hasAccess() {
       if (!this.currentChapter) return false
-      return this.currentChapter.isFree || this.isPurchased
+      return this.currentChapter.isFree === 1 || this.isPurchased
     }
   },
   mounted() {
     this.loadChapterDetail()
-    this.checkPurchaseStatus()
   },
   methods: {
-    loadChapterDetail() {
+    async loadChapterDetail() {
       const chapterId = parseInt(this.$route.params.id)
-      const mockChapters = courseMockData.chapters
+      this.loading = true
+      try {
+        // 加载章节详情
+        const chRes = await courseApi.getChapterDetail(chapterId)
+        if (chRes && chRes.code === 200 && chRes.data) {
+          this.currentChapter = chRes.data
+          this.currentChapterId = this.currentChapter.id
+          this.renderedContent = sanitizeHtml(marked(chRes.data.content || ''))
+        }
 
-      this.currentChapter = mockChapters.find(c => c.id === chapterId) || mockChapters[0]
-      this.currentChapterId = this.currentChapter.id
+        // 加载课程详情（含所有章节）
+        const courseId = this.currentChapter.courseId
+        if (courseId) {
+          const courseRes = await courseApi.getCourseDetail({ courseId })
+          if (courseRes && courseRes.code === 200 && courseRes.data) {
+            this.course = courseRes.data.course || {}
+            this.chapters = courseRes.data.chapters || []
+          }
+        }
 
-      const courseId = this.currentChapter.courseId
-      this.course = courseMockData.courses.find(c => c.id === courseId) || courseMockData.courses[0]
-      this.chapters = mockChapters.filter(c => c.courseId === courseId)
-
-      if (this.hasAccess) {
-        this.renderedContent = sanitizeHtml(marked(this.currentChapter.content || ''))
+        // 检查购买状态
+        await this.checkPurchaseStatus()
+      } catch (e) {
+        console.error('加载章节详情失败', e)
+        toast('加载失败', 2)
+      } finally {
+        this.loading = false
       }
     },
-    checkPurchaseStatus() {
-      const purchasedCourses = JSON.parse(localStorage.getItem('purchasedCourses') || '[]')
-      this.isPurchased = purchasedCourses.includes(this.course.id)
+    async checkPurchaseStatus() {
+      try {
+        const res = await courseApi.getMyCourses({})
+        if (res && res.code === 200 && res.data) {
+          const list = res.data.list || []
+          this.isPurchased = list.some(c => c.id === this.course.id)
+        }
+      } catch (e) {
+        this.isPurchased = false
+      }
     },
-    switchChapter(chapter) {
-      if (!chapter.isFree && !this.isPurchased) {
+    async switchChapter(chapter) {
+      if (chapter.isFree !== 1 && !this.isPurchased) {
         toast('该章节需要购买后才能阅读', 2)
         return
       }
       this.currentChapterId = chapter.id
-      this.currentChapter = chapter
-      this.renderedContent = sanitizeHtml(marked(chapter.content || ''))
+      this.chapterLoading = true
+      try {
+        const chRes = await courseApi.getChapterDetail(chapter.id)
+        if (chRes && chRes.code === 200 && chRes.data) {
+          this.currentChapter = chRes.data
+          this.renderedContent = sanitizeHtml(marked(chRes.data.content || ''))
+        }
+      } catch (e) {
+        console.error('加载章节内容失败', e)
+      } finally {
+        this.chapterLoading = false
+      }
+      // 更新阅读进度
+      this.updateProgress(chapter.id)
+    },
+    async updateProgress(chapterId) {
+      try {
+        await courseApi.updateProgress({
+          courseId: this.course.id,
+          chapterId: chapterId,
+          isCompleted: false
+        })
+      } catch (e) {
+        // 静默失败
+      }
     },
     goBack() {
       this.$router.back()
@@ -296,6 +351,38 @@ export default {
 
 .chapter-item.locked {
   opacity: 0.5;
+}
+
+.chapter-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.content-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 12px;
+  p {
+    font-size: 14px;
+    color: #999;
+  }
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #3194ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .chapter-title {

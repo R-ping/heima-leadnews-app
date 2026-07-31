@@ -1,8 +1,9 @@
 package com.heima.article.controller.v1;
 
 import com.heima.article.service.ApCourseService;
-import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.article.dtos.CourseDto;
 import com.heima.model.user.pojos.ApUser;
+import com.heima.model.common.dtos.ResponseResult;
 import com.heima.utils.thread.AppThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,8 @@ public class CourseController {
 
     @Autowired
     private ApCourseService apCourseService;
+
+    // ========== 公开接口 ==========
 
     @GetMapping("/list")
     public ResponseResult findList(
@@ -46,6 +49,12 @@ public class CourseController {
         return apCourseService.getMyCourses(userId, filter);
     }
 
+    /** 公开课程详情（含章节列表） */
+    @GetMapping("/detail")
+    public ResponseResult getPublicDetail(@RequestParam Long courseId) {
+        return apCourseService.getPublicDetail(courseId);
+    }
+
     @PostMapping("/progress")
     public ResponseResult updateProgress(@RequestBody Map<String, Object> params) {
         ApUser user = AppThreadLocalUtil.getUser();
@@ -54,5 +63,94 @@ public class CourseController {
         Long chapterId = params.get("chapterId") != null ? Long.parseLong(params.get("chapterId").toString()) : null;
         Boolean isCompleted = params.get("isCompleted") != null ? Boolean.parseBoolean(params.get("isCompleted").toString()) : null;
         return apCourseService.updateProgress(userId, courseId, chapterId, isCompleted);
+    }
+
+    // ========== 创作者课程管理接口 ==========
+
+    /** 检查当前用户是否有课程创作权限 */
+    @GetMapping("/author/check-permission")
+    public ResponseResult checkAuthorPermission() {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        return apCourseService.checkAuthorPermission(user.getId().longValue());
+    }
+
+    /** 创建课程草稿 */
+    @PostMapping("/manage/create")
+    public ResponseResult createCourse(@RequestBody CourseDto dto) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        return apCourseService.createCourse(dto, user.getId().longValue());
+    }
+
+    /** 更新课程信息 */
+    @PutMapping("/manage/update")
+    public ResponseResult updateCourse(@RequestBody CourseDto dto) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        return apCourseService.updateCourse(dto, user.getId().longValue());
+    }
+
+    /** 作者课程管理列表 */
+    @GetMapping("/manage/list")
+    public ResponseResult manageList(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Byte status,
+            @RequestParam(required = false) String keyword) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        return apCourseService.manageList(page, size, status, keyword, user.getId().longValue());
+    }
+
+    /** 课程编辑详情（含所有章节） */
+    @GetMapping("/manage/detail")
+    public ResponseResult manageDetail(@RequestParam Long courseId) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        return apCourseService.manageDetail(courseId, user.getId().longValue());
+    }
+
+    /** 软删除课程 */
+    @PostMapping("/manage/delete")
+    public ResponseResult softDelete(@RequestBody Map<String, Object> params) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        Long courseId = params.get("courseId") != null ? Long.parseLong(params.get("courseId").toString()) : null;
+        return apCourseService.softDelete(courseId, user.getId().longValue());
+    }
+
+    /** 提交审核 */
+    @PostMapping("/manage/submit")
+    public ResponseResult submitForReview(@RequestBody Map<String, Object> params) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        Long courseId = params.get("courseId") != null ? Long.parseLong(params.get("courseId").toString()) : null;
+        return apCourseService.updateStatus(courseId, (byte) 1, null);
+    }
+
+    /** 下架课程 */
+    @PostMapping("/manage/unpublish")
+    public ResponseResult unpublish(@RequestBody Map<String, Object> params) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(com.heima.model.common.enums.AppHttpCodeEnum.NEED_LOGIN);
+        }
+        Long courseId = params.get("courseId") != null ? Long.parseLong(params.get("courseId").toString()) : null;
+        return apCourseService.updateStatus(courseId, (byte) 3, null);
     }
 }

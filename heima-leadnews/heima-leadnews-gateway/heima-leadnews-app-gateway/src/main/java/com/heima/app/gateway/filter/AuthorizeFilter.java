@@ -29,9 +29,14 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
         // 注意：使用精确前缀/后缀匹配，避免 path.contains() 被路径中包含关键词的任意请求绕过
         if (path.endsWith("/login") || path.endsWith("/login_auth")
             || path.startsWith("/api/v1/login/")
+            || path.startsWith("/user/api/v1/login/")
             || path.startsWith("/api/v1/oauth2/")
             || path.startsWith("/api/v1/token/")
-            || path.startsWith("/load") || path.startsWith("/using")) {
+            || path.startsWith("/user/api/v1/token/")
+            || path.startsWith("/load") || path.startsWith("/using")
+            || path.startsWith("/article/api/v1/pins/list")
+            || path.startsWith("/article/api/v1/pins/circles")
+            || path.startsWith("/article/api/v1/topics/")) {
 //        if(true){
             //放行
             return chain.filter(exchange);

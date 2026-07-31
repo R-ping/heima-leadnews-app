@@ -18,6 +18,7 @@
         <module>heima-leadnews-search</module>
         <module>heima-leadnews-behavior</module>
         <module>heima-leadnews-notification</module>
+        <module>heima-leadnews-course</module>
     </modules>
 
     <properties>

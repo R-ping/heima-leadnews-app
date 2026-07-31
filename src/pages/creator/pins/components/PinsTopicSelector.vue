@@ -25,6 +25,8 @@
 </template>
 
 <script>
+import { searchTopics, getRecommendTopics } from '@/apis/topic'
+
 export default {
   name: 'PinsTopicSelector',
   props: {
@@ -32,12 +34,40 @@ export default {
     selected: { type: Object, default: null }
   },
   data() {
-    return { searchKeyword: '' }
+    return {
+      searchKeyword: '',
+      apiTopics: [],
+      loading: false
+    }
   },
   computed: {
+    topicList() {
+      return this.apiTopics.length > 0 ? this.apiTopics : this.topics
+    },
     filteredTopics() {
-      if (!this.searchKeyword) return this.topics
-      return this.topics.filter(t => t.name.includes(this.searchKeyword))
+      if (!this.searchKeyword) return this.topicList
+      return this.topicList.filter(t => t.name.includes(this.searchKeyword))
+    }
+  },
+  mounted() {
+    this.loadTopics()
+  },
+  methods: {
+    async loadTopics() {
+      this.loading = true
+      try {
+        const res = await getRecommendTopics(0, 20)
+        if (res.data && res.data.code === 200) {
+          this.apiTopics = (res.data.data.list || []).map(t => ({
+            ...t,
+            count: t.participantCount || t.postCount || 0
+          }))
+        }
+      } catch (e) {
+        console.error('加载话题列表失败:', e)
+      } finally {
+        this.loading = false
+      }
     }
   }
 }

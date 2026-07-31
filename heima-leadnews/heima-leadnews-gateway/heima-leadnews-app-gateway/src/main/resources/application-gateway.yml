@@ -19,39 +19,46 @@ spring:
           predicates:
             - Path=/user/**
           filters:
-            - StripPrefix= 1
+            - StripPrefix=1
         # 文章微服务
         - id: article
           uri: lb://leadnews-article
           predicates:
             - Path=/article/**
           filters:
-            - StripPrefix= 1
+            - StripPrefix=1
         #搜索微服务
         - id: leadnews-search
           uri: lb://leadnews-search
           predicates:
             - Path=/search/**
           filters:
-            - StripPrefix= 1
+            - StripPrefix=1
         #用户行为
         - id: leadnews-behavior
           uri: lb://leadnews-behavior
           predicates:
             - Path=/behavior/**
           filters:
-            - StripPrefix= 1
+            - StripPrefix=1
         # 自媒体微服务（wemedia前端已合并到app，路由统一走app gateway鉴权）
         - id: wemedia
           uri: lb://leadnews-wemedia
           predicates:
             - Path=/wemedia/**
           filters:
-            - StripPrefix= 1
+            - StripPrefix=1
+        # 课程交易微服务
+        - id: leadnews-course
+          uri: lb://leadnews-course
+          predicates:
+            - Path=/course/**
+          filters:
+            - StripPrefix=1
         # 站内信微服务
         - id: leadnews-notification
           uri: lb://leadnews-notification
           predicates:
             - Path=/notification/**
           filters:
-            - StripPrefix= 1
+            - StripPrefix=1

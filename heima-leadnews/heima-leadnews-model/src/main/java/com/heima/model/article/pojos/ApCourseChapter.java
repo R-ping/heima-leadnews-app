@@ -39,4 +39,13 @@ public class ApCourseChapter implements Serializable {
 
     @TableField("updated_time")
     private Date updatedTime;
+
+    @TableField("status")
+    private Integer status;
+
+    @TableField("estimated_minutes")
+    private Integer estimatedMinutes;
+
+    @TableField("comment_count")
+    private Integer commentCount;
 }

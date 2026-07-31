@@ -1,27 +1,64 @@
 package com.heima.article.controller.v1;
 
 import com.heima.article.service.TopicService;
+import com.heima.model.article.dtos.TopicSquareDto;
+import com.heima.model.article.vos.TopicDetailVO;
 import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.common.enums.AppHttpCodeEnum;
+import com.heima.utils.thread.AppThreadLocalUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/topic")
+@RequestMapping("/api/v1/topics")
 public class TopicController {
 
     @Autowired
     private TopicService topicService;
 
-    @GetMapping("/list")
-    public ResponseResult findList(@RequestParam(required = false) String keyword) {
-        return ResponseResult.okResult(topicService.findList(keyword));
+    @GetMapping("/recommend")
+    public ResponseResult recommend(@RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "5") int size) {
+        return ResponseResult.okResult(topicService.recommend(page, size));
     }
 
-    @GetMapping("/recommend")
-    public ResponseResult getRecommendTopics() {
-        return ResponseResult.okResult(topicService.getRecommendTopics());
+    @GetMapping("/square")
+    public ResponseResult square(TopicSquareDto dto) {
+        return ResponseResult.okResult(topicService.square(dto));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseResult detail(@PathVariable Long id) {
+        TopicDetailVO vo = topicService.detail(id);
+        if (vo == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST);
+        }
+        return ResponseResult.okResult(vo);
+    }
+
+    @GetMapping("/{id}/feed")
+    public ResponseResult feed(@PathVariable Long id,
+                               @RequestParam(defaultValue = "hot") String tab,
+                               @RequestParam(defaultValue = "0") long cursor,
+                               @RequestParam(defaultValue = "20") int size) {
+        return ResponseResult.okResult(topicService.feed(id, tab, cursor, size));
+    }
+
+    @PostMapping("/{id}/view")
+    public ResponseResult view(@PathVariable Long id) {
+        Long userId = null;
+        try {
+            userId = AppThreadLocalUtil.getUser().getId().longValue();
+        } catch (Exception e) {
+            // 未登录用户也可增加阅读量，使用 IP 或随机标识
+        }
+        topicService.incrView(id, userId != null ? userId : 0L);
+        return ResponseResult.okResult();
+    }
+
+    @GetMapping("/search")
+    public ResponseResult search(@RequestParam String keyword,
+                                 @RequestParam(defaultValue = "10") int limit) {
+        return ResponseResult.okResult(topicService.search(keyword, limit));
     }
 }

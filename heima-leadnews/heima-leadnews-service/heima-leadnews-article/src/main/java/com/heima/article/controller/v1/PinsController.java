@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/pins")
+@RequestMapping("/api/v1/pins/admin")
 @Slf4j
 public class PinsController {
 

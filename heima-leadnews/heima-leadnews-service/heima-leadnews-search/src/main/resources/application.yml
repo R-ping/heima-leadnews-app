@@ -45,11 +45,11 @@ spring:
 #        multiplier: 1
 #        max-attempts: 3
 minio:
-  accessKey: minio
-  secretKey: minio123
-  bucket: leadnews
-  endpoint: http://127.0.0.1:9000
-  readPath: http://127.0.0.1:9000
+  accessKey: ${MINIO_ACCESS_KEY:minio}
+  secretKey: ${MINIO_SECRET_KEY:minio123}
+  bucket: ${MINIO_BUCKET:leadnews}
+  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  readPath: ${MINIO_READ_PATH:http://127.0.0.1:9000}
 
 elasticsearch:
   host: 192.168.44.128

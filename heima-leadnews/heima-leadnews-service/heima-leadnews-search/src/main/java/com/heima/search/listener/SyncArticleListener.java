@@ -64,10 +64,10 @@ public class SyncArticleListener {
         if(vo!=null){
             String articleId=null;
             Map<String,String> resultMap=new HashMap<>();
-            resultMap.put("articleId",articleId);
             resultMap.put("type","minio");
             try {
                 articleId = vo.getId().toString();
+                resultMap.put("articleId",articleId);
                 ResponseResult responseResult = articleClient.getContent(Long.valueOf(articleId));
                 String content = responseResult.getData().toString();
                 vo.setContent(content);
@@ -84,6 +84,7 @@ public class SyncArticleListener {
             } catch (IOException e) {
                 log.error("sync es error=", e);
                 resultMap.put("status", "fail");
+                resultMap.put("articleId",articleId);
                 rabbitTemplate.convertAndSend("process.exchange","process.result",resultMap);
             } catch (Exception e) {
                 log.error("Unexpected error when syncing article to ES", e);

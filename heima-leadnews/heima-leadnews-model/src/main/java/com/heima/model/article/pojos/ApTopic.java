@@ -21,15 +21,39 @@ public class ApTopic implements Serializable {
     @TableField("name")
     private String name;
 
-    @TableField("count")
-    private Integer count;
+    @TableField("description")
+    private String description = "";
 
-    @TableField("sort")
-    private Integer sort;
+    @TableField("cover_image")
+    private String coverImage = "";
+
+    @TableField("type")
+    private Integer type = 1;
+
+    @TableField("view_count")
+    private Long viewCount = 0L;
+
+    @TableField("participant_count")
+    private Long participantCount = 0L;
+
+    @TableField("post_count")
+    private Integer postCount = 0;
+
+    @TableField("is_recommend")
+    private Integer isRecommend = 0;
+
+    @TableField("recommend_sort")
+    private Integer recommendSort = 0;
+
+    @TableField("badge")
+    private String badge = "";
 
     @TableField("status")
     private Integer status;
 
     @TableField("created_time")
     private Date createdTime;
+
+    @TableField("updated_at")
+    private Date updatedAt;
 }

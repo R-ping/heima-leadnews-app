@@ -148,9 +148,25 @@
               <span class="order-label">课程价格</span>
               <span class="order-value price">¥{{ course.price }}</span>
             </div>
+            <div class="discount-row">
+              <el-input
+                v-model="discountCode"
+                placeholder="输入折扣码（选填）"
+                size="small"
+                class="discount-input"
+                clearable
+              />
+            </div>
             <div class="order-total">
               <span class="total-label">应付金额</span>
-              <span class="total-value">¥{{ course.price }}</span>
+              <span class="total-value">¥{{ finalPrice.toFixed(2) }}</span>
+            </div>
+            <div class="discount-info" v-if="discountInfo">
+              <span class="discount-text">
+                折扣码 {{ discountInfo.code }}：
+                <template v-if="discountInfo.discountType === 1">-¥{{ discountInfo.discountValue }}</template>
+                <template v-else>-{{ discountInfo.discountValue }}%</template>
+              </span>
             </div>
           </div>
         </div>
@@ -166,6 +182,7 @@
 <script>
 import { toast } from "@/utils/toast"
 import Utils from '@/utils/env'
+import courseApi from '@/apis/course'
 
 export default {
   name: 'CourseDetailPage',
@@ -175,172 +192,78 @@ export default {
       chapters: [],
       isPurchased: false,
       showPurchaseModal: false,
-      orderNo: ''
+      orderNo: '',
+      discountCode: '',
+      discountInfo: null,
+      discountValidating: false,
+      loading: true,
+      paying: false
     }
   },
   computed: {
     isDesktop() {
       return Utils.isDesktop()
+    },
+    finalPrice() {
+      if (!this.discountInfo) return this.course.price || 0
+      const price = parseFloat(this.course.price) || 0
+      if (this.discountInfo.discountType === 1) {
+        // 固定金额
+        return Math.max(0, price - parseFloat(this.discountInfo.discountValue))
+      } else {
+        // 百分比
+        return Math.max(0, price * (1 - parseFloat(this.discountInfo.discountValue) / 100))
+      }
     }
   },
   mounted() {
     this.loadCourseDetail()
     this.checkPurchaseStatus()
   },
-  methods: {
-    loadCourseDetail() {
-      const courseId = parseInt(this.$route.params.id)
-
-      const mockCourses = [
-        {
-          id: 1,
-          title: 'Vue3 完全指南',
-          subtitle: '从零开始掌握 Vue3 组合式 API',
-          description: '本课程将带你从零开始学习 Vue3 的核心概念，包括组合式 API、响应式系统、组件通信等。通过大量实战案例，帮助你快速掌握 Vue3 开发技能。',
-          coverImage: '/static/images/avatar_head_1.png',
-          authorId: 1,
-          authorName: '张三',
-          authorAvatar: '',
-          price: 49.00,
-          originalPrice: 99.00,
-          categoryId: 2,
-          chapterCount: 8,
-          studyCount: 1256,
-          estimatedHours: 8.5
-        },
-        {
-          id: 2,
-          title: 'Spring Boot 实战',
-          subtitle: '构建企业级后端服务',
-          description: '深入学习 Spring Boot 的核心特性，包括自动配置、数据访问、安全认证、微服务架构等。通过完整的项目实战，让你具备独立开发后端系统的能力。',
-          coverImage: '/static/images/avatar_head_2.png',
-          authorId: 2,
-          authorName: '李四',
-          authorAvatar: '',
-          price: 69.00,
-          originalPrice: 129.00,
-          categoryId: 1,
-          chapterCount: 12,
-          studyCount: 2341,
-          estimatedHours: 15.0
-        },
-        {
-          id: 3,
-          title: 'Python 数据分析',
-          subtitle: '从入门到精通',
-          description: '掌握 Python 数据分析的核心技能，包括 NumPy、Pandas、Matplotlib 等库的使用，以及数据清洗、可视化、机器学习入门等内容。',
-          coverImage: '/static/images/avatar_head_3.png',
-          authorId: 3,
-          authorName: '王五',
-          authorAvatar: '',
-          price: 39.00,
-          originalPrice: 79.00,
-          categoryId: 5,
-          chapterCount: 10,
-          studyCount: 892,
-          estimatedHours: 10.0
-        },
-        {
-          id: 4,
-          title: 'React Native 跨平台开发',
-          subtitle: '一套代码构建多端应用',
-          description: '学习 React Native 的核心概念和开发技巧，掌握组件开发、导航、状态管理、原生模块调用等技能，实现真正的跨平台开发。',
-          coverImage: '/static/images/avatar_head_4.png',
-          authorId: 4,
-          authorName: '赵六',
-          authorAvatar: '',
-          price: 59.00,
-          originalPrice: 109.00,
-          categoryId: 3,
-          chapterCount: 9,
-          studyCount: 567,
-          estimatedHours: 12.0
-        },
-        {
-          id: 5,
-          title: 'TypeScript 完全手册',
-          subtitle: '类型安全的 JavaScript',
-          description: '全面学习 TypeScript 的类型系统、高级特性和最佳实践，让你的代码更加健壮、可维护。适合有一定 JavaScript 基础的开发者。',
-          coverImage: '/static/images/avatar_head_5.png',
-          authorId: 5,
-          authorName: '孙七',
-          authorAvatar: '',
-          price: 29.00,
-          originalPrice: 59.00,
-          categoryId: 2,
-          chapterCount: 6,
-          studyCount: 1890,
-          estimatedHours: 6.0
-        },
-        {
-          id: 6,
-          title: 'Docker 容器化实战',
-          subtitle: '容器技术从入门到实践',
-          description: '学习 Docker 容器技术的核心概念，包括镜像构建、容器管理、Dockerfile 编写、Docker Compose 编排等内容。',
-          coverImage: '/static/images/avatar_head_6.png',
-          authorId: 6,
-          authorName: '周八',
-          authorAvatar: '',
-          price: 35.00,
-          originalPrice: 69.00,
-          categoryId: 6,
-          chapterCount: 7,
-          studyCount: 789,
-          estimatedHours: 7.5
-        },
-        {
-          id: 7,
-          title: '算法与数据结构',
-          subtitle: '程序员必备核心技能',
-          description: '系统学习常用的数据结构和算法，包括数组、链表、树、图、排序、查找等。通过大量练习题，提升你的编程能力和面试成功率。',
-          coverImage: '/static/images/avatar_head_7.png',
-          authorId: 7,
-          authorName: '吴九',
-          authorAvatar: '',
-          price: 59.00,
-          originalPrice: 99.00,
-          categoryId: 1,
-          chapterCount: 15,
-          studyCount: 3210,
-          estimatedHours: 20.0
-        },
-        {
-          id: 8,
-          title: '代码整洁之道',
-          subtitle: '写出高质量代码的艺术',
-          description: '学习代码整洁的原则和实践，包括命名规范、函数设计、类设计、错误处理等。让你的代码更加清晰、易读、易维护。',
-          coverImage: '/static/images/avatar_head_8.png',
-          authorId: 8,
-          authorName: '郑十',
-          authorAvatar: '',
-          price: 25.00,
-          originalPrice: 49.00,
-          categoryId: 7,
-          chapterCount: 5,
-          studyCount: 456,
-          estimatedHours: 4.0
+  watch: {
+    discountCode: {
+      handler(val) {
+        if (!val || val.trim() === '') {
+          this.discountInfo = null
+          return
         }
-      ]
-
-      this.course = mockCourses.find(c => c.id === courseId) || mockCourses[0]
-
-      this.chapters = [
-        { id: 1, courseId: this.course.id, title: '第一章：Vue3 入门与环境搭建', sortOrder: 1, wordCount: 1500, isFree: 1 },
-        { id: 2, courseId: this.course.id, title: '第二章：组合式 API 核心概念', sortOrder: 2, wordCount: 1200, isFree: 1 },
-        { id: 3, courseId: this.course.id, title: '第三章：响应式系统深入理解', sortOrder: 3, wordCount: 1400, isFree: 0 },
-        { id: 4, courseId: this.course.id, title: '第四章：组件通信', sortOrder: 4, wordCount: 1100, isFree: 0 },
-        { id: 5, courseId: this.course.id, title: '第五章：路由与状态管理', sortOrder: 5, wordCount: 1000, isFree: 0 },
-        { id: 6, courseId: this.course.id, title: '第六章：组合式函数', sortOrder: 6, wordCount: 900, isFree: 0 },
-        { id: 7, courseId: this.course.id, title: '第七章：实战项目开发', sortOrder: 7, wordCount: 800, isFree: 0 },
-        { id: 8, courseId: this.course.id, title: '第八章：性能优化与最佳实践', sortOrder: 8, wordCount: 700, isFree: 0 }
-      ]
+        this.validateDiscountCode(val.trim())
+      },
+      immediate: false
+    }
+  },
+  methods: {
+    async loadCourseDetail() {
+      const courseId = parseInt(this.$route.params.id)
+      this.loading = true
+      try {
+        const res = await courseApi.getCourseDetail({ courseId })
+        if (res && res.code === 200 && res.data) {
+          this.course = res.data.course || {}
+          this.chapters = res.data.chapters || []
+        }
+      } catch (e) {
+        console.error('加载课程详情失败', e)
+        toast('加载课程失败', 2)
+      } finally {
+        this.loading = false
+      }
     },
-    checkPurchaseStatus() {
-      const purchasedCourses = JSON.parse(localStorage.getItem('purchasedCourses') || '[]')
-      this.isPurchased = purchasedCourses.includes(this.course.id)
+    async checkPurchaseStatus() {
+      try {
+        const res = await courseApi.getMyCourses({})
+        if (res && res.code === 200 && res.data) {
+          const list = res.data.list || []
+          const courseId = parseInt(this.$route.params.id)
+          this.isPurchased = list.some(c => c.id === courseId)
+        }
+      } catch (e) {
+        // 未登录或请求失败，默认为未购买
+        this.isPurchased = false
+      }
     },
     getAuthorCourseCount() {
-      return 3
+      return 0
     },
     handleChapterClick(chapter) {
       if (!chapter.isFree && !this.isPurchased) {
@@ -354,35 +277,110 @@ export default {
         this.$store.dispatch('showLogin')
         return
       }
+      if (this.course.price === 0) {
+        // 免费课程直接加入
+        this.confirmFreeJoin()
+        return
+      }
       this.showPurchaseModal = true
     },
     closePurchaseModal() {
       this.showPurchaseModal = false
+      this.discountCode = ''
+      this.discountInfo = null
     },
-    confirmPurchase() {
-      this.showPurchaseModal = false
-      
-      toast('支付中...', 1)
-      
-      setTimeout(() => {
-        this.orderNo = 'ORD' + Date.now()
-        
-        let purchasedCourses = JSON.parse(localStorage.getItem('purchasedCourses') || '[]')
-        if (!purchasedCourses.includes(this.course.id)) {
-          purchasedCourses.push(this.course.id)
-          localStorage.setItem('purchasedCourses', JSON.stringify(purchasedCourses))
-        }
-        
-        this.isPurchased = true
-        toast('购买成功！', 2)
-        
-        setTimeout(() => {
+    async confirmFreeJoin() {
+      try {
+        const res = await courseApi.createOrder({ courseId: parseInt(this.$route.params.id) })
+        if (res && res.code === 200) {
+          this.isPurchased = true
+          toast('已加入课程', 2)
           const firstChapter = this.chapters[0]
           if (firstChapter) {
-            this.$router.push(`/course/read/${firstChapter.id}`)
+            setTimeout(() => this.$router.push(`/course/read/${firstChapter.id}`), 800)
           }
-        }, 1500)
-      }, 1000)
+        }
+      } catch (e) {
+        toast('加入课程失败', 2)
+      }
+    },
+    async validateDiscountCode(code) {
+      if (this.discountValidating) return
+      this.discountValidating = true
+      try {
+        const res = await courseApi.validateDiscount({
+          code,
+          courseId: parseInt(this.$route.params.id)
+        })
+        if (res && res.code === 200 && res.data) {
+          this.discountInfo = res.data
+        } else {
+          this.discountInfo = null
+        }
+      } catch (e) {
+        this.discountInfo = null
+      } finally {
+        this.discountValidating = false
+      }
+    },
+    async confirmPurchase() {
+      if (this.paying) return
+      this.paying = true
+      try {
+        const res = await courseApi.createOrder({
+          courseId: parseInt(this.$route.params.id),
+          discountCode: this.discountCode || undefined
+        })
+        if (res && res.code === 200 && res.data) {
+          this.orderNo = res.data.orderNo
+          this.showPurchaseModal = false
+          // 跳转到支付页面
+          const payUrl = courseApi.getPayPageUrl(this.orderNo)
+          window.open(payUrl, '_blank')
+          // 开始轮询订单状态
+          this.pollOrderStatus()
+        } else {
+          toast(res.message || '创建订单失败', 2)
+        }
+      } catch (e) {
+        toast('创建订单失败，请稍后重试', 2)
+      } finally {
+        this.paying = false
+      }
+    },
+    pollOrderStatus() {
+      let pollCount = 0
+      const maxPolls = 60
+      const interval = setInterval(async () => {
+        pollCount++
+        try {
+          const res = await courseApi.getOrderStatus(this.orderNo)
+          if (res && res.code === 200 && res.data) {
+            const status = res.data.status
+            if (status === 1) {
+              // 支付成功
+              clearInterval(interval)
+              this.isPurchased = true
+              toast('购买成功！', 2)
+              setTimeout(() => {
+                const firstChapter = this.chapters[0]
+                if (firstChapter) {
+                  this.$router.push(`/course/read/${firstChapter.id}`)
+                }
+              }, 1500)
+            } else if (status === 2 || status === 3) {
+              // 已取消或已退款
+              clearInterval(interval)
+              toast('支付未完成', 2)
+            }
+          }
+        } catch (e) {
+          // 忽略轮询错误
+        }
+        if (pollCount >= maxPolls) {
+          clearInterval(interval)
+        }
+      }, 3000)
     },
     handleRead() {
       const firstChapter = this.chapters[0]
@@ -852,6 +850,14 @@ export default {
 .order-value.price {
   color: #F53F3F;
   font-weight: 600;
+}
+
+.discount-row {
+  padding: 8px 0;
+}
+
+.discount-input {
+  width: 100%;
 }
 
 .order-total {

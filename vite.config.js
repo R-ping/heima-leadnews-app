@@ -81,6 +81,16 @@ export default defineConfig({
           }
         }
       },
+      '/course': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true,
+        bypass(req) {
+          // 前端路由 /course 和 /course/:id 由 SPA 处理，不代理到后端
+          if (req.url === '/course' || req.url.startsWith('/course?') || /^\/course\/\d+/.test(req.url) || /^\/course\/read\/\d+/.test(req.url)) {
+            return req.url;
+          }
+        }
+      },
       '/minio-static': {
         target: 'http://127.0.0.1:9005',
         changeOrigin: true,

@@ -71,6 +71,18 @@ public class ApCourse implements Serializable {
     @TableField("updated_time")
     private Date updatedTime;
 
+    @TableField("is_deleted")
+    private Integer isDeleted;
+
+    @TableField("version")
+    private Integer version;
+
+    @TableField("sales_count")
+    private Integer salesCount;
+
+    @TableField("total_revenue")
+    private BigDecimal totalRevenue;
+
     public enum Status {
         NORMAL((byte) 0),
         SUBMIT((byte) 1),

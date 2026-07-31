@@ -437,16 +437,46 @@ CREATE TABLE IF NOT EXISTS `ap_user_circle` (
     UNIQUE KEY `uk_user_circle` (`user_id`, `circle_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户圈子关系表';
 
+-- 25.1 人气圈子配置表
+CREATE TABLE IF NOT EXISTS `ap_circle_hot_config` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `circle_id` bigint NOT NULL COMMENT '圈子ID',
+    `display_order` int NOT NULL COMMENT '展示顺序 1-5',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_order` (`display_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='人气圈子配置表';
+
+-- 25.2 圈子精选沸点表
+CREATE TABLE IF NOT EXISTS `club_featured_pin` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `circle_id` bigint NOT NULL COMMENT '圈子ID',
+    `pin_id` bigint NOT NULL COMMENT '沸点帖子ID',
+    `sort_order` int DEFAULT 0 COMMENT '排序权重',
+    `created_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_club_pin` (`circle_id`, `pin_id`),
+    KEY `idx_sort_order` (`circle_id`, `sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='圈子精选沸点表';
+
 -- 26. 话题表
 CREATE TABLE IF NOT EXISTS `ap_topic` (
     `id` bigint NOT NULL AUTO_INCREMENT,
     `name` varchar(100) NOT NULL COMMENT '话题名称',
-    `count` int DEFAULT 0 COMMENT '关联沸点数',
-    `sort_order` int DEFAULT 0 COMMENT '排序号',
+    `description` varchar(200) DEFAULT '' COMMENT '导语',
+    `cover_image` varchar(255) DEFAULT '' COMMENT '话题封面图',
+    `type` tinyint DEFAULT 1 COMMENT '1-纯沸点, 2-文章+沸点',
+    `post_count` int DEFAULT 0 COMMENT '关联帖子总数',
+    `view_count` bigint DEFAULT 0 COMMENT '总阅读数',
+    `participant_count` bigint DEFAULT 0 COMMENT '参与人数',
+    `recommend_sort` int DEFAULT 0 COMMENT '推荐排序权重',
+    `is_recommend` tinyint(1) DEFAULT 0 COMMENT '是否推荐至侧边栏',
+    `badge` varchar(20) DEFAULT '' COMMENT '角标文字',
+    `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
     `created_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` datetime(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`name`),
-    KEY `idx_sort_order` (`sort_order`)
+    KEY `idx_recommend_sort` (`recommend_sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='话题表';
 
 -- 27. 沸点帖子表
@@ -805,6 +835,36 @@ CREATE TABLE IF NOT EXISTS `taskinfo_logs` (
     KEY `idx_task_type` (`task_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务日志表';
 
+-- 28. 话题关联表
+CREATE TABLE IF NOT EXISTS `topic_relation` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `topic_id` bigint NOT NULL,
+    `target_type` tinyint NOT NULL COMMENT '1-文章(article), 2-沸点(pin)',
+    `target_id` bigint NOT NULL,
+    `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_topic_target` (`topic_id`, `target_type`, `target_id`),
+    KEY `idx_target` (`target_type`, `target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='话题关联表';
+
+-- 29. 用户话题发布记录表
+CREATE TABLE IF NOT EXISTS `user_topic_post` (
+    `user_id` bigint NOT NULL,
+    `topic_id` bigint NOT NULL,
+    `first_post_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `last_post_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `post_count` int DEFAULT 1,
+    PRIMARY KEY (`user_id`, `topic_id`),
+    KEY `idx_topic_id` (`topic_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户话题发布记录';
+
+-- 30. 话题-圈子关联表
+CREATE TABLE IF NOT EXISTS `topic_circle_relation` (
+    `topic_id` bigint NOT NULL,
+    `circle_id` bigint NOT NULL,
+    PRIMARY KEY (`topic_id`, `circle_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='话题-圈子关联表';
+
 -- ==============================================
 -- 完成标记
 -- ==============================================
@@ -812,7 +872,8 @@ CREATE TABLE IF NOT EXISTS `taskinfo_logs` (
 -- 所有 wm_ 前缀表：7 张（其中3张已废弃保留兼容）
 -- 所有 ad_ 前缀表：1 张
 -- 所有 taskinfo 系列表：2 张
--- 总计：48 张表
+-- 所有 topic_ / user_topic 系列表：3 张
+-- 总计：51 张表
 --
 -- 注：ap_user_search 和 ap_associate_words 为 MongoDB 集合，
 --     不在 MySQL 中创建，相关文档类见 search 模块。

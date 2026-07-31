@@ -57,6 +57,26 @@ let routes = [
                 component: () => import('@/pages/creator/pins/index.vue')
             },
             {
+                path: 'course/list',
+                name: 'CreatorCourseList',
+                component: () => import('@/pages/creator/course/list.vue')
+            },
+            {
+                path: 'course/edit',
+                name: 'CreatorCourseEdit',
+                component: () => import('@/pages/creator/course/edit.vue')
+            },
+            {
+                path: 'course/discount',
+                name: 'CreatorCourseDiscount',
+                component: () => import('@/pages/creator/course/discount.vue')
+            },
+            {
+                path: 'course/settlement',
+                name: 'CreatorCourseSettlement',
+                component: () => import('@/pages/creator/course/settlement.vue')
+            },
+            {
                 path: 'comment',
                 name: 'CreatorComment',
                 component: () => import('@/pages/creator/comment/index.vue')

@@ -30,6 +30,9 @@ public class ReadLikeUnLikeAspect {
 
         //获取参数
         Object[] args = joinPoint.getArgs();
+        if (args == null || args.length == 0) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
+        }
         Object obj = args[0];
 
         if (obj == null) {

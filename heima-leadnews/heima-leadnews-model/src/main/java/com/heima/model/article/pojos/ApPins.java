@@ -33,6 +33,18 @@ public class ApPins implements Serializable {
     @TableField("author_image")
     private String authorImage;
 
+    @TableField("user_name")
+    private String userName;
+
+    @TableField("user_avatar")
+    private String userAvatar;
+
+    @TableField("topic_id")
+    private Long topicId;
+
+    @TableField("circle_id")
+    private Long circleId;
+
     private String content;
 
     @TableField("image_urls")
@@ -62,6 +74,15 @@ public class ApPins implements Serializable {
 
     @TableField("publish_time")
     private Date publishTime;
+
+    @TableField("review_time")
+    private Date reviewTime;
+
+    @TableField("link_url")
+    private String linkUrl = "";
+
+    @TableField("link_title")
+    private String linkTitle = "";
 
     public enum Status {
         DRAFT((byte) 0),

@@ -5,10 +5,11 @@ const  config = {
         behavior:'BEHAVIOR',
         user:'USER',
         search:'SEARCH',
-        notification:'NOTIFICATION'
+        notification:'NOTIFICATION',
+        course:'COURSE'
     },
     // 请求本地的请求service
-    local:{user:true,article:true,behavior:true,search:true,notification:true},
+    local:{user:true,article:true,behavior:true,search:true,notification:true,course:true},
     // 代理前缀
     prefix:{
         server_85:'/server_85'

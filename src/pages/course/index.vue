@@ -52,7 +52,7 @@
 
 <script>
 import CourseCard from './components/CourseCard.vue'
-import { mockCourses } from './data.js'
+import courseApi from '@/apis/course'
 import Utils from '@/utils/env'
 
 export default {
@@ -112,31 +112,42 @@ export default {
       this.noMore = false
       this.loadCourseList()
     },
-    loadCourseList() {
+    async loadCourseList() {
       if (this.loading) return
       this.loading = true
 
-      setTimeout(() => {
-        let filteredData = mockCourses
-        if (this.currentCategory !== 0) {
-          filteredData = filteredData.filter(c => c.categoryId === this.currentCategory)
-        }
-
-        if (this.currentFilter === 'latest') {
-          filteredData = filteredData.sort((a, b) => b.id - a.id)
-        } else if (this.currentFilter === 'hot') {
-          filteredData = filteredData.sort((a, b) => b.studyCount - a.studyCount)
-        } else if (this.currentFilter === 'price') {
-          filteredData = filteredData.sort((a, b) => a.price - b.price)
-        }
-
-        this.courseList = this.courseList.concat(filteredData.slice((this.page - 1) * 10, this.page * 10))
-        this.loading = false
-        if (this.courseList.length >= filteredData.length) {
+      try {
+        const res = await courseApi.getCourseList({
+          page: this.page,
+          size: 10,
+          status: 9 // 只查询已上架课程
+        })
+        if (res && res.code === 200 && res.data) {
+          const list = res.data.list || []
+          // 客户端分类筛选
+          let filteredData = list
+          if (this.currentCategory !== 0) {
+            filteredData = list.filter(c => c.categoryId === this.currentCategory)
+          }
+          if (this.currentFilter === 'latest') {
+            filteredData = filteredData.sort((a, b) => new Date(b.publishedAt || b.createdTime) - new Date(a.publishedAt || a.createdTime))
+          } else if (this.currentFilter === 'hot') {
+            filteredData = filteredData.sort((a, b) => (b.studyCount || 0) - (a.studyCount || 0))
+          } else if (this.currentFilter === 'price') {
+            filteredData = filteredData.sort((a, b) => (a.price || 0) - (b.price || 0))
+          }
+          this.courseList = this.courseList.concat(filteredData)
+          this.noMore = res.data.total <= this.page * 10
+          this.page++
+        } else {
           this.noMore = true
         }
-        this.page++
-      }, 500)
+      } catch (e) {
+        console.error('加载课程列表失败', e)
+        this.noMore = true
+      } finally {
+        this.loading = false
+      }
     },
     goToDetail(courseId) {
       this.$router.push(`/course/${courseId}`)

@@ -1,6 +1,6 @@
 <template>
     <div class="circles-page">
-        <div class="art-top"><HomeBar/></div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
         
         <div class="circles-content">
             <div class="circles-main">
@@ -22,18 +22,8 @@
                     <h2 class="section-title">圈子广场</h2>
                     <div class="circles-tabs">
                         <div 
-                            class="tab-item"
-                            :class="{ 'active': activeTab === 'recommend' }"
-                            @click="activeTab = 'recommend'"
+                            class="tab-item active"
                         >推荐圈子</div>
-                        <div 
-                            class="tab-item"
-                            v-for="category in categories"
-                            :key="category.id"
-                            :class="{ 'active': activeTab === category.id }"
-                            @click="activeTab = category.id"
-                        >{{ category.name }}</div>
-                        <div class="tab-item more-tab">更多</div>
                     </div>
 
                     <div class="circles-grid">
@@ -44,6 +34,7 @@
                             :joined="isJoined(circle.id)"
                             :show-desc="true"
                             @toggle-join="toggleJoin"
+                            @click.native="goToCircleDetail(circle)"
                         />
                     </div>
                 </div>
@@ -60,6 +51,7 @@
                             :circle="circle"
                             :joined="isJoined(circle.id)"
                             @toggle-join="toggleJoin"
+                            @click.native="goToCircleDetail(circle)"
                         />
                     </div>
                 </div>
@@ -70,10 +62,11 @@
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
+import Utils from '@/utils/env'
 import { toast } from '@/utils/toast'
 import CircleCard from './components/CircleCard.vue'
 import PopularCircleItem from './components/PopularCircleItem.vue'
-import { myCircles, categories, allCircles, popularCircles } from './circles-data.js'
+import { getMyCircles, getSquareCircles, getHotCircles, joinCircle, leaveCircle } from '@/apis/circle'
 
 export default {
     name: 'Circles',
@@ -81,36 +74,93 @@ export default {
     data() {
         return {
             activeTab: 'recommend',
-            myCircles,
-            categories,
-            allCircles,
-            popularCircles,
-
-            // 已加入的圈子ID
-            joinedCircleIds: [13, 15, 16, 17, 21]
+            myCircles: [],
+            allCircles: [],
+            popularCircles: [],
+            joinedCircleIds: [],
+            squarePage: 1,
+            squareSize: 20,
+            hasMore: true,
+            loading: false
         }
     },
     computed: {
+        isDesktop() {
+            return Utils.isDesktop()
+        },
         filteredCircles() {
-            if (this.activeTab === 'recommend') {
-                return this.allCircles.slice(0, 8)
-            }
-            return this.allCircles.filter(c => c.parentId === this.activeTab)
+            return this.allCircles
         }
     },
+    mounted() {
+        this.fetchMyCircles()
+        this.fetchSquareCircles()
+        this.fetchHotCircles()
+    },
     methods: {
+        async fetchMyCircles() {
+            try {
+                const res = await getMyCircles()
+                if (res && res.code === 200 && res.data) {
+                    this.myCircles = res.data
+                    this.joinedCircleIds = res.data.map(c => c.id)
+                }
+            } catch (e) {}
+        },
+        async fetchSquareCircles() {
+            if (this.loading || !this.hasMore) return
+            this.loading = true
+            try {
+                const res = await getSquareCircles(this.squarePage, this.squareSize)
+                if (res && res.code === 200 && res.data) {
+                    const data = res.data
+                    const list = data.list || data.records || []
+                    this.allCircles = this.squarePage === 1 ? list : [...this.allCircles, ...list]
+                    this.hasMore = (data.has_more !== undefined) ? data.has_more : (list.length >= this.squareSize)
+                }
+            } catch (e) {} finally {
+                this.loading = false
+            }
+        },
+        async fetchHotCircles() {
+            try {
+                const res = await getHotCircles()
+                if (res && res.code === 200 && res.data) {
+                    this.popularCircles = res.data
+                }
+            } catch (e) {}
+        },
         isJoined(circleId) {
             return this.joinedCircleIds.includes(circleId)
         },
-        toggleJoin(circle) {
-            const index = this.joinedCircleIds.indexOf(circle.id)
-            if (index > -1) {
-                this.joinedCircleIds.splice(index, 1)
-                toast('已退出圈子', 2)
-            } else {
-                this.joinedCircleIds.push(circle.id)
-                toast('加入成功', 2)
+        async toggleJoin(circle) {
+            const isJoined = this.joinedCircleIds.includes(circle.id)
+            try {
+                if (isJoined) {
+                    const res = await leaveCircle(circle.id)
+                    if (res && res.code === 200) {
+                        this.joinedCircleIds = this.joinedCircleIds.filter(id => id !== circle.id)
+                        toast('已退出圈子', 2)
+                    }
+                } else {
+                    const res = await joinCircle(circle.id)
+                    if (res && res.code === 200) {
+                        this.joinedCircleIds.push(circle.id)
+                        toast('加入成功', 2)
+                    }
+                }
+            } catch (e) {
+                toast('操作失败，请重试', 2)
             }
+        },
+        loadMore() {
+            if (this.hasMore && !this.loading) {
+                this.squarePage++
+                this.fetchSquareCircles()
+            }
+        },
+        goToCircleDetail(circle) {
+            this.$router.push(`/pins/circle/${circle.id}`)
         }
     }
 }
