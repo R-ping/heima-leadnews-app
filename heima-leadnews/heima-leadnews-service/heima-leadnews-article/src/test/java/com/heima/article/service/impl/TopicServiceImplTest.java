@@ -3,6 +3,7 @@ package com.heima.article.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.heima.article.mapper.*;
+import com.heima.common.redis.CacheService;
 import com.heima.model.article.dtos.TopicSquareDto;
 import com.heima.model.article.pojos.*;
 import com.heima.model.article.vos.TopicDetailVO;
@@ -16,8 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
@@ -47,10 +46,7 @@ class TopicServiceImplTest {
     private ApPinsMapper apPinsMapper;
 
     @Mock
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @Mock
-    private ValueOperations<String, Object> valueOperations;
+    private CacheService cacheService;
 
     @InjectMocks
     private TopicServiceImpl topicService;
@@ -58,7 +54,6 @@ class TopicServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(topicService, "baseMapper", topicMapper);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     // ==================== recommend() tests ====================
@@ -518,8 +513,8 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewFirstTime() {
-        when(valueOperations.increment(anyString())).thenReturn(1L);
-        when(redisTemplate.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(1L);
+        when(cacheService.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
         ApTopic topic = buildTopic(1L, "Java", "hot");
         topic.setViewCount(100L);
         when(topicMapper.selectById(1L)).thenReturn(topic);
@@ -530,7 +525,7 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewRateLimited() {
-        when(valueOperations.increment(anyString())).thenReturn(6L);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(6L);
 
         assertDoesNotThrow(() -> topicService.incrView(1L, 1L));
 
@@ -539,7 +534,7 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewAtBoundary() {
-        when(valueOperations.increment(anyString())).thenReturn(5L);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(5L);
         ApTopic topic = buildTopic(1L, "Java", "hot");
         topic.setViewCount(100L);
         when(topicMapper.selectById(1L)).thenReturn(topic);
@@ -550,8 +545,8 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewTopicNotFound() {
-        when(valueOperations.increment(anyString())).thenReturn(1L);
-        when(redisTemplate.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(1L);
+        when(cacheService.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
         when(topicMapper.selectById(999L)).thenReturn(null);
 
         assertDoesNotThrow(() -> topicService.incrView(999L, 1L));
@@ -561,8 +556,8 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewNullViewCount() {
-        when(valueOperations.increment(anyString())).thenReturn(1L);
-        when(redisTemplate.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(1L);
+        when(cacheService.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
         ApTopic topic = buildTopic(1L, "Java", "hot");
         topic.setViewCount(null);
         when(topicMapper.selectById(1L)).thenReturn(topic);
@@ -573,7 +568,7 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewSecondCall() {
-        when(valueOperations.increment(anyString())).thenReturn(2L);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(2L);
         ApTopic topic = buildTopic(1L, "Java", "hot");
         topic.setViewCount(100L);
         when(topicMapper.selectById(1L)).thenReturn(topic);
@@ -584,7 +579,7 @@ class TopicServiceImplTest {
 
     @Test
     void testIncrViewNullCount() {
-        when(valueOperations.increment(anyString())).thenReturn(null);
+        when(cacheService.incrBy(anyString(), anyLong())).thenReturn(null);
         ApTopic topic = buildTopic(1L, "Java", "hot");
         topic.setViewCount(100L);
         when(topicMapper.selectById(1L)).thenReturn(topic);
