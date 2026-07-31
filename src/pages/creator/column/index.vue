@@ -73,10 +73,23 @@
           <el-input v-model="columnForm.title" placeholder="请输入专栏名称" />
         </el-form-item>
         <el-form-item label="专栏简介" required>
-          <el-textarea v-model="columnForm.description" rows="4" placeholder="请输入专栏简介" />
+          <el-input v-model="columnForm.description" type="textarea" :rows="4" placeholder="请输入专栏简介" />
         </el-form-item>
         <el-form-item label="封面图片">
-          <el-input v-model="columnForm.coverImage" placeholder="请输入封面图片URL" />
+          <div class="cover-upload-area" @click="$refs.coverFileInput.click()">
+            <div v-if="!columnForm.coverImage" class="upload-placeholder">
+              <i class="el-icon-plus upload-icon"></i>
+              <span class="upload-text">点击上传封面</span>
+            </div>
+            <img v-else :src="columnForm.coverImage" class="cover-preview-img" />
+          </div>
+          <input
+            ref="coverFileInput"
+            type="file"
+            accept="image/*"
+            style="display:none"
+            @change="handleCoverFileChange"
+          />
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -90,6 +103,8 @@
 <script>
 import avatar from '@/static/images/creator/avatar.jpg'
 import { getColumnList, getColumnStatistics, createColumn, deleteColumn } from '@/apis/creator/content'
+import { uploadFile } from '@/common/oss_upload'
+import { saveMaterial } from '@/apis/creator/publish'
 
 export default {
   name: 'ColumnManage',
@@ -165,6 +180,19 @@ export default {
     openCreateModal() {
       this.columnForm = { title: '', description: '', coverImage: '' }
       this.showCreateModal = true
+    },
+    async handleCoverFileChange(e) {
+      const file = e.target.files[0]
+      if (!file) return
+      try {
+        const url = await uploadFile(file)
+        await saveMaterial(url)
+        this.columnForm.coverImage = url
+        this.$message.success('封面上传成功')
+      } catch (err) {
+        this.$message.error('封面上传失败: ' + (err.message || '网络错误'))
+      }
+      e.target.value = ''
     },
     async submitColumn() {
       if (!this.columnForm.title) {
@@ -350,6 +378,46 @@ export default {
   .pagination {
     text-align: right;
     margin-top: 20px;
+  }
+
+  .cover-upload-area {
+    width: 200px;
+    height: 140px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s;
+    background-color: #fafafa;
+    &:hover {
+      border-color: #1e80ff;
+      background-color: #f5f7ff;
+    }
+    .upload-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      .upload-icon {
+        font-size: 32px;
+        color: #c0c4cc;
+        margin-bottom: 10px;
+      }
+      .upload-text {
+        font-size: 14px;
+        color: #909399;
+        font-weight: 500;
+      }
+    }
+    .cover-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 }
 </style>
