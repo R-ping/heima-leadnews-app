@@ -196,12 +196,12 @@ export default {
       this.loadData()
     },
     goToPublish() {
-      this.$router.push('/creator/publish')
+      window.open('/creator/publish', '_blank')
     },
     operateArticle(id, type) {
       switch (type) {
         case 'edit':
-          this.$router.push(`/creator/publish?id=${id}`)
+          window.open(`/creator/publish?id=${id}`, '_blank')
           break
         case 'del':
           this.$confirm('确定要删除这篇文章吗？', '提示', { type: 'warning' }).then(() => {
@@ -213,7 +213,7 @@ export default {
     operateDraft(id, type) {
       switch (type) {
         case 'edit':
-          this.$router.push(`/creator/publish?id=${id}&type=draft`)
+          window.open(`/creator/publish?id=${id}&type=draft`, '_blank')
           break
         case 'del':
           this.$confirm('确定要删除这个草稿吗？', '提示', { type: 'warning' }).then(() => {

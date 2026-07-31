@@ -18,7 +18,8 @@
         <el-button size="medium" @click="goDraftBox">草稿箱</el-button>
         <el-button size="medium" type="primary" :disabled="saveStatus !== 'saved'" @click="openPublishDrawer">发布</el-button>
         <div class="user-avatar">
-          <i class="fa fa-user-circle-o"></i>
+          <img v-if="userAvatar" :src="userAvatar" class="avatar-img" />
+          <span v-else class="avatar-placeholder">&#xf007;</span>
         </div>
       </div>
     </div>
@@ -284,6 +285,7 @@
   } from "@/apis/creator/publish";
   import selectedImgUrl from "@/static/images/creator/selected.png";
   import uploadImgUrl from "@/static/images/creator/pic_bg.png";
+  import { mapGetters } from 'vuex';
   import { permission } from "@/utils/permission";
   import { API_DRAFT_CREATE, API_DRAFT_UPDATE, API_DRAFT_PUBLISH } from "@/pages/creator/constants/api";
   import wemediaRequest from '@/common/article_request';
@@ -382,6 +384,18 @@
       },
       singlePic: {
         handler() { this.saveStatus = ''; this.scheduleDraftSave() }
+      }
+    },
+    computed: {
+      ...mapGetters(['userInfo']),
+      userAvatar() {
+        if (this.userInfo && this.userInfo.avatar) {
+          return '/static/images/' + this.userInfo.avatar + '.png'
+        }
+        return ''
+      },
+      userName() {
+        return this.userInfo ? (this.userInfo.nickName || '') : ''
       }
     },
     beforeMount() {
@@ -898,10 +912,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      color: @textMuted;
       cursor: pointer;
       margin-left: 8px;
+      .avatar-img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      .avatar-placeholder {
+        font-family: fontawesome;
+        font-size: 24px;
+        color: #8a919f;
+      }
     }
   }
 
