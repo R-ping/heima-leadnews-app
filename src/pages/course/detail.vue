@@ -1,5 +1,5 @@
 <template>
-  <div class="course-detail-page">
+  <div class="course-detail-page" :class="{ 'is-desktop': isDesktop }">
     <div class="detail-header">
       <div class="header-bg"></div>
       <div class="header-content">
@@ -165,6 +165,7 @@
 
 <script>
 import { toast } from "@/utils/toast"
+import Utils from '@/utils/env'
 
 export default {
   name: 'CourseDetailPage',
@@ -175,6 +176,11 @@ export default {
       isPurchased: false,
       showPurchaseModal: false,
       orderNo: ''
+    }
+  },
+  computed: {
+    isDesktop() {
+      return Utils.isDesktop()
     }
   },
   mounted() {
@@ -394,6 +400,11 @@ export default {
 .course-detail-page {
   min-height: 100vh;
   background-color: #f4f5f7;
+
+  &.is-desktop {
+    background: transparent;
+    min-height: auto;
+  }
 }
 
 .detail-header {

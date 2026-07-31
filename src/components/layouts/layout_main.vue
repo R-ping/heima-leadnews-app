@@ -112,7 +112,7 @@
             </div>
 
             <div class="desktop-container">
-                <div class="desktop-sidebar" v-if="!isUserPage">
+                <div class="desktop-sidebar" v-if="!isUserPage && !isPinsPage && !isCoursePage">
                     <div class="sidebar-nav">
                         <div class="nav-item" :class="{ active: currentCategory === 'following' }" @click="selectCategory('following')">
                             <span class="nav-icon">&#xf004;</span>
@@ -165,7 +165,7 @@
                     <router-view/>
                 </div>
 
-                <div class="desktop-aside" v-if="!isUserPage">
+                <div class="desktop-aside" v-if="!isUserPage && !isPinsPage && !isCoursePage">
                     <!-- 签到入口 -->
                     <div class="aside-card checkin-card">
                         <div class="checkin-entry" @click="handleCheckinClick">
@@ -344,6 +344,12 @@
             },
             isUserPage() {
                 return this.$route.path.startsWith('/user/') || this.$route.path === '/notification';
+            },
+            isPinsPage() {
+                return this.$route.path.startsWith('/pins') || this.$route.path.startsWith('/pin/');
+            },
+            isCoursePage() {
+                return this.$route.path.startsWith('/course');
             },
             isHotPage() {
                 return this.$route.path === '/hot'
@@ -553,7 +559,7 @@
                         this.currentCategory = cat
                     }
                     this.currentNav = 'home'
-                } else if (path.indexOf('/pins') === 0) {
+                } else if (path.indexOf('/pins') === 0 || path.indexOf('/pin/') === 0) {
                     this.currentNav = 'pins'
                 } else if (path.indexOf('/course') === 0) {
                     this.currentNav = 'course'

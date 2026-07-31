@@ -1,5 +1,5 @@
 <template>
-  <div class="course-page">
+  <div class="course-page" :class="{ 'is-desktop': isDesktop }">
     <div class="course-header">
       <div class="header-title">课程</div>
       <div class="header-subtitle">发现优质课程，提升技术能力</div>
@@ -53,6 +53,7 @@
 <script>
 import CourseCard from './components/CourseCard.vue'
 import { mockCourses } from './data.js'
+import Utils from '@/utils/env'
 
 export default {
   name: 'CoursePage',
@@ -82,6 +83,11 @@ export default {
       page: 1,
       loading: false,
       noMore: false
+    }
+  },
+  computed: {
+    isDesktop() {
+      return Utils.isDesktop()
     }
   },
   mounted() {
@@ -266,6 +272,12 @@ export default {
 @media screen and (min-width: 768px) {
   .course-page {
     padding-bottom: 24px;
+  }
+
+  .course-page.is-desktop {
+    background: transparent;
+    min-height: auto;
+    padding-bottom: 0;
   }
 
   .course-header {

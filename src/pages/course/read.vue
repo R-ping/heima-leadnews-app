@@ -1,6 +1,6 @@
 <template>
-  <div class="course-read-page">
-    <div class="read-header">
+  <div class="course-read-page" :class="{ 'is-desktop': isDesktop }">
+    <div class="read-header" :style="isDesktop ? { top: '60PX' } : {}">
       <div class="header-left">
         <span class="back-btn" @click="goBack">&#xf060;</span>
         <span class="course-title">{{ course.title }}</span>
@@ -75,6 +75,7 @@
 import { marked } from 'marked'
 import { toast } from "@/utils/toast"
 import { courseMockData } from './mockData'
+import Utils from '@/utils/env'
 
 marked.setOptions({
   gfm: true,
@@ -94,6 +95,9 @@ export default {
     }
   },
   computed: {
+    isDesktop() {
+      return Utils.isDesktop()
+    },
     currentIndex() {
       return this.chapters.findIndex(c => c.id === this.currentChapterId)
     },
@@ -175,6 +179,11 @@ export default {
   background-color: #f4f5f7;
   display: flex;
   flex-direction: column;
+
+  &.is-desktop {
+    background: transparent;
+    min-height: auto;
+  }
 }
 
 .read-header {

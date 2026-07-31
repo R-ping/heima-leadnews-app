@@ -21,6 +21,9 @@ const Course = () => import('@/pages/course/index.vue')
 const CourseDetail = () => import('@/pages/course/detail.vue')
 const CourseRead = () => import('@/pages/course/read.vue')
 const Hot = () => import('@/pages/hot/index.vue')
+const TopicSquare = () => import('@/pages/pin/topics/index.vue')
+const TopicDetail = () => import('@/pages/pin/topic/detail.vue')
+const CircleDetail = () => import('@/pages/pins/circle/detail.vue')
 
 let routes = [
     {
@@ -76,6 +79,46 @@ let routes = [
                 path:'/notification',
                 name:'notification',
                 component:Notification
+            },
+            {
+                path:'/pins',
+                name:'pins',
+                component:Pins
+            },
+            {
+                path:'/pins/circles',
+                name:'pins-circles',
+                component:PinsCircles
+            },
+            {
+                path:'/pin/topics',
+                name:'pin-topics',
+                component:TopicSquare
+            },
+            {
+                path:'/pin/topic/:id',
+                name:'pin-topic-detail',
+                component:TopicDetail
+            },
+            {
+                path:'/pins/circle/:id',
+                name:'pins-circle-detail',
+                component:CircleDetail
+            },
+            {
+                path:'/course',
+                name:'course',
+                component:Course
+            },
+            {
+                path:'/course/:id',
+                name:'course-detail',
+                component:CourseDetail
+            },
+            {
+                path:'/course/read/:id',
+                name:'course-read',
+                component:CourseRead
             }
         ]
     },{
@@ -99,26 +142,6 @@ let routes = [
         path:'/oauth/callback',
         name:'oauth-callback',
         component:OAuthCallback
-    },{
-        path:'/pins',
-        name:'pins',
-        component:Pins
-    },{
-        path:'/pins/circles',
-        name:'pins-circles',
-        component:PinsCircles
-    },{
-        path:'/course',
-        name:'course',
-        component:Course
-    },{
-        path:'/course/:id',
-        name:'course-detail',
-        component:CourseDetail
-    },{
-        path:'/course/read/:id',
-        name:'course-read',
-        component:CourseRead
     }
 ]
 
