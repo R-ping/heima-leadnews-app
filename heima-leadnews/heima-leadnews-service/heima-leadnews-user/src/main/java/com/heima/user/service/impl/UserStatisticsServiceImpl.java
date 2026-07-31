@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 @Service
 public class UserStatisticsServiceImpl implements UserStatisticsService {
@@ -24,6 +27,20 @@ public class UserStatisticsServiceImpl implements UserStatisticsService {
         }
 
         // 通过 Feign 远程调用 article 服务获取统计数据
-        return articleClient.getStatisticsFeign(currentUser.getId().longValue());
+        ResponseResult feignResult = articleClient.getStatisticsFeign(currentUser.getId().longValue());
+
+        // 添加创作天数
+        if (feignResult != null && feignResult.getData() instanceof Map) {
+            Map<String, Object> data = (Map<String, Object>) feignResult.getData();
+            if (currentUser.getCreatedTime() != null) {
+                long diff = System.currentTimeMillis() - currentUser.getCreatedTime().getTime();
+                long createDays = TimeUnit.MILLISECONDS.toDays(diff);
+                data.put("createDays", Math.max(createDays, 1));
+            } else {
+                data.put("createDays", 1);
+            }
+        }
+
+        return feignResult;
     }
 }
