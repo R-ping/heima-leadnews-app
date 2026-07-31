@@ -32,6 +32,10 @@ export const deleteDraft = (id) => {
   return request.post('/api/v1/draft/manage/delete', { id })
 }
 
+export const getDraftById = (id) => {
+  return request.get('/api/v1/draft/manage/detail', { params: { id } })
+}
+
 export const getColumnList = (params) => {
   return request.get('/api/v1/column/manage/list', { params })
 }

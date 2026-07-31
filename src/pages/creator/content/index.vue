@@ -129,8 +129,19 @@ export default {
       if (this.activeTab === 'article') {
         await this.loadArticleStatistics()
         await this.loadArticleList()
+        await this.loadDraftCount()
       } else {
         await this.loadDraftList()
+      }
+    },
+    async loadDraftCount() {
+      try {
+        const res = await getDraftList({ page: 1, size: 1 })
+        if (res && res.code === 200 && res.data) {
+          this.draftCount = res.data.total || 0
+        }
+      } catch (e) {
+        // 静默处理
       }
     },
     async loadArticleStatistics() {
@@ -185,12 +196,12 @@ export default {
       this.loadData()
     },
     goToPublish() {
-      this.$router.push('/creator/article')
+      this.$router.push('/creator/publish')
     },
     operateArticle(id, type) {
       switch (type) {
         case 'edit':
-          this.$router.push(`/creator/article?id=${id}`)
+          this.$router.push(`/creator/publish?id=${id}`)
           break
         case 'del':
           this.$confirm('确定要删除这篇文章吗？', '提示', { type: 'warning' }).then(() => {
@@ -202,7 +213,7 @@ export default {
     operateDraft(id, type) {
       switch (type) {
         case 'edit':
-          this.$router.push(`/creator/article?id=${id}`)
+          this.$router.push(`/creator/publish?id=${id}&type=draft`)
           break
         case 'del':
           this.$confirm('确定要删除这个草稿吗？', '提示', { type: 'warning' }).then(() => {

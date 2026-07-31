@@ -272,7 +272,7 @@
 <script>
   import ByteMdEditor from "@/pages/creator/components/editor/ByteMdEditor.vue";
   import Upload from "@/pages/creator/components/Upload/upload.vue";
-  import { getArticleById } from "@/apis/creator/content";
+  import { getArticleById, getDraftById } from "@/apis/creator/content";
   import {
     getAllImgData,
     getChannels,
@@ -390,9 +390,13 @@
         this.$router.replace('/home')
         return
       }
-      let { articleId } = this.$route.query;
-      if (articleId) {
-        this.getArticle(articleId);
+      let { id, type } = this.$route.query;
+      if (id) {
+        if (type === 'draft') {
+          this.getDraft(id);
+        } else {
+          this.getArticle(id);
+        }
       }
       this.getChannels();
       this.initPermissions();
@@ -624,6 +628,29 @@
         this.host = result.host
         this.transImages(this.FormData.type, result.data.images);
         this.updateCounts(result.data.content || "");
+      },
+      async getDraft(id) {
+        try {
+          let result = await getDraftById(id);
+          this.draftId = result.data.id
+          this.FormData = {
+            id: result.data.id,
+            title: result.data.title || '',
+            channel_id: result.data.channelId || result.data.channel_id || null,
+            labels: result.data.labels || '',
+            topic: result.data.topic || "",
+            type: "0",
+            publish_time: result.data.publishTime || result.data.publish_time || '',
+            content: result.data.content || "",
+            summary: result.data.summary || this.generateSummary(result.data.content || "")
+          }
+          this.selectedTags = ((result.data.labels || result.data.labels) || "").split(",").map(item => item.trim()).filter(item => item.length > 0);
+          this.host = result.host || ''
+          this.transImages("0", result.data.images || result.data.image);
+          this.updateCounts(result.data.content || "");
+        } catch (e) {
+          this.$message.error('草稿加载失败')
+        }
       },
       generateSummary(content) {
         if (!content) return "";
