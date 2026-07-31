@@ -75,105 +75,18 @@
             <!-- 右侧主内容区 -->
             <div class="pins-main">
                 <!-- 发布框 -->
-                <div class="publish-box">
-                    <textarea 
-                        ref="publishTextarea"
-                        class="publish-input"
+                <div class="publish-box-wrapper">
+                    <PinsPublishBox
+                        ref="publishBox"
                         v-model="publishContent"
-                        placeholder="#新人报道#"
-                        maxlength="1000"
-                        @input="onPublishInput"
-                    ></textarea>
-                    
-                    <!-- 图片预览 -->
-                    <div class="publish-extras" v-if="uploadedImages.length > 0">
-                        <div class="publish-images">
-                            <div class="publish-image-item" v-for="(img, idx) in uploadedImages" :key="idx">
-                                <img :src="img" class="publish-image-preview" alt="preview">
-                                <span class="publish-image-remove" @click="removeImage(idx)">&#xf00d;</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 链接预览 -->
-                    <div class="publish-extras" v-if="linkPreview">
-                        <div class="publish-link-preview">
-                            <span class="publish-link-domain">{{ escapeHtml(linkPreview.domain) }}</span>
-                            <span class="publish-link-title">{{ escapeHtml(linkPreview.title || linkPreview.url) }}</span>
-                            <span class="publish-link-remove" @click="removeLink">&#xf00d;</span>
-                        </div>
-                    </div>
-
-                    <!-- 链接输入框 -->
-                    <div class="publish-link-input" v-if="showLinkInput">
-                        <input 
-                            type="text" 
-                            class="link-url-input" 
-                            placeholder="请输入链接地址" 
-                            v-model="linkUrl"
-                            @keyup.enter="fetchLinkPreview"
-                        >
-                        <button class="link-add-btn" @click="fetchLinkPreview" :disabled="!linkUrl.trim()">添加</button>
-                        <button class="link-cancel-btn" @click="showLinkInput = false; linkUrl = ''">取消</button>
-                    </div>
-
-                    <div class="publish-footer">
-                        <div class="publish-actions">
-                            <!-- 表情按钮 -->
-                            <button class="action-btn emoji-btn" @click="showEmojiPicker = !showEmojiPicker">
-                                <span>😊</span>
-                            </button>
-                            <!-- 图片按钮 -->
-                            <button class="action-btn" @click="triggerImageUpload" :disabled="!!linkPreview">
-                                <span>📷</span>
-                            </button>
-                            <input 
-                                type="file" 
-                                ref="imageInput" 
-                                accept="image/*" 
-                                style="display:none" 
-                                @change="handleImageUpload"
-                            >
-                            <!-- 链接按钮 -->
-                            <button class="action-btn" @click="toggleLinkInput" :disabled="uploadedImages.length > 0">
-                                <span>🔗</span>
-                            </button>
-                            <!-- 圈子选择 -->
-                            <button 
-                                class="action-btn circle-btn"
-                                @click="showCircleSelector = true"
-                            >
-                                <span class="action-icon">&#xf02e;</span>
-                                <span>{{ selectedCircle ? escapeHtml(selectedCircle.name) : '请选择圈子' }}</span>
-                            </button>
-                            <!-- 话题选择 -->
-                            <button 
-                                class="action-btn topic-btn"
-                                @click="showTopicSelector = true"
-                            >
-                                <span class="action-icon">&#xf02b;</span>
-                                <span>{{ selectedTopic ? '#' + escapeHtml(selectedTopic.name) + '#' : '话题' }}</span>
-                            </button>
-                        </div>
-                        <div class="publish-count">{{ publishContent.length }}/1000</div>
-                        <button 
-                            class="publish-btn"
-                            :disabled="!publishContent.trim() || publishing"
-                            @click="publishPins"
-                        >发布</button>
-                    </div>
-
-                    <!-- 表情弹窗 -->
-                    <div class="emoji-picker" v-if="showEmojiPicker">
-                        <div class="emoji-grid">
-                            <span 
-                                class="emoji-item" 
-                                v-for="emoji in emojiList" 
-                                :key="emoji"
-                                @click="insertEmoji(emoji)"
-                            >{{ emoji }}</span>
-                        </div>
-                    </div>
+                        :selectedCircle="selectedCircle"
+                        :selectedTopic="selectedTopic"
+                        :publishing="publishing"
+                        @select-circle="showCircleSelector = true"
+                        @select-topic="showTopicSelector = true"
+                        @publish="handlePublish"
+                        @update:selectedTopic="selectedTopic = $event"
+                    />
                 </div>
 
                 <!-- 帖子列表 -->
@@ -512,14 +425,13 @@ import {
     getComments,
     sharePins as sharePinsApi,
     getTopics,
-    getAllCircles,
-    uploadImage,
-    previewLink
+    getAllCircles
 } from '@/apis/pins'
+import PinsPublishBox from './components/PinsPublishBox.vue'
 
 export default {
     name: 'Pins',
-    components: { HomeBar },
+    components: { HomeBar, PinsPublishBox },
     data() {
         return {
             activeTab: 'latest',
@@ -536,11 +448,6 @@ export default {
             showCircleSelector: false,
             showTopicSelector: false,
             showMyCirclesModal: false,
-            showEmojiPicker: false,
-            showLinkInput: false,
-            linkUrl: '',
-            linkPreview: null,
-            uploadedImages: [],
             publishing: false,
             scrollThrottling: false,
             
@@ -577,21 +484,7 @@ export default {
                 followersCount: 0,
                 featuredPins: [],
                 recommendedTopics: []
-            },
-            
-            // 表情列表
-            emojiList: [
-                '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂',
-                '😉', '😌', '😍', '🥰', '😘', '😗', '😋', '😛', '😜', '🤪',
-                '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑',
-                '😶', '😏', '😒', '🙄', '😬', '😪', '😮', '🤯', '😴', '🤤',
-                '😭', '😤', '😡', '🤬', '😈', '💀', '💩', '🤡', '👻', '👽',
-                '🤖', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾',
-                '🙈', '🙉', '🙊', '💋', '💌', '💘', '💝', '💖', '💗', '💓',
-                '💞', '💕', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-                '💯', '🔥', '⭐', '👍', '👎', '👏', '🙌', '🤝', '💪', '✍️',
-                '🎉', '🎊', '🎈', '✨', '🌟', '💥', '☀️', '🌙', '⚡', '💧'
-            ]
+            }
         }
     },
     computed: {
@@ -638,12 +531,6 @@ export default {
             this.fetchAllCircles()
             this.fetchSidebar()
             this.fetchPinsList(true)
-        },
-        onPublishInput() {
-            // 关闭表情面板
-            if (this.showEmojiPicker) {
-                this.showEmojiPicker = false
-            }
         },
         escapeHtml(str) {
             if (!str) return ''
@@ -729,7 +616,6 @@ export default {
         },
         selectSidebarTopic(topic) {
             this.selectedTopic = topic
-            this.publishContent = '#' + topic.name + '# ' + this.publishContent.replace(/^#[^#]+#\s*/, '')
         },
 
         // ============== 沸点列表 ==============
@@ -792,87 +678,6 @@ export default {
             }
         },
 
-        // ============== 发布框 - 表情 ==============
-        insertEmoji(emoji) {
-            const textarea = this.$refs.publishTextarea
-            if (textarea) {
-                const start = textarea.selectionStart
-                const end = textarea.selectionEnd
-                const before = this.publishContent.substring(0, start)
-                const after = this.publishContent.substring(end)
-                this.publishContent = before + emoji + after
-                this.$nextTick(() => {
-                    const newPos = start + emoji.length
-                    textarea.selectionStart = newPos
-                    textarea.selectionEnd = newPos
-                    textarea.focus()
-                })
-            } else {
-                this.publishContent += emoji
-            }
-            this.showEmojiPicker = false
-        },
-
-        // ============== 发布框 - 图片 ==============
-        triggerImageUpload() {
-            if (this.linkPreview) return
-            this.$refs.imageInput.click()
-        },
-        async handleImageUpload(e) {
-            const file = e.target.files[0]
-            if (!file) return
-            try {
-                const res = await uploadImage(file)
-                if (res && res.code === 200 && res.data) {
-                    const url = res.data.url || res.data
-                    this.uploadedImages.push(url)
-                    // 互斥：清除链接
-                    this.removeLink()
-                } else {
-                    toast('图片上传失败', 2)
-                }
-            } catch (e) {
-                toast('图片上传失败', 2)
-            } finally {
-                this.$refs.imageInput.value = ''
-            }
-        },
-        removeImage(idx) {
-            this.uploadedImages.splice(idx, 1)
-        },
-
-        // ============== 发布框 - 链接 ==============
-        toggleLinkInput() {
-            if (this.uploadedImages.length > 0) return
-            this.showLinkInput = !this.showLinkInput
-            if (!this.showLinkInput) {
-                this.linkUrl = ''
-            }
-        },
-        async fetchLinkPreview() {
-            const url = this.linkUrl.trim()
-            if (!url) return
-            try {
-                const res = await previewLink({ url })
-                if (res && res.code === 200 && res.data) {
-                    this.linkPreview = res.data
-                    // 互斥：清除图片
-                    this.uploadedImages = []
-                    this.showLinkInput = false
-                    this.linkUrl = ''
-                } else {
-                    toast('链接解析失败', 2)
-                }
-            } catch (e) {
-                toast('链接解析失败', 2)
-            }
-        },
-        removeLink() {
-            this.linkPreview = null
-            this.linkUrl = ''
-            this.showLinkInput = false
-        },
-
         // ============== 发布框 - 话题 ==============
         async fetchTopics(keyword) {
             this.topicLoading = true
@@ -904,11 +709,6 @@ export default {
         },
         selectTopic(topic) {
             this.selectedTopic = topic
-            // 将话题插入到内容开头
-            const topicTag = '#' + topic.name + '#'
-            if (!this.publishContent.startsWith(topicTag)) {
-                this.publishContent = topicTag + ' ' + this.publishContent.replace(/^#[^#]+#\s*/, '')
-            }
             this.showTopicSelector = false
         },
 
@@ -924,36 +724,18 @@ export default {
         },
 
         // ============== 发布 ==============
-        async publishPins() {
-            if (!this.publishContent.trim() || this.publishing) return
+        async handlePublish(data) {
+            if (this.publishing) return
             this.publishing = true
-            const data = {
-                content: this.publishContent.trim()
-            }
-            if (this.selectedCircle) {
-                data.circleId = this.selectedCircle.id
-            }
-            if (this.selectedTopic) {
-                data.topicId = this.selectedTopic.id
-                data.topicTags = ['#' + this.selectedTopic.name + '#']
-            }
-            if (this.uploadedImages.length > 0) {
-                data.imageUrls = this.uploadedImages
-            }
-            if (this.linkPreview) {
-                data.linkUrl = this.linkPreview.url
-                data.linkTitle = this.linkPreview.title || this.linkPreview.domain
-            }
             try {
                 const res = await publishPinsApi(data)
                 if (res && res.code === 200) {
                     toast('发布成功！', 2)
                     this.publishContent = ''
-                    this.uploadedImages = []
-                    this.removeLink()
                     this.selectedCircle = null
                     this.tempSelectedCircle = null
                     this.selectedTopic = null
+                    this.$refs.publishBox && this.$refs.publishBox.reset()
                     this.fetchPinsList(true)
                 } else {
                     toast((res && res.message) || '发布失败', 2)
@@ -1181,261 +963,8 @@ export default {
     min-width: 0;
 }
 
-/* 发布框 */
-.publish-box {
-    background: #fff;
-    border-radius: 8px;
-    padding: 16px;
+.publish-box-wrapper {
     margin-bottom: 16px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    position: relative;
-}
-
-.publish-input {
-    width: 100%;
-    height: 80px;
-    border: none;
-    resize: none;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #252933;
-    &::placeholder {
-        color: #c4c9d1;
-    }
-    &:focus {
-        outline: none;
-    }
-}
-
-.publish-extras {
-    margin-top: 8px;
-}
-
-.publish-images {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.publish-image-item {
-    position: relative;
-    width: 80px;
-    height: 80px;
-}
-
-.publish-image-preview {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 4px;
-}
-
-.publish-image-remove {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 18px;
-    height: 18px;
-    background: #ff4d4f;
-    color: #fff;
-    font-family: fontawesome;
-    font-size: 10px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.publish-link-preview {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    background: #f0f5ff;
-    border-radius: 4px;
-    font-size: 13px;
-}
-
-.publish-link-domain {
-    color: #1e80ff;
-    font-weight: 500;
-}
-
-.publish-link-title {
-    color: #515767;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.publish-link-remove {
-    font-family: fontawesome;
-    color: #8a919f;
-    cursor: pointer;
-    font-size: 12px;
-    &:hover {
-        color: #ff4d4f;
-    }
-}
-
-.publish-link-input {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-    align-items: center;
-}
-
-.link-url-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #e4e6eb;
-    border-radius: 4px;
-    font-size: 13px;
-    outline: none;
-    &:focus {
-        border-color: #1e80ff;
-    }
-}
-
-.link-add-btn {
-    padding: 6px 16px;
-    border: none;
-    border-radius: 4px;
-    background: #1e80ff;
-    color: #fff;
-    font-size: 13px;
-    cursor: pointer;
-    &:hover {
-        background: #4096ff;
-    }
-    &:disabled {
-        background: #c4c9d1;
-        cursor: not-allowed;
-    }
-}
-
-.link-cancel-btn {
-    padding: 6px 12px;
-    border: 1px solid #e4e6eb;
-    border-radius: 4px;
-    background: #fff;
-    color: #515767;
-    font-size: 13px;
-    cursor: pointer;
-    &:hover {
-        background: #f7f8fa;
-    }
-}
-
-.publish-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 12px;
-    border-top: 1px solid #f2f3f5;
-}
-
-.publish-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 8px;
-    border: none;
-    background: transparent;
-    font-size: 14px;
-    color: #8a919f;
-    cursor: pointer;
-    &:hover {
-        color: #1e80ff;
-        background: #f0f5ff;
-        border-radius: 4px;
-    }
-    &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        &:hover {
-            color: #8a919f;
-            background: transparent;
-        }
-    }
-}
-
-.action-icon {
-    font-family: fontawesome;
-}
-
-.circle-btn, .topic-btn {
-    padding: 6px 12px;
-    border-radius: 4px;
-}
-
-.publish-count {
-    font-size: 13px;
-    color: #c4c9d1;
-}
-
-.publish-btn {
-    padding: 8px 24px;
-    border: none;
-    border-radius: 4px;
-    background: #1e80ff;
-    color: #fff;
-    font-size: 14px;
-    cursor: pointer;
-    &:hover {
-        background: #4096ff;
-    }
-    &:disabled {
-        background: #c4c9d1;
-        cursor: not-allowed;
-    }
-}
-
-/* 表情弹窗 */
-.emoji-picker {
-    position: absolute;
-    bottom: 100%;
-    left: 16px;
-    background: #fff;
-    border: 1px solid #e4e6eb;
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    z-index: 100;
-    margin-bottom: 8px;
-    width: 320px;
-}
-
-.emoji-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.emoji-item {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    cursor: pointer;
-    border-radius: 4px;
-    &:hover {
-        background: #f0f5ff;
-    }
 }
 
 /* 帖子列表 */
