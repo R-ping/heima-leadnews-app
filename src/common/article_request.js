@@ -4,6 +4,8 @@ import store from '@/stores/store'
 
 // 防止并发刷新
 var _refreshing = false
+// 待重放请求队列
+var _pendingRequests = []
 
 // create an axios instance
 const service = axios.create({
@@ -73,9 +75,11 @@ function refreshTokenAndRetry(config) {
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }
-  // 防止并发刷新：多个请求同时触发444时，只执行一次刷新
+  // 防止并发刷新：多个请求同时触发444时，只执行一次刷新，其余请求进入队列等待
   if (_refreshing) {
-    return Promise.reject({ code: 444, errorMessage: '正在刷新登录状态，请稍候' })
+    return new Promise(function (resolve, reject) {
+      _pendingRequests.push({ resolve: resolve, reject: reject, config: config })
+    })
   }
   _refreshing = true
   const refreshUrl = '/user/api/v1/token/refresh'
@@ -95,16 +99,32 @@ function refreshTokenAndRetry(config) {
     if (d && d.code === 200 && d.data && d.data.accessToken) {
       store.dispatch('login', d.data)
       _refreshing = false
-      // 用新token重放原请求
+      // 用新token重放所有等待中的请求
+      var pending = _pendingRequests.splice(0)
+      pending.forEach(function (req) {
+        req.config.headers['accToken'] = d.data.accessToken
+        service(req.config).then(req.resolve).catch(req.reject)
+      })
+      // 重放当前请求
       config.headers['accToken'] = d.data.accessToken
       return service(config)
     }
     _refreshing = false
+    // 刷新失败，拒绝所有等待队列
+    var failPending = _pendingRequests.splice(0)
+    failPending.forEach(function (req) {
+      req.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+    })
     store.dispatch('logout')
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }).catch(() => {
     _refreshing = false
+    // 刷新失败，拒绝所有等待队列
+    var failPending = _pendingRequests.splice(0)
+    failPending.forEach(function (req) {
+      req.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+    })
     store.dispatch('logout')
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
