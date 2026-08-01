@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(value = "leadnews-article", contextId = "leadnews-article-articleClient", fallback = IArticleClientFallback.class)
+@FeignClient(value = "leadnews-content", contextId = "leadnews-content-articleClient", fallback = IArticleClientFallback.class)
 public interface IArticleClient {
 
     @PostMapping("/api/v1/article/save")

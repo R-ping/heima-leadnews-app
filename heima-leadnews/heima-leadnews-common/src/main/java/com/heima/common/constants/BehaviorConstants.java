@@ -1,5 +1,9 @@
 package com.heima.common.constants;
 
+/**
+ * 行为常量（已废弃 - 行为逻辑已合并到 article 模块，直接操作数据库）
+ * 原 Redis 缓存键常量不再使用，保留文件仅作参考
+ */
 public class BehaviorConstants {
 
     public static final String LIKE_BEHAVIOR="LIKE-BEHAVIOR-";

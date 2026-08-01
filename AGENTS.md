@@ -44,21 +44,32 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 ## 一、Git 版本管理规则
 
 1. **新功能/模块必开新分支（强制）**
-   - 每当开始一个新的功能模块、需求迭代或 Bugfix 时，必须从主分支切出新分支。
+   - 每当开始一个新的功能模块、需求迭代或 Bugfix 时，**必须**从主分支（`main` / `master`）切出新分支。
    - 分支命名规范：`feature/xxxxx`（新功能）、`fix/xxxxx`（修复问题）、`refactor/xxxxx`（重构）。
-   - 禁止直接在主分支上修改代码。
+   - **禁止**直接在主分支上修改代码。
 
 2. **任务完成后的自动提交流程（强制）**
-   - 当一个完整任务完成后，必须主动执行：
+   - 当一个完整任务（如接口开发、页面搭建、逻辑闭环）完成后，AI 必须主动执行以下操作：
      1. 检查当前变更文件（`git status`）。
-     2. 暂存所有变更（`git add`，需排除 `.gitignore` 中的文件）。
-     3. 生成符合规范的 Commit Message 并提交。
-   - 如果代码存在报错或未通过本地编译校验，禁止提交。
-
+     2. 暂存所有变更（`git add .`，需排除 `.gitignore` 中的文件）。
+     3. 生成符合规范的 Commit Message（见下一条规则）并提交（`git commit -m "..."`）。
+   - *注：如果代码存在报错或未通过本地编译校验，禁止提交。*
 3. **Commit Message 规范（约定式提交）**
    - 必须遵循语义化格式：`<type>(<scope>): <subject>`
-   - 常用 type：`feat`（新功能）、`fix`（修复）、`docs`（文档）、`style`（格式）、`refactor`（重构）、`perf`（性能优化）
+   - 常用 type：
+     - `feat`: 新功能
+     - `fix`: 修复问题
+     - `docs`: 文档更新
+     - `style`: 代码格式（不影响逻辑）
+     - `refactor`: 重构
+     - `perf`: 性能优化
    - 示例：`feat(user): 新增用户登录接口` 或 `fix(cart): 修复购物车计算总价错误`
+4. **远程推送与 Pull Request 发起（强制）**
+   - 本地提交完成后，**必须**将当前分支推送至远程仓库（`git push origin <当前分支名>`）。
+   - 推送成功后，**必须**在 GitHub 上向主分支（`main` / `master`）发起 **Pull Request**。
+   - PR 标题与描述应简要概括本次变更内容（可复用 Commit Message 或补充说明）。
+   - **工作流状态提示**：PR 提交后，本次开发任务即告一段落，后续需要等待我（项目负责人）在 GitHub 上进行 Code Review 并决定是否合并。
+   - **禁止**在 PR 审核通过前自行合并分支或删除远程分支。
 
 ## 二、开发行为与流程规则
 
@@ -118,7 +129,7 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 
 3. **动态维护数据库表结构（主动性强）**
    - 编码过程中，若发现当前数据库缺少业务所需的表，或现有表字段/实体类（Entity/POJO）与真实业务场景不符（如缺少关键字段、类型不匹配、关联关系错误）：
-     - 必须主动编写 DDL 语句（`CREATE TABLE` / `ALTER TABLE`）补全或修改表结构。
+     - 必须主动编写 DDL 语句（`CREATE TABLE` / `ALTER TABLE`）补全或修改表结构，连接mysql自己执行。
      - 必须同步修改对应的实体类、Mapper/DAO 层，并调整相关 SQL 映射文件，确保代码与数据库结构完全一致。
    - 严禁因表结构缺失而使用临时数组或假数据阻塞开发进度，必须立即修正。
 

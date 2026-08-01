@@ -1,6 +1,7 @@
 package com.heima.user.controller.v1;
 
 import cn.hutool.core.util.StrUtil;
+import com.heima.common.annotation.RateLimit;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.dtos.LoginDto;
@@ -31,6 +32,8 @@ public class ApUserLoginController {
      * 2、手机号/邮箱 + 密码 登录
      */
     @PostMapping("/login_auth")
+    @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 30, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    @RateLimit(dimension = RateLimit.Dimension.IP, count = 5, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
     public ResponseResult login(@RequestBody LoginDto dto) {
         // 确定具体流程
         String phoneOrEmail = dto.getPhoneOrEmail();
@@ -54,6 +57,8 @@ public class ApUserLoginController {
      * 社交登录的后置，绑定账号操作，手机号验证码的方式，
      */
     @PostMapping("/social_bind")
+    @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 20, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    @RateLimit(dimension = RateLimit.Dimension.IP, count = 3, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
     public ResponseResult socialBind(@RequestBody SocialBindDto dto) {
         log.info("收到社交绑定请求: name={}", dto.getPhone());
         // 1. 参数校验
@@ -70,6 +75,8 @@ public class ApUserLoginController {
      * @param tag:"bind" 手机号验证码，绑定社交账号功能，需校验手机号是否已绑定
      */
     @PostMapping("/code")
+    @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 30, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    @RateLimit(dimension = RateLimit.Dimension.IP, count = 3, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
     public ResponseResult getCode(String phone, String platform, String tag) {
         if (StrUtil.isBlank(phone) || StrUtil.isBlank(platform)) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);

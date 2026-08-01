@@ -124,7 +124,7 @@ export default {
         transition: all 0.2s;
 
         &:hover:not(.completed) {
-          background-color: @light-blue;
+          background-color: #e8f3ff;
         }
 
         &.completed {

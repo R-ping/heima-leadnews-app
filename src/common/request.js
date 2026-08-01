@@ -1,11 +1,10 @@
 import axios from 'axios'
 import crypto from 'crypto-js'
 import store from '@/stores/store'
+import tokenManager from './tokenManager'
 
 function Request() {
     this.store = null;
-    this._refreshing = false;  // 防止并发刷新
-    this._pendingRequests = [];  // 待重放请求队列
 }
 Request.prototype = {
     setStore: function (store) {
@@ -192,56 +191,9 @@ Request.prototype = {
             _this.store.dispatch('showLogin')
             return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
         }
-        // 有accessToken和refreshToken，尝试刷新token后重放
-        // 防止并发刷新：多个请求同时触发444时，只执行一次刷新
-        if (_this._refreshing) {
-            return new Promise(function (resolve, reject) {
-                _this._pendingRequests.push({ resolve: resolve, reject: reject, type: type, path: path, time: time, parms: parms, body: body, retryCount: retryCount })
-            })
-        }
-        _this._refreshing = true
-        var refreshUrl = '/user/api/v1/token/refresh'
-        var refreshTime = new Date().getTime()
-        var refreshHeaders = {
-            'Content-Type': 'application/json; charset=UTF-8',
-            'accToken': accessToken,
-            't': '' + refreshTime,
-            'md': _this.sign({ t: refreshTime })
-        }
-        return axios({
-            method: 'POST',
-            url: refreshUrl,
-            headers: refreshHeaders,
-            timeout: 10000,
-            data: { refreshToken: refreshToken }
-        }).then(function (response) {
-            var d = response.data
-            if (d && d.code === 200 && d.data && d.data.accessToken) {
-                // 刷新成功，存储新token
-                _this.store.dispatch('login', d.data)
-                _this._refreshing = false
-                // 重放原请求
-                return _this.store.getToken().then(function (newToken) {
-                    // 重放所有等待中的请求
-                    var pending = _this._pendingRequests.splice(0)
-                    pending.forEach(function (req) {
-                        _this.__fetch(req.type, req.path, newToken, req.time, req.parms, req.body, req.retryCount + 1)
-                            .then(req.resolve).catch(req.reject)
-                    })
-                    return _this.__fetch(type, path, newToken, time, parms, body, retryCount + 1)
-                })
-            }
-            // 刷新失败，清除登录状态，弹出登录弹窗
-            _this._refreshing = false
-            _this.store.dispatch('logout')
-            _this.store.dispatch('showLogin')
-            return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
-        }).catch(function () {
-            // 刷新失败，清除登录状态，弹出登录弹窗
-            _this._refreshing = false
-            _this.store.dispatch('logout')
-            _this.store.dispatch('showLogin')
-            return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+        // 使用统一token管理器，避免两个拦截器并发刷新冲突
+        return tokenManager.refresh(function (newToken) {
+            return _this.__fetch(type, path, newToken, time, parms, body, retryCount + 1)
         })
     },
     sign: function (parms) {

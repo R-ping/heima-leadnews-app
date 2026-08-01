@@ -18,7 +18,8 @@
         <el-button size="medium" @click="goDraftBox">草稿箱</el-button>
         <el-button size="medium" type="primary" :disabled="saveStatus !== 'saved'" @click="openPublishDrawer">发布</el-button>
         <div class="user-avatar">
-          <i class="fa fa-user-circle-o"></i>
+          <img v-if="userAvatar" :src="userAvatar" class="avatar-img" />
+          <span v-else class="avatar-placeholder">&#xf007;</span>
         </div>
       </div>
     </div>
@@ -272,7 +273,7 @@
 <script>
   import ByteMdEditor from "@/pages/creator/components/editor/ByteMdEditor.vue";
   import Upload from "@/pages/creator/components/Upload/upload.vue";
-  import { getArticleById } from "@/apis/creator/content";
+  import { getArticleById, getDraftById } from "@/apis/creator/content";
   import {
     getAllImgData,
     getChannels,
@@ -284,6 +285,7 @@
   } from "@/apis/creator/publish";
   import selectedImgUrl from "@/static/images/creator/selected.png";
   import uploadImgUrl from "@/static/images/creator/pic_bg.png";
+  import { mapGetters } from 'vuex';
   import { permission } from "@/utils/permission";
   import { API_DRAFT_CREATE, API_DRAFT_UPDATE, API_DRAFT_PUBLISH } from "@/pages/creator/constants/api";
   import wemediaRequest from '@/common/article_request';
@@ -384,15 +386,31 @@
         handler() { this.saveStatus = ''; this.scheduleDraftSave() }
       }
     },
+    computed: {
+      ...mapGetters(['userInfo']),
+      userAvatar() {
+        if (this.userInfo && this.userInfo.avatar) {
+          return '/static/images/' + this.userInfo.avatar + '.png'
+        }
+        return ''
+      },
+      userName() {
+        return this.userInfo ? (this.userInfo.nickName || '') : ''
+      }
+    },
     beforeMount() {
       const token = localStorage.getItem('ACCESS_TOKEN')
       if (!token) {
         this.$router.replace('/home')
         return
       }
-      let { articleId } = this.$route.query;
-      if (articleId) {
-        this.getArticle(articleId);
+      let { id, type } = this.$route.query;
+      if (id) {
+        if (type === 'draft') {
+          this.getDraft(id);
+        } else {
+          this.getArticle(id);
+        }
       }
       this.getChannels();
       this.initPermissions();
@@ -624,6 +642,29 @@
         this.host = result.host
         this.transImages(this.FormData.type, result.data.images);
         this.updateCounts(result.data.content || "");
+      },
+      async getDraft(id) {
+        try {
+          let result = await getDraftById(id);
+          this.draftId = result.data.id
+          this.FormData = {
+            id: result.data.id,
+            title: result.data.title || '',
+            channel_id: result.data.channelId || result.data.channel_id || null,
+            labels: result.data.labels || '',
+            topic: result.data.topic || "",
+            type: "0",
+            publish_time: result.data.publishTime || result.data.publish_time || '',
+            content: result.data.content || "",
+            summary: result.data.summary || this.generateSummary(result.data.content || "")
+          }
+          this.selectedTags = ((result.data.labels || result.data.labels) || "").split(",").map(item => item.trim()).filter(item => item.length > 0);
+          this.host = result.host || ''
+          this.transImages("0", result.data.images || result.data.image);
+          this.updateCounts(result.data.content || "");
+        } catch (e) {
+          this.$message.error('草稿加载失败')
+        }
       },
       generateSummary(content) {
         if (!content) return "";
@@ -871,10 +912,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      color: @textMuted;
       cursor: pointer;
       margin-left: 8px;
+      .avatar-img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      .avatar-placeholder {
+        font-family: fontawesome;
+        font-size: 24px;
+        color: #8a919f;
+      }
     }
   }
 

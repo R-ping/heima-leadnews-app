@@ -38,19 +38,16 @@ export default defineConfig({
         target: 'http://heima-app-java.research.itcast.cn',
         changeOrigin: true
       },
-      '/article': {
+      '/content': {
         target: 'http://127.0.0.1:51601/',
         changeOrigin: true,
         bypass(req) {
-          // 前端路由 /article 和 /article/:id 由 SPA 处理，不代理到后端
-          if (req.url === '/article' || req.url.startsWith('/article?') || /^\/article\/\d+/.test(req.url)) {
+          // 前端路由 /content 由 SPA 处理，不代理到后端
+          // 注意：文章详情页路由为 /article/:id，保持原样
+          if (req.url === '/content' || req.url.startsWith('/content?')) {
             return req.url;
           }
         }
-      },
-      '/behavior': {
-        target: 'http://127.0.0.1:51601/',
-        changeOrigin: true
       },
       '/user': {
         target: 'http://127.0.0.1:51601/',
@@ -77,16 +74,6 @@ export default defineConfig({
         bypass(req) {
           // 前端路由 /notification 由 SPA 处理，不代理到后端
           if (req.url === '/notification' || req.url.startsWith('/notification?')) {
-            return req.url;
-          }
-        }
-      },
-      '/course': {
-        target: 'http://127.0.0.1:51601/',
-        changeOrigin: true,
-        bypass(req) {
-          // 前端路由 /course 和 /course/:id 由 SPA 处理，不代理到后端
-          if (req.url === '/course' || req.url.startsWith('/course?') || /^\/course\/\d+/.test(req.url) || /^\/course\/read\/\d+/.test(req.url)) {
             return req.url;
           }
         }

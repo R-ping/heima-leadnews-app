@@ -10,27 +10,35 @@
       </router-link>
     </div>
     <div class="right-menu">
-      <div class="notification-bell right-menu-item" v-if="isLoggedIn" @click="goToNotification">
-        <span class="bell-icon">&#xf0f3;</span>
-        <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-      </div>
-      <el-dropdown class="avatar-container right-menu-item" trigger="click">
+      <NotificationBell class="right-menu-item" v-if="isLoggedIn" :unreadCount="unreadCount" @go-to-notification="goToNotification" />
+      <div class="avatar-container right-menu-item" v-if="isLoggedIn" @click="toggleUserDropdown">
         <div class="avatar-wrapper">
           <img class="user-avatar" :src="avatarUrl" alt="头像">
           <span class="user-name">{{ nickName }}</span>
           <i class="el-icon-caret-bottom"/>
         </div>
-        <el-dropdown-menu slot="dropdown">
-          <router-link to="/creator/user">
-            <el-dropdown-item>
-              个人信息
-            </el-dropdown-item>
-          </router-link>
-          <el-dropdown-item divided>
-            <span style="display:block;" @click="logout">退出</span>
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </el-dropdown>
+        <UserDropdown
+          v-if="showUserDropdown"
+          :userAvatar="avatarUrl"
+          :userName="nickName"
+          :levelBadge="levelBadge"
+          :formattedDiamond="formattedDiamond"
+          :levelPercent="levelPercent"
+          :formattedLevelText="formattedLevelText"
+          :stats="stats"
+          @go-profile="goToProfile"
+          @go-growth="goToGrowth"
+          @go-follow="goToFollow"
+          @go-likes="goToLikes"
+          @go-collects="goToCollects"
+          @go-checkin="goToCheckin"
+          @go-courses="goToCourses"
+          @go-history="goToHistory"
+          @my-discount="handleMyDiscount"
+          @go-settings="goToSettings"
+          @logout="handleLogout"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -43,14 +51,32 @@ import emitter from '../../utils/event'
 import request from '@/common/request'
 import conf from '@/common/conf'
 import defaultAvatar from '@/static/images/avatar_head_1.png'
+import UserDropdown from '@/components/bars/UserDropdown.vue'
+import NotificationBell from '@/components/bars/NotificationBell.vue'
+import { getUserStatistics } from '@/apis/user'
+import { toast } from '@/utils/toast'
+
 export default {
   components: {
-    Hamburger
+    Hamburger,
+    UserDropdown,
+    NotificationBell
   },
   data() {
     return {
       unreadCount: 0,
-      unreadTimer: null
+      unreadTimer: null,
+      showUserDropdown: false,
+      stats: {
+        followCount: 0,
+        likeCount: 0,
+        collectCount: 0
+      },
+      diamondCount: '0',
+      levelBadge: 'ZR.1',
+      levelScore: 0,
+      levelMax: 150,
+      levelPercent: 0
     }
   },
   computed: {
@@ -66,15 +92,25 @@ export default {
     },
     nickName () {
       return this.userInfo ? (this.userInfo.nickName || '用户') : '用户'
+    },
+    formattedDiamond() {
+      const count = parseFloat(this.diamondCount)
+      if (isNaN(count)) return '0'
+      if (count >= 1000) {
+        return (count / 1000).toFixed(1) + 'k'
+      }
+      return String(Math.floor(count))
+    },
+    formattedLevelText() {
+      return this.levelScore + ' / ' + this.levelMax
     }
   },
   methods: {
     toggleSideBar() {
-      // 收缩或者展开左侧菜单
       emitter.$emit('changeCollapse')
     },
     logout() {
-      clearUser() // 退出前要清除掉用户的信息
+      clearUser()
       this.$store.dispatch('logout')
       this.$router.replace({ path: '/login' })
     },
@@ -86,19 +122,113 @@ export default {
         }
       }).catch(() => {})
     },
-    goToNotification() {
-      this.$router.push('/notification')
+    goToNotification(type) {
+      this.$router.push('/notification?tab=' + type)
+    },
+    toggleUserDropdown(e) {
+      if (this.isLoggedIn) {
+        e.stopPropagation()
+        this.showUserDropdown = !this.showUserDropdown
+        if (this.showUserDropdown) {
+          this.loadUserStats()
+        }
+      }
+    },
+    async loadUserStats() {
+      try {
+        const res = await getUserStatistics()
+        if (res && res.code === 200 && res.data) {
+          const data = res.data
+          this.stats.followCount = data.followCount || 0
+          this.stats.likeCount = data.likeCount || 0
+          this.stats.collectCount = data.collectCount || 0
+          this.diamondCount = data.diamondCount || '0'
+          if (data.levelInfo) {
+            const li = data.levelInfo
+            this.levelBadge = 'ZR.' + (li.dailyLevel || 1)
+            this.levelScore = li.dailyScore || 0
+            const levelMaxMap = { 1: 150, 2: 300, 3: 500, 4: 800, 5: 1200 }
+            this.levelMax = levelMaxMap[li.dailyLevel] || 150
+            const levelBaseMap = { 1: 0, 2: 150, 3: 300, 4: 500, 5: 800 }
+            const base = levelBaseMap[li.dailyLevel] || 0
+            const currentInLevel = this.levelScore - base
+            this.levelPercent = Math.min(Math.round(currentInLevel / this.levelMax * 100), 100)
+          }
+        }
+      } catch (e) {
+        // Silently fail, use defaults
+      }
+    },
+    goToProfile() {
+      this.showUserDropdown = false
+      const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+      this.$router.push('/user/' + userId)
+    },
+    goToSettings() {
+      this.showUserDropdown = false
+      this.$router.push('/user/settings')
+    },
+    goToGrowth() {
+      this.showUserDropdown = false
+      this.$router.push('/user/growth')
+    },
+    goToCheckin() {
+      this.showUserDropdown = false
+      this.$router.push('/user/checkin')
+    },
+    goToCourses() {
+      this.showUserDropdown = false
+      this.$router.push('/user/courses')
+    },
+    goToHistory() {
+      this.showUserDropdown = false
+      this.$router.push('/user/history')
+    },
+    goToFollow() {
+      this.showUserDropdown = false
+      const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+      this.$router.push('/user/' + userId + '?tab=follow&subTab=following')
+    },
+    goToLikes() {
+      this.showUserDropdown = false
+      const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+      this.$router.push('/user/' + userId + '?tab=likes&subTab=article')
+    },
+    goToCollects() {
+      this.showUserDropdown = false
+      const userId = this.userInfo && this.userInfo.userId ? this.userInfo.userId : 1
+      this.$router.push('/user/' + userId + '?tab=collection')
+    },
+    handleMyDiscount() {
+      this.showUserDropdown = false
+      toast('我的优惠功能开发中', 2)
+    },
+    handleLogout() {
+      this.showUserDropdown = false
+      clearUser()
+      this.$store.dispatch('logout')
+      this.$router.replace({ path: '/login' })
+    },
+    closeDropdown(e) {
+      if (this.showUserDropdown) {
+        var userEl = this.$el.querySelector('.avatar-container')
+        if (userEl && !userEl.contains(e.target)) {
+          this.showUserDropdown = false
+        }
+      }
     }
   },
   mounted() {
     this.fetchUnreadCount()
     this.unreadTimer = setInterval(() => this.fetchUnreadCount(), 30000)
+    document.addEventListener('click', this.closeDropdown)
   },
   beforeDestroy() {
     if (this.unreadTimer) {
       clearInterval(this.unreadTimer)
       this.unreadTimer = null
     }
+    document.removeEventListener('click', this.closeDropdown)
   }
 }
 </script>
@@ -163,6 +293,8 @@ export default {
     float: right;
     height: 100%;
     padding-right: 20px;
+    display: flex;
+    align-items: center;
 
     &:focus {
       outline: none;
@@ -174,8 +306,10 @@ export default {
     }
 
     .avatar-container {
+      position: relative;
       height: 60px;
       margin-right: 10px;
+      cursor: pointer;
 
       .avatar-wrapper {
         cursor: pointer;
@@ -204,46 +338,6 @@ export default {
           color: @textMuted;
           vertical-align: middle;
         }
-      }
-    }
-
-    .notification-bell {
-      position: relative;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      flex-shrink: 0;
-      margin-top: 12px;
-
-      &:hover {
-        background-color: #f4f5f5;
-      }
-
-      .bell-icon {
-        font-family: fontawesome;
-        font-size: 20px;
-        color: #515767;
-      }
-
-      .unread-badge {
-        position: absolute;
-        top: 0;
-        right: 0;
-        min-width: 16px;
-        height: 16px;
-        line-height: 16px;
-        text-align: center;
-        background: #ff4d4f;
-        color: #fff;
-        font-size: 10px;
-        border-radius: 8px;
-        padding: 0 4px;
-        transform: translate(30%, -30%);
       }
     }
   }

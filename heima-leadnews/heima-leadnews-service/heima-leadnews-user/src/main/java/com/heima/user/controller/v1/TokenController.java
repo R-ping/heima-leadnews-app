@@ -1,5 +1,6 @@
 package com.heima.user.controller.v1;
 
+import com.heima.common.annotation.RateLimit;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.dtos.LoginResultVo;
@@ -35,6 +36,8 @@ public class TokenController {
      * @return 新的双token
      */
     @PostMapping("/refresh")
+    @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 100, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    @RateLimit(dimension = RateLimit.Dimension.IP, count = 10, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
     public ResponseResult refreshToken(@RequestBody RefreshTokenDto dto) {
         log.info("收到刷新token请求");
         LoginResultVo result = tokenService.refreshToken(dto.getRefreshToken());
@@ -51,6 +54,8 @@ public class TokenController {
      * @return 操作结果
      */
     @PostMapping("/logout")
+    @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 50, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    @RateLimit(dimension = RateLimit.Dimension.IP, count = 5, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
     public ResponseResult logout(@RequestBody RefreshTokenDto dto) {
         log.info("收到登出请求");
         tokenService.revokeRefreshToken(dto.getRefreshToken());

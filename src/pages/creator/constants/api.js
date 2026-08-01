@@ -34,9 +34,9 @@ export const  API_PINS_LIST = '/api/v1/pins/list' //沸点列表
 export const  API_PINS_DELETE = '/api/v1/pins/' //删除沸点
 export const  API_PINS_STATUS = '/api/v1/pins/status' //更新沸点状态
 
-export const  API_COURSE_LIST = '/api/v1/course/list' //专栏列表
-export const  API_COURSE_DELETE = '/api/v1/course/' //删除专栏
-export const  API_COURSE_STATUS = '/api/v1/course/status' //更新专栏状态
+export const  API_COURSE_LIST = '/api/v1/content/list' //专栏列表
+export const  API_COURSE_DELETE = '/api/v1/content/' //删除专栏
+export const  API_COURSE_STATUS = '/api/v1/content/status' //更新专栏状态
 
 export const  API_DRAFT_CREATE = '/api/v1/draft/create' //创建草稿
 export const  API_DRAFT_UPDATE = '/api/v1/draft/update' //更新草稿

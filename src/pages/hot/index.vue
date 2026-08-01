@@ -315,7 +315,7 @@ export default {
       item.collected = !prevCollected
       try {
         const { default: request } = await import('@/common/request')
-        const url = '/api/v1/article/collect'
+        const url = '/api/v1/content/collect'
         const res = await request.post(url, {
           articleId: item.id,
           operation: item.collected ? 1 : 0

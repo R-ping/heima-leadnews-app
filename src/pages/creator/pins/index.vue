@@ -58,12 +58,14 @@
     <PinsPublishModal
       v-if="showPublishModal"
       v-model="publishContent"
-      :selectedCircleName="selectedCircle ? selectedCircle.name : '请选择圈子'"
-      :selectedTopicName="selectedTopic ? selectedTopic.name : '话题'"
+      :selectedCircle="selectedCircle"
+      :selectedTopic="selectedTopic"
+      :publishing="publishing"
       @close="closePublishModal"
       @select-circle="showCircleSelector = true"
       @select-topic="showTopicSelector = true"
       @publish="publishPins"
+      @update:selectedTopic="selectedTopic = $event"
     />
 
     <PinsCircleSelector
@@ -106,6 +108,7 @@ export default {
       publishContent: '',
       selectedCircle: null,
       selectedTopic: null,
+      publishing: false,
       statusTabs: [
         { label: '全部', value: 'all', count: 0 },
         { label: '已发布', value: 'published', count: 0 },
@@ -149,7 +152,7 @@ export default {
       if (res && res.code === 200 && res.data) {
         const data = res.data
         this.statusTabs = [
-          { label: '全部', value: 'all', count: data.published || 0 },
+          { label: '全部', value: 'all', count: (data.published || 0) + (data.reviewing || 0) + (data.rejected || 0) },
           { label: '已发布', value: 'published', count: data.published || 0 },
           { label: '审核中', value: 'reviewing', count: data.reviewing || 0 },
           { label: '未通过', value: 'rejected', count: data.rejected || 0 }
@@ -188,15 +191,9 @@ export default {
       this.showPublishModal = false
       this.publishContent = ''
     },
-    async publishPins(content) {
-      if (!content.trim()) return
-      const data = {
-        content: content,
-        circleId: this.selectedCircle?.id || null,
-        circleName: this.selectedCircle?.name || null,
-        topicId: this.selectedTopic?.id || null,
-        topicName: this.selectedTopic?.name || null
-      }
+    async publishPins(data) {
+      if (!data.content.trim()) return
+      this.publishing = true
       const res = await createPins(data)
       if (res && res.code === 200) {
         this.$message.success('发布成功')
@@ -208,6 +205,7 @@ export default {
       } else {
         this.$message.error(res?.errorMessage || '发布失败')
       }
+      this.publishing = false
     },
     operatePins(id, type) {
       if (type === 'del') {
@@ -269,7 +267,7 @@ export default {
 
   .status-tabs {
     margin-bottom: 16px;
-    el-tag {
+    .el-tag {
       cursor: pointer;
       margin-right: 8px;
       padding: 4px 16px;

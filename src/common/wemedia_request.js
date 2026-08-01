@@ -1,11 +1,7 @@
 import axios from 'axios'
 import BigInt from 'json-bigint'
 import store from '@/stores/store'
-
-// 防止并发刷新
-var _refreshing = false
-// 待重放请求队列
-var _pendingRequests = []
+import tokenManager from './tokenManager'
 
 // create an axios instance
 const service = axios.create({
@@ -57,66 +53,16 @@ service.interceptors.response.use(
 
 // 刷新token并重放请求
 function refreshTokenAndRetry(config) {
-  const accessToken = store.state.accessToken
   const refreshToken = store.state.refreshToken
   if (!refreshToken) {
     store.dispatch('logout')
     store.dispatch('showLogin')
     return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
   }
-  // 防止并发刷新：多个请求同时触发444时，只执行一次刷新，其余请求进入队列等待
-  if (_refreshing) {
-    return new Promise(function (resolve, reject) {
-      _pendingRequests.push({ resolve: resolve, reject: reject, config: config })
-    })
-  }
-  _refreshing = true
-  const refreshUrl = '/user/api/v1/token/refresh'
-  const refreshTime = new Date().getTime()
-  return axios({
-    method: 'POST',
-    url: refreshUrl,
-    headers: {
-      'Content-Type': 'application/json; charset=UTF-8',
-      'accToken': accessToken,
-      't': '' + refreshTime
-    },
-    timeout: 10000,
-    data: { refreshToken: refreshToken }
-  }).then(response => {
-    const d = response.data
-    if (d && d.code === 200 && d.data && d.data.accessToken) {
-      store.dispatch('login', d.data)
-      _refreshing = false
-      // 用新token重放所有等待中的请求
-      var pending = _pendingRequests.splice(0)
-      pending.forEach(function (req) {
-        req.config.headers['accToken'] = d.data.accessToken
-        service(req.config).then(req.resolve).catch(req.reject)
-      })
-      // 重放当前请求
-      config.headers['accToken'] = d.data.accessToken
-      return service(config)
-    }
-    _refreshing = false
-    // 刷新失败，拒绝所有等待队列
-    var failPending = _pendingRequests.splice(0)
-    failPending.forEach(function (req) {
-      req.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
-    })
-    store.dispatch('logout')
-    store.dispatch('showLogin')
-    return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
-  }).catch(() => {
-    _refreshing = false
-    // 刷新失败，拒绝所有等待队列
-    var failPending = _pendingRequests.splice(0)
-    failPending.forEach(function (req) {
-      req.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
-    })
-    store.dispatch('logout')
-    store.dispatch('showLogin')
-    return Promise.reject({ code: 444, errorMessage: '登录已过期，请重新登录' })
+  // 使用统一token管理器，避免多个拦截器并发刷新冲突
+  return tokenManager.refresh(function (newToken) {
+    config.headers['accToken'] = newToken
+    return service(config)
   })
 }
 

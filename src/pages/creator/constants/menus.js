@@ -35,14 +35,4 @@ export const MenuData = [
       { title: '创作灵感', path: '/creator/growth/inspiration' }
     ]
   },
-  {
-    title: '创作工具',
-    icon: 'el-icon-setting',
-    children: [
-      { title: '评论管理', path: '/creator/comment/index' }
-    ]
-  },
-  {
-    title: '账户信息', path: '/creator/user/center', icon: 'el-icon-user'
-  }
-]
+  ]

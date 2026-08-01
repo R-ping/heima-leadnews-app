@@ -11,8 +11,8 @@ public class BailianConfig {
 
     private String apiKey;
     private String apiHost;
-    private String model = "qwen3.7-plus";
-    private String embeddingModel = "qwen3.7-text-embedding";
+    private String model;
+    private String embeddingModel;
     private Timeout timeout = new Timeout();
     private Retry retry = new Retry();
 

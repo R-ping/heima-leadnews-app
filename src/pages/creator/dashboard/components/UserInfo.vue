@@ -19,9 +19,15 @@
 
 <script>
 import { mapGetters } from 'vuex'
+import { getUserStatistics } from '@/apis/user.js'
 import defaultAvatar from '@/static/images/avatar_head_1.png'
 
 export default {
+  data() {
+    return {
+      stats: null
+    }
+  },
   computed: {
     ...mapGetters(['userInfo']),
     nickname() {
@@ -35,26 +41,35 @@ export default {
       return defaultAvatar
     },
     fans() {
-      const u = this.userInfo || {}
-      return u.fans || 0
+      return this.stats ? this.stats.followerCount : 0
     },
     follow() {
-      const u = this.userInfo || {}
-      return u.follow || 0
+      return this.stats ? this.stats.followCount : 0
     },
     power() {
-      const u = this.userInfo || {}
-      return u.power || 0
+      if (this.stats && this.stats.levelInfo) {
+        return this.stats.levelInfo.powerValue || 0
+      }
+      return 0
     },
     days() {
-      const u = this.userInfo || {}
-      return u.createDays || 1
+      return this.stats ? this.stats.createDays : 1
     }
   },
+  created() {
+    this.fetchUserStatistics()
+  },
   methods: {
-    goPublish() {
-      window.open('/creator/publish', '_blank')
-    }
+    async fetchUserStatistics() {
+      try {
+        const res = await getUserStatistics()
+        if (res && res.code === 200 && res.data) {
+          this.stats = res.data
+        }
+      } catch (err) {
+        console.error('获取用户统计数据失败', err)
+      }
+    },
   }
 }
 </script>

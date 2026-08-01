@@ -129,8 +129,19 @@ export default {
       if (this.activeTab === 'article') {
         await this.loadArticleStatistics()
         await this.loadArticleList()
+        await this.loadDraftCount()
       } else {
         await this.loadDraftList()
+      }
+    },
+    async loadDraftCount() {
+      try {
+        const res = await getDraftList({ page: 1, size: 1 })
+        if (res && res.code === 200 && res.data) {
+          this.draftCount = res.data.total || 0
+        }
+      } catch (e) {
+        // 静默处理
       }
     },
     async loadArticleStatistics() {
@@ -138,7 +149,7 @@ export default {
       if (res && res.code === 200 && res.data) {
         const data = res.data
         this.articleStatusTabs = [
-          { label: '全部', value: 'all', count: data.published || 0 },
+          { label: '全部', value: 'all', count: (data.published || 0) + (data.reviewing || 0) + (data.rejected || 0) },
           { label: '已发布', value: 'published', count: data.published || 0 },
           { label: '审核中', value: 'reviewing', count: data.reviewing || 0 },
           { label: '未通过', value: 'rejected', count: data.rejected || 0 }
@@ -185,12 +196,12 @@ export default {
       this.loadData()
     },
     goToPublish() {
-      this.$router.push('/creator/article')
+      window.open('/creator/publish', '_blank')
     },
     operateArticle(id, type) {
       switch (type) {
         case 'edit':
-          this.$router.push(`/creator/article?id=${id}`)
+          window.open(`/creator/publish?id=${id}`, '_blank')
           break
         case 'del':
           this.$confirm('确定要删除这篇文章吗？', '提示', { type: 'warning' }).then(() => {
@@ -202,7 +213,7 @@ export default {
     operateDraft(id, type) {
       switch (type) {
         case 'edit':
-          this.$router.push(`/creator/article?id=${id}`)
+          window.open(`/creator/publish?id=${id}&type=draft`, '_blank')
           break
         case 'del':
           this.$confirm('确定要删除这个草稿吗？', '提示', { type: 'warning' }).then(() => {
@@ -285,7 +296,7 @@ export default {
 
   .status-tabs {
     margin-bottom: 16px;
-    el-tag {
+    .el-tag {
       cursor: pointer;
       margin-right: 8px;
       padding: 4px 16px;

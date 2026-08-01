@@ -27,7 +27,7 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
         String path = request.getURI().getPath();
         //2.判断是否是登录/注册/token刷新/社交登录相关接口（放行）
         // 注意：使用精确前缀/后缀匹配，避免 path.contains() 被路径中包含关键词的任意请求绕过
-        if (path.endsWith("/login") || path.endsWith("/login_auth")
+        if (path.endsWith("/login") || path.endsWith("/login_auth")||path.endsWith("/recommend")
             || path.startsWith("/api/v1/login/")
             || path.startsWith("/user/api/v1/login/")
             || path.startsWith("/api/v1/oauth2/")

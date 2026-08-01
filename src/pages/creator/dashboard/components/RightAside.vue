@@ -40,17 +40,17 @@ export default {
   data() {
     return {
       topics: [
-        { title: '每日精选文章', participate: 26, read: 8.6 },
-        { title: '日新计划', participate: 29, read: 12.0 },
-        { title: '每天一个知识点', participate: 156, read: 58.5 },
-        { title: '沸点周刊', participate: 7.6, read: 2.3 },
-        { title: '新人报道', participate: 57, read: 43.7 }
+        { id: 1, title: '每日精选文章', participate: 26, read: 8.6 },
+        { id: 2, title: '日新计划', participate: 29, read: 12.0 },
+        { id: 3, title: '每天一个知识点', participate: 156, read: 58.5 },
+        { id: 4, title: '沸点周刊', participate: 7.6, read: 2.3 },
+        { id: 5, title: '新人报道', participate: 57, read: 43.7 }
       ]
     }
   },
   methods: {
     goTopic(topic) {
-      // TODO: 跳转话题详情
+      this.$router.push(`/pin/topic/${topic.id}`)
     }
   }
 }
