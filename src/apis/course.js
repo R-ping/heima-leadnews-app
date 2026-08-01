@@ -1,8 +1,8 @@
 import request from '@/common/request'
 import conf from '@/common/conf'
 
-const API_PREFIX = '/article/api/v1/course'
-const COURSE_API_PREFIX = '/course/api/v1/course'
+const API_PREFIX = '/content/api/v1/course'
+const COURSE_API_PREFIX = '/content/api/v1/course'
 
 export default {
   // ========== 课程创作管理 ==========

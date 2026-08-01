@@ -1,6 +1,89 @@
 # CHANGELOG
 
-## 2026-07-31 — 课程系统完整功能开发
+## 2026-08-01 — 后端服务架构重构
+
+### 架构变更
+
+#### ScheduleApplication → 合并入 Article 服务
+- **BREAKING**: 删除 `heima-leadnews-schedule` 独立微服务模块
+- 将 TaskService、TaskinfoMapper、TaskDelayConsumer 等全部迁移至 article 模块的 `com.heima.article.schedule` 包
+- 使用 Redisson 延迟队列（`RBlockingQueue` + `RDelayedQueue`）替代 RabbitMQ 延迟插件，消除外部 RabbitMQ 依赖
+- 移除 `IScheduleClient` Feign 接口，远程调用改为本地 Service 方法调用
+- 新增 `schedule.sql` DDL 文件，用于在 `leadnews_article` 库中创建 `taskinfo` 和 `taskinfo_logs` 表
+
+#### BehaviorApplication → 合并入 Article 服务并重构
+- **BREAKING**: 删除 `heima-leadnews-behavior` 独立微服务模块
+- 将 LikesBehavior、ReadBehavior、UnlikesBehavior 的 Controller 和 Service 全部迁移至 article 模块的 `com.heima.article.behavior` 包
+- **移除 Redis 缓存用户行为逻辑**（`LIKE_BEHAVIOR`、`READ_BEHAVIOR`、`UN_LIKE_BEHAVIOR`），改为直接数据库持久化
+  - 点赞/取消点赞：原子更新 `ap_article.likes` 字段，并记录到 `ap_user_action_log` 表
+  - 阅读行为：原子更新 `ap_article.views` 字段，并记录到 `ap_browse_history` 表
+  - 不喜欢行为：记录到 `ap_user_action_log` 表
+- 移除 AOP 切面（`ReadLikeUnLikeAspect`）和 `@UserBehavior` 注解，不再发送 Kafka 消息
+
+#### 移除 Kafka 技术栈
+- 删除 `KafkaStreamConfig.java`（Kafka Streams 配置）
+- 删除 `HotArticleStreamHandler.java`（Kafka Streams 聚合处理器）
+- 删除 `ArticleIncrHandleListener.java`（Kafka 消费者）
+- 删除 `ArticleIsDownListener.java`（Kafka 消费者）
+- 从 `pom.xml` 移除 `spring-kafka`、`kafka-streams`、`kafka-clients` 依赖
+- 从 `application.yml` 移除 Kafka 配置
+- 行为热度更新改为直接调用 `ApArticleService.updateScoreByBehavior()`，无需消息队列中转
+
+#### 沸点服务决策
+- 沸点（Pins）保持现状，不拆分为独立微服务。与文章共享基础设施，符合"去微服务化"趋势
+
+### 数据库变更
+- 新增 `taskinfo` 和 `taskinfo_logs` 表（`leadnews_article` 库），参考 `schedule.sql`
+
+### 基础架构变更
+- 从 `heima-leadnews-service/pom.xml` 中移除 `heima-leadnews-schedule` 和 `heima-leadnews-behavior` 模块
+- 网关路由中移除 `/schedule/` 和 `/behavior/` 路由
+- 减少 2 个微服务实例、消除 Kafka 和 RabbitMQ 外部依赖
+
+### 变更文件列表
+
+#### 删除（模块）
+- `heima-leadnews-service/heima-leadnews-schedule/`（完整模块）
+- `heima-leadnews-service/heima-leadnews-behavior/`（完整模块）
+
+#### 删除（Feign接口）
+- `heima-leadnews-feign-api/.../schedule/IScheduleClient.java`
+
+#### 删除（Kafka相关）
+- `heima-leadnews-article/.../config/KafkaStreamConfig.java`
+- `heima-leadnews-article/.../stream/HotArticleStreamHandler.java`
+- `heima-leadnews-article/.../listener/ArticleIncrHandleListener.java`
+- `heima-leadnews-article/.../listener/ArticleIsDownListener.java`
+
+#### 新增（article模块）
+- `heima-leadnews-article/.../schedule/service/TaskService.java`
+- `heima-leadnews-article/.../schedule/service/impl/TaskServiceImpl.java`
+- `heima-leadnews-article/.../schedule/listener/TaskDelayConsumer.java`
+- `heima-leadnews-article/.../schedule/mapper/TaskinfoLogsMapper.java`
+- `heima-leadnews-article/.../schedule/mapper/TaskinfoMapper.java`
+- `heima-leadnews-article/.../behavior/controller/v1/ApLikesBehaviorController.java`
+- `heima-leadnews-article/.../behavior/controller/v1/ApReadBehaviorController.java`
+- `heima-leadnews-article/.../behavior/controller/v1/ApUnlikesBehaviorController.java`
+- `heima-leadnews-article/.../behavior/service/ApLikesBehaviorService.java`
+- `heima-leadnews-article/.../behavior/service/ApReadBehaviorService.java`
+- `heima-leadnews-article/.../behavior/service/ApUnlikesBehaviorService.java`
+- `heima-leadnews-article/.../behavior/service/impl/ApLikesBehaviorServiceImpl.java`
+- `heima-leadnews-article/.../behavior/service/impl/ApReadBehaviorServiceImpl.java`
+- `heima-leadnews-article/.../behavior/service/impl/ApUnlikesBehaviorServiceImpl.java`
+- `heima-leadnews-article/.../config/RedissonConfig.java`
+- `heima-leadnews-article/src/main/resources/schedule.sql`
+- `heima-leadnews-article/src/main/resources/mapper/TaskinfoMapper.xml`
+
+#### 修改
+- `heima-leadnews-article/.../ArticleApplication.java`（MapperScan 增加 schedule 包）
+- `heima-leadnews-article/.../service/ApArticleService.java`（新增 updateScoreByBehavior 方法）
+- `heima-leadnews-article/.../service/impl/ApArticleServiceImpl.java`（实现 updateScoreByBehavior）
+- `heima-leadnews-article/.../service/impl/ArticleTaskServiceImpl.java`（Feign 改为本地调用）
+- `heima-leadnews-article/pom.xml`（移除 Kafka 依赖，保留 Redisson）
+- `heima-leadnews-article/src/main/resources/application.yml`（移除 Kafka 配置）
+- `heima-leadnews-service/pom.xml`（移除 schedule 和 behavior 模块引用）
+- `heima-leadnews-gateway/.../application-gateway.yml`（移除 schedule 和 behavior 路由）
+- `heima-leadnews-common/.../constants/BehaviorConstants.java`（添加废弃注释）
 
 ### 新增功能
 

@@ -1,0 +1,79 @@
+server:
+  port: 51802
+spring:
+  application:
+    name: leadnews-content
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/leadnews_article?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+  # 设置Mapper接口所对应的XML文件位置，如果你在Mapper接口中有自定义方法，需要进行该配置
+  freemarker:
+    suffix: .ftl               #指定Freemarker模板文件的后缀名
+    template-loader-path: classpath:/templates
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+#      password: 123456
+      connect-timeout: 10000ms
+      lettuce:
+        pool:
+          max-idle: 16
+          max-active: 32
+          min-idle: 8
+mybatis-plus:
+  configuration:
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.nologging.NoLoggingImpl}
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+  mapper-locations: classpath*:mapper/*.xml
+  # 设置别名包扫描路径，通过该属性可以给包中的类注册别名
+  type-aliases-package: com.heima.model.article.pojos
+
+minio:
+  accessKey: ${MINIO_ACCESS_KEY:minio}
+  secretKey: ${MINIO_SECRET_KEY:minio123}
+  bucket: ${MINIO_BUCKET:leadnews}
+  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  readPath: ${MINIO_READ_PATH:http://127.0.0.1:9000}
+
+aliyun:
+  oss:
+    accessKeyId: ${ALIBABA_RAM_ACCESS_KEY}
+    accessKeySecret: ${ALIBABA_RAM_ACCESS_SECRET}
+    endpoint: http://oss-cn-beijing.aliyuncs.com
+    host: https://zhuri-leadnews.oss-cn-beijing.aliyuncs.com
+    bucket: zhuri-leadnews
+    dir: material/
+    expireTime: 300
+
+bailian:
+  dashscope:
+    api-key: ${DASH_SCOPE_API_KEY:}
+    api-host: ${DASH_SCOPE_API_HOST:https://dashscope.aliyuncs.com}
+    model: qwen3.7-plus
+    embedding-model: qwen3.7-text-embedding
+    timeout:
+      connect: 5000
+      read: 30000
+    retry:
+      max-attempts: 3
+      backoff-delay: 1000
+
+# 支付宝沙箱配置（通过环境变量注入）
+alipay:
+  app-id: ${ALIPAY_APP_ID:}
+  private-key: ${ALIPAY_PRIVATE_KEY:}
+  alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+  gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+  notify-url: ${ALIPAY_NOTIFY_URL:http://localhost:51601/course/api/v1/pay/notify}
+  return-url: ${ALIPAY_RETURN_URL:http://localhost:9901/course/pay-result}
+

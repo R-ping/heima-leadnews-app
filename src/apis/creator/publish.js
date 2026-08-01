@@ -92,7 +92,7 @@ export const importMarkdown = (file) => {
   const formData = new FormData()
   formData.append('file', file)
   return request({
-    url: '/api/v1/article/import',
+    url: '/api/v1/content/import',
     method: 'post',
     data: formData
   })

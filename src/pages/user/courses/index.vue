@@ -164,7 +164,7 @@ export default {
         async loadCourses() {
             this.loading = true
             try {
-                const res = await request.get('/api/v1/course/my', {
+                const res = await request.get('/api/v1/content/my', {
                     params: { filter: this.activeFilter }
                 })
                 if (res && res.code === 200 && res.data) {

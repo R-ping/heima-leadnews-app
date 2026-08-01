@@ -1,21 +1,19 @@
 const  config = {
     // 注册对应服务名称
     services:{
-        article:'ARTICLE',
-        behavior:'BEHAVIOR',
+        content:'CONTENT',
         user:'USER',
         search:'SEARCH',
-        notification:'NOTIFICATION',
-        course:'COURSE'
+        notification:'NOTIFICATION'
     },
     // 请求本地的请求service
-    local:{user:true,article:true,behavior:true,search:true,notification:true,course:true},
+    local:{user:true,content:true,search:true,notification:true},
     // 代理前缀
     prefix:{
         server_85:'/server_85'
     },
     urls:{
-        recommend:{url:'api/v1/article/recommend',sv:'article'},
+        recommend:{url:'api/v1/article/recommend',sv:'content'},
         // ==========  notification (站内信)
         notifications_list:{url:'api/v1/notifications',sv:'notification'},
         notifications_unread:{url:'api/v1/notifications/unread-count',sv:'notification'},
@@ -27,16 +25,16 @@ const  config = {
         im_messages:{url:'api/v1/im/messages',sv:'notification'},
         im_send:{url:'api/v1/im/messages',sv:'notification'},
         im_read:{url:'api/v1/im/messages/read',sv:'notification'},
-        // ==========  article (后端已实现)
-        load:{url:'api/v1/article/load/',sv:'article'},
-        loadmore:{url:'api/v1/article/load/more',sv:'article'},
-        loadnew:{url:'api/v1/article/load/new',sv:'article'},
-        article_info:{url:'api/v1/article/info',sv:'article'},
-        article_content:{url:'api/v1/article/content',sv:'article'},
-        // ==========  comment (article服务)
-        comment_list:{url:'api/v1/comment/list',sv:'article'},
-        comment_add:{url:'api/v1/comment',sv:'article'},
-        comment_like:{url:'api/v1/comment/like',sv:'article'},
+        // ==========  content (原 article 服务，已合并)
+        load:{url:'api/v1/article/load/',sv:'content'},
+        loadmore:{url:'api/v1/article/load/more',sv:'content'},
+        loadnew:{url:'api/v1/article/load/new',sv:'content'},
+        article_info:{url:'api/v1/article/info',sv:'content'},
+        article_content:{url:'api/v1/article/content',sv:'content'},
+        // ==========  comment (content服务)
+        comment_list:{url:'api/v1/comment/list',sv:'content'},
+        comment_add:{url:'api/v1/comment',sv:'content'},
+        comment_like:{url:'api/v1/comment/like',sv:'content'},
         // ==========  search (后端已实现)
         load_search_history:{url:'api/v1/history/load',sv:'search'},
         del_search:{url:'api/v1/history/del',sv:'search'},
@@ -44,12 +42,12 @@ const  config = {
         associate_search:{url:'api/v1/associate/search',sv:'search'},
         article_search:{url:'api/v1/article/search/search',sv:'search'},
         // 后端未提供 load_hot_keywords 接口，已在前端注释对应调用
-        // ==========  behavior (后端已实现)
-        read_behavior:{url:'api/v1/read_behavior',sv:'behavior'},
-        like_behavior:{url:'api/v1/likes_behavior/',sv:'behavior'},
-        unlike_behavior:{url:'api/v1/un_likes_behavior/',sv:'behavior'},
-        collection_behavior:{url:'api/v1/collection_behavior/',sv:'behavior'},
-        follow_behavior:{url:'api/v1/follow_behavior/',sv:'behavior'},
+        // ==========  behavior (已合并入 content 服务)
+        read_behavior:{url:'api/v1/read_behavior',sv:'content'},
+        like_behavior:{url:'api/v1/likes_behavior/',sv:'content'},
+        unlike_behavior:{url:'api/v1/un_likes_behavior/',sv:'content'},
+        collection_behavior:{url:'api/v1/collection_behavior/',sv:'content'},
+        follow_behavior:{url:'api/v1/follow_behavior/',sv:'content'},
         // ==========  user (后端已实现)
         // 后端未提供 user_follow 接口，已在前端注释对应调用
         // ==========  login (login 属于 user 微服务)

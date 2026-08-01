@@ -22,29 +22,7 @@ spring:
 #      config:
 #        server-addr: 192.168.200.130:8848
 #        file-extension: yml
-  rabbitmq:
-    host: 192.168.44.128
-    port: 5672
-#    virtual-host: /son
-    username: admin
-    password: admin
-    listener:
-      simple:
-        prefetch: 1
-        acknowledge-mode: manual # 消费者确认
-#        retry:
-#          enabled: true # 开启消费者本地重试，重试后默认会reject，丢弃消息
-#          initial-interval: 2000ms
-#          multiplier: 1
-#          max-attempts: 3
-#    connection-timeout: 1s #设置MQ的连接超时时间为1s
-#    template:
-#      retry:
-#        enabled: true
-#        initial-interval: 1000ms #重试间隔
-#        multiplier: 1
-#        max-attempts: 3
-minio:
+  minio:
   accessKey: ${MINIO_ACCESS_KEY:minio}
   secretKey: ${MINIO_SECRET_KEY:minio123}
   bucket: ${MINIO_BUCKET:leadnews}
