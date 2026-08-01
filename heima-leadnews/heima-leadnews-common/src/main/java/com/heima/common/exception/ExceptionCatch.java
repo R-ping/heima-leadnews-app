@@ -15,6 +15,17 @@ import jakarta.servlet.http.HttpServletResponse;
 public class ExceptionCatch {
 
     /**
+     * 处理限流异常
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    @ResponseBody
+    public ResponseResult handleRateLimitExceeded(RateLimitExceededException e, HttpServletResponse response){
+        log.warn("限流触发: {}", e.getMessage());
+        response.setStatus(HttpServletResponse.SC_OK);
+        return ResponseResult.errorResult(AppHttpCodeEnum.RATE_LIMIT_EXCEEDED);
+    }
+
+    /**
      * 处理不可控异常
      * @param e
      * @return
