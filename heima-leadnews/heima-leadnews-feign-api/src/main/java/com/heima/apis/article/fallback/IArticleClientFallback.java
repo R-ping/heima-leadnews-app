@@ -17,14 +17,14 @@ import org.springframework.stereotype.Component;
 public class IArticleClientFallback implements IArticleClient {
 
 
-    @Override
-    public ResponseResult saveArticle(ArticleDto dto, long executeTime) {
-        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"文章保存异常");
-    }
+//    @Override
+//    public ResponseResult saveArticle(ArticleDto dto, long executeTime) {
+//        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"文章保存异常");
+//    }
 
     @Override
     public void eventUpdate(ArticleEvent event) {
-        System.out.println("远程更新article操作事件失败");
+        log.error("远程更新article操作事件失败, eventId={}", event != null ? event.getId() : null);
     }
 
     @Override
@@ -34,14 +34,8 @@ public class IArticleClientFallback implements IArticleClient {
 
     @Override
     public ApArticle getArticleInfo(Long articleId) {
-        log.error("远程获取文章信息异常");
-        return null;
-    }
-
-    @Override
-    public boolean generateArticleEvent(ApArticle article, long executeTimeInterval) {
-        log.info("远程生成article操作事件失败{}", article.getId());
-        return false;
+        log.error("远程获取文章信息异常, articleId={}", articleId);
+        throw new RuntimeException("获取文章信息异常, articleId=" + articleId);
     }
 
     @Override

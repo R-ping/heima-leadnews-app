@@ -27,7 +27,7 @@ public class DiscountServiceImpl implements DiscountService {
     private ApCourseDiscountMapper discountMapper;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult createDiscount(CourseDiscountDto dto, Long userId) {
         if (dto.getCourseId() == null || dto.getDiscountType() == null || dto.getDiscountValue() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
@@ -61,7 +61,7 @@ public class DiscountServiceImpl implements DiscountService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult disableDiscount(Long discountId, Long userId) {
         ApCourseDiscount discount = discountMapper.selectById(discountId);
         if (discount == null) {

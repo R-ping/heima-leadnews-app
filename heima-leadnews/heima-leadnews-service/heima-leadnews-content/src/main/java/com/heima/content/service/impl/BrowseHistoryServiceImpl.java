@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class BrowseHistoryServiceImpl extends ServiceImpl<ApBrowseHistoryMapper, ApBrowseHistory> implements BrowseHistoryService {
 

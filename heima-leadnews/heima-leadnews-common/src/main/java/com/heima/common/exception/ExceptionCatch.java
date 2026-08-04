@@ -3,6 +3,7 @@ package com.heima.common.exception;
 
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +14,35 @@ import jakarta.servlet.http.HttpServletResponse;
 @ControllerAdvice  //控制器增强类
 @Slf4j
 public class ExceptionCatch {
+
+    /**
+     * 处理 Feign 调用异常
+     * 提取 Feign 响应中的错误信息返回给客户端
+     */
+    @ExceptionHandler(FeignException.class)
+    @ResponseBody
+    public ResponseResult handleFeignException(FeignException e, HttpServletResponse response) {
+        log.error("Feign调用异常: {}", e.getMessage());
+        response.setStatus(HttpServletResponse.SC_OK);
+        // 提取 Feign 响应中的错误信息
+        String errorMsg = "服务调用失败";
+        try {
+            java.nio.ByteBuffer responseBody = e.responseBody().orElse(null);
+            if (responseBody != null && responseBody.hasRemaining()) {
+                byte[] bytes = new byte[responseBody.remaining()];
+                responseBody.get(bytes);
+                String bodyStr = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                // 尝试解析 Feign 返回的 ResponseResult
+                com.alibaba.fastjson.JSONObject json = com.alibaba.fastjson.JSON.parseObject(bodyStr);
+                if (json != null && json.containsKey("message")) {
+                    errorMsg = json.getString("message");
+                }
+            }
+        } catch (Exception ignored) {
+            // 解析失败使用默认错误信息
+        }
+        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR, errorMsg);
+    }
 
     /**
      * 处理限流异常

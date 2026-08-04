@@ -637,7 +637,7 @@
                 this.searchKeyword = keyword
                 this.showSearchDropdown = false
                 this.searchSuggestions = []
-                this.$router.push({ name: 'search_result', params: { keyword: keyword } })
+                this.$router.push({ name: 'search_result', query: { keyword: keyword } })
             },
             async loadRecommendTopics() {
                 try {

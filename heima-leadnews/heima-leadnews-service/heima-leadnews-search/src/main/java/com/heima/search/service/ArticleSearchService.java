@@ -3,6 +3,7 @@ package com.heima.search.service;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.search.dtos.UserSearchDto;
 
+import com.heima.model.search.vos.SearchArticleVo;
 import java.io.IOException;
 
 public interface ArticleSearchService {
@@ -13,4 +14,8 @@ public interface ArticleSearchService {
      * @return
      */
     public ResponseResult search(UserSearchDto dto) throws IOException;
+
+    ResponseResult syncArticle(SearchArticleVo searchArticleVo);
+
+    ResponseResult updateArticleStatus(Long articleId);
 }

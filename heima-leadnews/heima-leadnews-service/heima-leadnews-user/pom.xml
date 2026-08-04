@@ -31,6 +31,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
         <!-- FreeMarker 模板引擎 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -45,7 +49,7 @@
         <dependency>
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
-            <version>3.17.4</version>
+            <version>${aliyun.oss.version}</version>
         </dependency>
     </dependencies>
 

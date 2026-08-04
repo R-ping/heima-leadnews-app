@@ -13,10 +13,12 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
+@Slf4j
 @Component
 public class GreenImageScanPlus {
 
@@ -71,7 +73,7 @@ public class GreenImageScanPlus {
         try {
             response = client.imageModerationWithOptions(request, runtime);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("异常信息", e);
         }
         return response;
     }
@@ -127,7 +129,7 @@ public class GreenImageScanPlus {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("异常信息", e);
         }
         System.out.println("cost time:" + (System.currentTimeMillis() - start));
         return null;

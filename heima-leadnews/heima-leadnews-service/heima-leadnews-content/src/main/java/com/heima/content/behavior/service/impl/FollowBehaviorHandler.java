@@ -35,7 +35,7 @@ public class FollowBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult execute(BehaviorContext context) {
         Integer userId = context.getUserId();
         Integer targetUserId = context.getTargetUserId();
@@ -91,7 +91,7 @@ public class FollowBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult rollback(BehaviorContext context) {
         Integer userId = context.getUserId();
         Integer targetUserId = context.getTargetUserId();

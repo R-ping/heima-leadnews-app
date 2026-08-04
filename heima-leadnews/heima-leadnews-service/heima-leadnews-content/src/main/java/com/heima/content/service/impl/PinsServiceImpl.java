@@ -84,7 +84,7 @@ public class PinsServiceImpl extends ServiceImpl<ApPinsMapper, ApPins> implement
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult createPins(ApPins pins) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
@@ -151,7 +151,7 @@ public class PinsServiceImpl extends ServiceImpl<ApPinsMapper, ApPins> implement
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult deletePins(Long id) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {

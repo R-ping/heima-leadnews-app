@@ -12,7 +12,7 @@ public class ILevelClientFallback implements ILevelClient {
 
     @Override
     public Map<String, Object> getUserLevelInfo(Long userId) {
-        log.warn("等级服务不可用，userId={}", userId);
-        return null;
+        log.error("等级服务不可用，userId={}", userId);
+        throw new RuntimeException("等级服务不可用, userId=" + userId);
     }
 }

@@ -69,7 +69,10 @@ import Item3 from '../../components/cells/article_3.vue'
         name: 'SearchResult',
         components: { Home_Bar, WxcTabPage, Item0, Item1, Item3 },
         props: {
-            keyword: ''
+            keyword: {
+                type: String,
+                default: ''
+            }
         },
         data: () => ({
             showmore: false,
@@ -105,7 +108,8 @@ import Item3 from '../../components/cells/article_3.vue'
         },
         created() {
             this.tabPageHeight = Utils.getPageHeight() - 110
-            this.params.keyword = this.keyword
+            // 优先从 $route.query 读取（路由跳转）; 次选 props（SSR / 直接挂载）
+            this.params.keyword = this.$route.query.keyword || this.keyword || ''
         },
         methods: {
             // 滚动加载更多

@@ -5,20 +5,18 @@ import com.heima.content.schedule.service.TaskService;
 import com.heima.content.service.ArticleTaskService;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticle.Status;
-import com.heima.model.common.enums.TaskTypeEnum;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.utils.common.ProtostuffUtil;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-
 @Service
 @Slf4j
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class ArticleTaskServiceImpl implements ArticleTaskService {
 
     @Autowired
@@ -53,8 +51,6 @@ public class ArticleTaskServiceImpl implements ArticleTaskService {
         task.setFirstExecInterval(Math.max(0, firstTimeInterval));
         task.setObjExecInterval(executeTimeInterval);
         task.setExecuteTime(publishTime);
-        task.setTaskType(TaskTypeEnum.NEWS_SCAN_TIME.getTaskType());
-        task.setPriority(TaskTypeEnum.NEWS_SCAN_TIME.getPriority());
         // 序列化 ApArticle（仅包含ID，用于调度任务反序列化）
         ApArticle apArticle = new ApArticle();
         apArticle.setId(articleId);

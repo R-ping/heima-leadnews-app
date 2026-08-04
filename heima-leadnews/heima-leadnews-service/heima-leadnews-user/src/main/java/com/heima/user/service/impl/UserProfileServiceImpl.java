@@ -118,7 +118,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateProfile(ProfileUpdateDTO dto) {
         ApUser currentUser = AppThreadLocalUtil.getUser();
         if (currentUser == null) {

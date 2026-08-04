@@ -5,7 +5,7 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedHeaders: "*"
-            allowedOrigins: "*"
+            allowedOrigins: "${CORS_ALLOWED_ORIGINS:*}"
             allowedMethods:
               - GET
               - POST
@@ -35,17 +35,18 @@ spring:
           filters:
             - StripPrefix=1
         
-        # 自媒体微服务（wemedia前端已合并到app，路由统一走app gateway鉴权）
-        - id: wemedia
-          uri: lb://leadnews-wemedia
-          predicates:
-            - Path=/wemedia/**
-          filters:
-            - StripPrefix=1
+        
         # 站内信微服务
         - id: leadnews-notification
           uri: lb://leadnews-notification
           predicates:
             - Path=/notification/**
+          filters:
+            - StripPrefix=1
+        # 奖励微服务（签到/抽奖/兑换）
+        - id: leadnews-reward
+          uri: lb://leadnews-reward
+          predicates:
+            - Path=/reward/**
           filters:
             - StripPrefix=1

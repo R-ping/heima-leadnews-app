@@ -31,6 +31,24 @@ public class CacheService extends CachingConfigurerSupport {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    @Autowired
+    private KeyCacheService keyCacheService;
+
+    @Autowired
+    private StringCacheService stringCacheService;
+
+    @Autowired
+    private HashCacheService hashCacheService;
+
+    @Autowired
+    private ListCacheService listCacheService;
+
+    @Autowired
+    private SetCacheService setCacheService;
+
+    @Autowired
+    private ZSetCacheService zSetCacheService;
+
     public StringRedisTemplate getstringRedisTemplate() {
         return this.stringRedisTemplate;
     }
@@ -43,7 +61,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param key
      */
     public void delete(String key) {
-        stringRedisTemplate.delete(key);
+        keyCacheService.delete(key);
     }
 
     /**
@@ -52,7 +70,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param keys
      */
     public void delete(Collection<String> keys) {
-        stringRedisTemplate.delete(keys);
+        keyCacheService.delete(keys);
     }
 
     /**
@@ -62,7 +80,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public byte[] dump(String key) {
-        return stringRedisTemplate.dump(key);
+        return keyCacheService.dump(key);
     }
 
     /**
@@ -72,7 +90,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean exists(String key) {
-        return stringRedisTemplate.hasKey(key);
+        return keyCacheService.exists(key);
     }
 
     /**
@@ -84,7 +102,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean expire(String key, long timeout, TimeUnit unit) {
-        return stringRedisTemplate.expire(key, timeout, unit);
+        return keyCacheService.expire(key, timeout, unit);
     }
 
     /**
@@ -95,7 +113,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean expireAt(String key, Date date) {
-        return stringRedisTemplate.expireAt(key, date);
+        return keyCacheService.expireAt(key, date);
     }
 
     /**
@@ -105,7 +123,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> keys(String pattern) {
-        return stringRedisTemplate.keys(pattern);
+        return keyCacheService.keys(pattern);
     }
 
     /**
@@ -116,7 +134,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean move(String key, int dbIndex) {
-        return stringRedisTemplate.move(key, dbIndex);
+        return keyCacheService.move(key, dbIndex);
     }
 
     /**
@@ -126,7 +144,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean persist(String key) {
-        return stringRedisTemplate.persist(key);
+        return keyCacheService.persist(key);
     }
 
     /**
@@ -137,7 +155,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long getExpire(String key, TimeUnit unit) {
-        return stringRedisTemplate.getExpire(key, unit);
+        return keyCacheService.getExpire(key, unit);
     }
 
     /**
@@ -147,7 +165,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long getExpire(String key) {
-        return stringRedisTemplate.getExpire(key);
+        return keyCacheService.getExpire(key);
     }
 
     /**
@@ -156,7 +174,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String randomKey() {
-        return stringRedisTemplate.randomKey();
+        return keyCacheService.randomKey();
     }
 
     /**
@@ -166,7 +184,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param newKey
      */
     public void rename(String oldKey, String newKey) {
-        stringRedisTemplate.rename(oldKey, newKey);
+        keyCacheService.rename(oldKey, newKey);
     }
 
     /**
@@ -177,7 +195,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean renameIfAbsent(String oldKey, String newKey) {
-        return stringRedisTemplate.renameIfAbsent(oldKey, newKey);
+        return keyCacheService.renameIfAbsent(oldKey, newKey);
     }
 
     /**
@@ -187,7 +205,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public DataType type(String key) {
-        return stringRedisTemplate.type(key);
+        return keyCacheService.type(key);
     }
 
     /** -------------------string相关操作--------------------- */
@@ -198,7 +216,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param value
      */
     public void set(String key, String value) {
-        stringRedisTemplate.opsForValue().set(key, value);
+        stringCacheService.set(key, value);
     }
 
     /**
@@ -207,7 +225,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String get(String key) {
-        return stringRedisTemplate.opsForValue().get(key);
+        return stringCacheService.get(key);
     }
 
     /**
@@ -218,7 +236,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String getRange(String key, long start, long end) {
-        return stringRedisTemplate.opsForValue().get(key, start, end);
+        return stringCacheService.getRange(key, start, end);
     }
 
     /**
@@ -229,7 +247,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String getAndSet(String key, String value) {
-        return stringRedisTemplate.opsForValue().getAndSet(key, value);
+        return stringCacheService.getAndSet(key, value);
     }
 
     /**
@@ -240,7 +258,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean getBit(String key, long offset) {
-        return stringRedisTemplate.opsForValue().getBit(key, offset);
+        return stringCacheService.getBit(key, offset);
     }
 
     /**
@@ -250,7 +268,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public List<String> multiGet(Collection<String> keys) {
-        return stringRedisTemplate.opsForValue().multiGet(keys);
+        return stringCacheService.multiGet(keys);
     }
 
     /**
@@ -263,7 +281,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public boolean setBit(String key, long offset, boolean value) {
-        return stringRedisTemplate.opsForValue().setBit(key, offset, value);
+        return stringCacheService.setBit(key, offset, value);
     }
 
     /**
@@ -278,7 +296,7 @@ public class CacheService extends CachingConfigurerSupport {
      *            秒:TimeUnit.SECONDS 毫秒:TimeUnit.MILLISECONDS
      */
     public void setEx(String key, String value, long timeout, TimeUnit unit) {
-        stringRedisTemplate.opsForValue().set(key, value, timeout, unit);
+        stringCacheService.setEx(key, value, timeout, unit);
     }
 
     /**
@@ -289,7 +307,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return 之前已经存在返回false,不存在返回true
      */
     public boolean setIfAbsent(String key, String value) {
-        return stringRedisTemplate.opsForValue().setIfAbsent(key, value);
+        return stringCacheService.setIfAbsent(key, value);
     }
 
     /**
@@ -301,7 +319,7 @@ public class CacheService extends CachingConfigurerSupport {
      *            从指定位置开始覆写
      */
     public void setRange(String key, String value, long offset) {
-        stringRedisTemplate.opsForValue().set(key, value, offset);
+        stringCacheService.setRange(key, value, offset);
     }
 
     /**
@@ -311,7 +329,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long size(String key) {
-        return stringRedisTemplate.opsForValue().size(key);
+        return stringCacheService.size(key);
     }
 
     /**
@@ -320,7 +338,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param maps
      */
     public void multiSet(Map<String, String> maps) {
-        stringRedisTemplate.opsForValue().multiSet(maps);
+        stringCacheService.multiSet(maps);
     }
 
     /**
@@ -330,7 +348,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return 之前已经存在返回false,不存在返回true
      */
     public boolean multiSetIfAbsent(Map<String, String> maps) {
-        return stringRedisTemplate.opsForValue().multiSetIfAbsent(maps);
+        return stringCacheService.multiSetIfAbsent(maps);
     }
 
     /**
@@ -341,7 +359,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long incrBy(String key, long increment) {
-        return stringRedisTemplate.opsForValue().increment(key, increment);
+        return stringCacheService.incrBy(key, increment);
     }
 
     /**
@@ -351,7 +369,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Double incrByFloat(String key, double increment) {
-        return stringRedisTemplate.opsForValue().increment(key, increment);
+        return stringCacheService.incrByFloat(key, increment);
     }
 
     /**
@@ -362,7 +380,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Integer append(String key, String value) {
-        return stringRedisTemplate.opsForValue().append(key, value);
+        return stringCacheService.append(key, value);
     }
 
     /** -------------------hash相关操作------------------------- */
@@ -375,7 +393,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Object hGet(String key, String field) {
-        return stringRedisTemplate.opsForHash().get(key, field);
+        return hashCacheService.hGet(key, field);
     }
 
     /**
@@ -385,7 +403,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Map<Object, Object> hGetAll(String key) {
-        return stringRedisTemplate.opsForHash().entries(key);
+        return hashCacheService.hGetAll(key);
     }
 
     /**
@@ -396,15 +414,15 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public List<Object> hMultiGet(String key, Collection<Object> fields) {
-        return stringRedisTemplate.opsForHash().multiGet(key, fields);
+        return hashCacheService.hMultiGet(key, fields);
     }
 
     public void hPut(String key, String hashKey, String value) {
-        stringRedisTemplate.opsForHash().put(key, hashKey, value);
+        hashCacheService.hPut(key, hashKey, value);
     }
 
     public void hPutAll(String key, Map<String, String> maps) {
-        stringRedisTemplate.opsForHash().putAll(key, maps);
+        hashCacheService.hPutAll(key, maps);
     }
 
     /**
@@ -416,7 +434,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean hPutIfAbsent(String key, String hashKey, String value) {
-        return stringRedisTemplate.opsForHash().putIfAbsent(key, hashKey, value);
+        return hashCacheService.hPutIfAbsent(key, hashKey, value);
     }
 
     /**
@@ -427,7 +445,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long hDelete(String key, Object... fields) {
-        return stringRedisTemplate.opsForHash().delete(key, fields);
+        return hashCacheService.hDelete(key, fields);
     }
 
     /**
@@ -438,7 +456,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public boolean hExists(String key, String field) {
-        return stringRedisTemplate.opsForHash().hasKey(key, field);
+        return hashCacheService.hExists(key, field);
     }
 
     /**
@@ -450,7 +468,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long hIncrBy(String key, Object field, long increment) {
-        return stringRedisTemplate.opsForHash().increment(key, field, increment);
+        return hashCacheService.hIncrBy(key, field, increment);
     }
 
     /**
@@ -462,7 +480,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Double hIncrByFloat(String key, Object field, double delta) {
-        return stringRedisTemplate.opsForHash().increment(key, field, delta);
+        return hashCacheService.hIncrByFloat(key, field, delta);
     }
 
     /**
@@ -472,7 +490,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<Object> hKeys(String key) {
-        return stringRedisTemplate.opsForHash().keys(key);
+        return hashCacheService.hKeys(key);
     }
 
     /**
@@ -482,7 +500,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long hSize(String key) {
-        return stringRedisTemplate.opsForHash().size(key);
+        return hashCacheService.hSize(key);
     }
 
     /**
@@ -492,7 +510,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public List<Object> hValues(String key) {
-        return stringRedisTemplate.opsForHash().values(key);
+        return hashCacheService.hValues(key);
     }
 
     /**
@@ -503,7 +521,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Cursor<Map.Entry<Object, Object>> hScan(String key, ScanOptions options) {
-        return stringRedisTemplate.opsForHash().scan(key, options);
+        return hashCacheService.hScan(key, options);
     }
 
     /** ------------------------list相关操作---------------------------- */
@@ -516,7 +534,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String lIndex(String key, long index) {
-        return stringRedisTemplate.opsForList().index(key, index);
+        return listCacheService.lIndex(key, index);
     }
 
     /**
@@ -530,7 +548,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public List<String> lRange(String key, long start, long end) {
-        return stringRedisTemplate.opsForList().range(key, start, end);
+        return listCacheService.lRange(key, start, end);
     }
 
     /**
@@ -541,7 +559,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lLeftPush(String key, String value) {
-        return stringRedisTemplate.opsForList().leftPush(key, value);
+        return listCacheService.lLeftPush(key, value);
     }
 
     /**
@@ -551,7 +569,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lLeftPushAll(String key, String... value) {
-        return stringRedisTemplate.opsForList().leftPushAll(key, value);
+        return listCacheService.lLeftPushAll(key, value);
     }
 
     /**
@@ -561,7 +579,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lLeftPushAll(String key, Collection<String> value) {
-        return stringRedisTemplate.opsForList().leftPushAll(key, value);
+        return listCacheService.lLeftPushAll(key, value);
     }
 
     /**
@@ -572,7 +590,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lLeftPushIfPresent(String key, String value) {
-        return stringRedisTemplate.opsForList().leftPushIfPresent(key, value);
+        return listCacheService.lLeftPushIfPresent(key, value);
     }
 
     /**
@@ -584,7 +602,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lLeftPush(String key, String pivot, String value) {
-        return stringRedisTemplate.opsForList().leftPush(key, pivot, value);
+        return listCacheService.lLeftPush(key, pivot, value);
     }
 
     /**
@@ -594,7 +612,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lRightPush(String key, String value) {
-        return stringRedisTemplate.opsForList().rightPush(key, value);
+        return listCacheService.lRightPush(key, value);
     }
 
     /**
@@ -604,7 +622,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lRightPushAll(String key, String... value) {
-        return stringRedisTemplate.opsForList().rightPushAll(key, value);
+        return listCacheService.lRightPushAll(key, value);
     }
 
     /**
@@ -614,7 +632,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lRightPushAll(String key, Collection<String> value) {
-        return stringRedisTemplate.opsForList().rightPushAll(key, value);
+        return listCacheService.lRightPushAll(key, value);
     }
 
     /**
@@ -625,7 +643,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lRightPushIfPresent(String key, String value) {
-        return stringRedisTemplate.opsForList().rightPushIfPresent(key, value);
+        return listCacheService.lRightPushIfPresent(key, value);
     }
 
     /**
@@ -637,7 +655,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lRightPush(String key, String pivot, String value) {
-        return stringRedisTemplate.opsForList().rightPush(key, pivot, value);
+        return listCacheService.lRightPush(key, pivot, value);
     }
 
     /**
@@ -649,7 +667,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param value
      */
     public void lSet(String key, long index, String value) {
-        stringRedisTemplate.opsForList().set(key, index, value);
+        listCacheService.lSet(key, index, value);
     }
 
     /**
@@ -659,7 +677,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return 删除的元素
      */
     public String lLeftPop(String key) {
-        return stringRedisTemplate.opsForList().leftPop(key);
+        return listCacheService.lLeftPop(key);
     }
 
     /**
@@ -673,7 +691,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String lBLeftPop(String key, long timeout, TimeUnit unit) {
-        return stringRedisTemplate.opsForList().leftPop(key, timeout, unit);
+        return listCacheService.lBLeftPop(key, timeout, unit);
     }
 
     /**
@@ -683,7 +701,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return 删除的元素
      */
     public String lRightPop(String key) {
-        return stringRedisTemplate.opsForList().rightPop(key);
+        return listCacheService.lRightPop(key);
     }
 
     /**
@@ -697,7 +715,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String lBRightPop(String key, long timeout, TimeUnit unit) {
-        return stringRedisTemplate.opsForList().rightPop(key, timeout, unit);
+        return listCacheService.lBRightPop(key, timeout, unit);
     }
 
     /**
@@ -708,8 +726,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String lRightPopAndLeftPush(String sourceKey, String destinationKey) {
-        return stringRedisTemplate.opsForList().rightPopAndLeftPush(sourceKey,
-                destinationKey);
+        return listCacheService.lRightPopAndLeftPush(sourceKey, destinationKey);
     }
 
     /**
@@ -723,10 +740,9 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public String lBRightPopAndLeftPush(String sourceKey, String destinationKey,
                                         long timeout, TimeUnit unit) {
-        return stringRedisTemplate.opsForList().rightPopAndLeftPush(sourceKey,
-                destinationKey, timeout, unit);
+        return listCacheService.lBRightPopAndLeftPush(sourceKey, destinationKey, timeout, unit);
     }
-    
+
     /**
      * 删除集合中值等于value得元素
      *
@@ -738,7 +754,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lRemove(String key, long index, String value) {
-        return stringRedisTemplate.opsForList().remove(key, index, value);
+        return listCacheService.lRemove(key, index, value);
     }
 
     /**
@@ -749,7 +765,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @param end
      */
     public void lTrim(String key, long start, long end) {
-        stringRedisTemplate.opsForList().trim(key, start, end);
+        listCacheService.lTrim(key, start, end);
     }
 
     /**
@@ -759,9 +775,8 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long lLen(String key) {
-        return stringRedisTemplate.opsForList().size(key);
+        return listCacheService.lLen(key);
     }
-
 
     /** --------------------set相关操作-------------------------- */
 
@@ -773,7 +788,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long sAdd(String key, String... values) {
-        return stringRedisTemplate.opsForSet().add(key, values);
+        return setCacheService.sAdd(key, values);
     }
 
     /**
@@ -784,7 +799,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long sRemove(String key, Object... values) {
-        return stringRedisTemplate.opsForSet().remove(key, values);
+        return setCacheService.sRemove(key, values);
     }
 
     /**
@@ -794,7 +809,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String sPop(String key) {
-        return stringRedisTemplate.opsForSet().pop(key);
+        return setCacheService.sPop(key);
     }
 
     /**
@@ -806,7 +821,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean sMove(String key, String value, String destKey) {
-        return stringRedisTemplate.opsForSet().move(key, value, destKey);
+        return setCacheService.sMove(key, value, destKey);
     }
 
     /**
@@ -816,7 +831,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long sSize(String key) {
-        return stringRedisTemplate.opsForSet().size(key);
+        return setCacheService.sSize(key);
     }
 
     /**
@@ -827,7 +842,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean sIsMember(String key, Object value) {
-        return stringRedisTemplate.opsForSet().isMember(key, value);
+        return setCacheService.sIsMember(key, value);
     }
 
     /**
@@ -838,7 +853,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sIntersect(String key, String otherKey) {
-        return stringRedisTemplate.opsForSet().intersect(key, otherKey);
+        return setCacheService.sIntersect(key, otherKey);
     }
 
     /**
@@ -849,7 +864,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sIntersect(String key, Collection<String> otherKeys) {
-        return stringRedisTemplate.opsForSet().intersect(key, otherKeys);
+        return setCacheService.sIntersect(key, otherKeys);
     }
 
     /**
@@ -861,8 +876,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long sIntersectAndStore(String key, String otherKey, String destKey) {
-        return stringRedisTemplate.opsForSet().intersectAndStore(key, otherKey,
-                destKey);
+        return setCacheService.sIntersectAndStore(key, otherKey, destKey);
     }
 
     /**
@@ -875,8 +889,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Long sIntersectAndStore(String key, Collection<String> otherKeys,
                                    String destKey) {
-        return stringRedisTemplate.opsForSet().intersectAndStore(key, otherKeys,
-                destKey);
+        return setCacheService.sIntersectAndStore(key, otherKeys, destKey);
     }
 
     /**
@@ -887,7 +900,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sUnion(String key, String otherKeys) {
-        return stringRedisTemplate.opsForSet().union(key, otherKeys);
+        return setCacheService.sUnion(key, otherKeys);
     }
 
     /**
@@ -898,7 +911,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sUnion(String key, Collection<String> otherKeys) {
-        return stringRedisTemplate.opsForSet().union(key, otherKeys);
+        return setCacheService.sUnion(key, otherKeys);
     }
 
     /**
@@ -910,7 +923,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long sUnionAndStore(String key, String otherKey, String destKey) {
-        return stringRedisTemplate.opsForSet().unionAndStore(key, otherKey, destKey);
+        return setCacheService.sUnionAndStore(key, otherKey, destKey);
     }
 
     /**
@@ -923,7 +936,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Long sUnionAndStore(String key, Collection<String> otherKeys,
                                String destKey) {
-        return stringRedisTemplate.opsForSet().unionAndStore(key, otherKeys, destKey);
+        return setCacheService.sUnionAndStore(key, otherKeys, destKey);
     }
 
     /**
@@ -934,7 +947,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sDifference(String key, String otherKey) {
-        return stringRedisTemplate.opsForSet().difference(key, otherKey);
+        return setCacheService.sDifference(key, otherKey);
     }
 
     /**
@@ -945,7 +958,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sDifference(String key, Collection<String> otherKeys) {
-        return stringRedisTemplate.opsForSet().difference(key, otherKeys);
+        return setCacheService.sDifference(key, otherKeys);
     }
 
     /**
@@ -957,8 +970,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long sDifference(String key, String otherKey, String destKey) {
-        return stringRedisTemplate.opsForSet().differenceAndStore(key, otherKey,
-                destKey);
+        return setCacheService.sDifference(key, otherKey, destKey);
     }
 
     /**
@@ -971,8 +983,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Long sDifference(String key, Collection<String> otherKeys,
                             String destKey) {
-        return stringRedisTemplate.opsForSet().differenceAndStore(key, otherKeys,
-                destKey);
+        return setCacheService.sDifference(key, otherKeys, destKey);
     }
 
     /**
@@ -984,7 +995,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> setMembers(String key) {
-        return stringRedisTemplate.opsForSet().members(key);
+        return setCacheService.setMembers(key);
     }
 
     /**
@@ -994,7 +1005,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public String sRandomMember(String key) {
-        return stringRedisTemplate.opsForSet().randomMember(key);
+        return setCacheService.sRandomMember(key);
     }
 
     /**
@@ -1005,7 +1016,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public List<String> sRandomMembers(String key, long count) {
-        return stringRedisTemplate.opsForSet().randomMembers(key, count);
+        return setCacheService.sRandomMembers(key, count);
     }
 
     /**
@@ -1016,7 +1027,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> sDistinctRandomMembers(String key, long count) {
-        return stringRedisTemplate.opsForSet().distinctRandomMembers(key, count);
+        return setCacheService.sDistinctRandomMembers(key, count);
     }
 
     /**
@@ -1026,7 +1037,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Cursor<String> sScan(String key, ScanOptions options) {
-        return stringRedisTemplate.opsForSet().scan(key, options);
+        return setCacheService.sScan(key, options);
     }
 
     /**------------------zSet相关操作--------------------------------*/
@@ -1040,7 +1051,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Boolean zAdd(String key, String value, double score) {
-        return stringRedisTemplate.opsForZSet().add(key, value, score);
+        return zSetCacheService.zAdd(key, value, score);
     }
 
     /**
@@ -1050,7 +1061,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zAdd(String key, Set<TypedTuple<String>> values) {
-        return stringRedisTemplate.opsForZSet().add(key, values);
+        return zSetCacheService.zAdd(key, values);
     }
 
     /**
@@ -1060,15 +1071,11 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zRemove(String key, Object... values) {
-        return stringRedisTemplate.opsForZSet().remove(key, values);
+        return zSetCacheService.zRemove(key, values);
     }
 
     public Long zRemove(String key, Collection<String> values) {
-        if(values!=null&&!values.isEmpty()){
-            Object[] objs = values.toArray(new Object[values.size()]);
-            return stringRedisTemplate.opsForZSet().remove(key, objs);
-        }
-       return 0L;
+        return zSetCacheService.zRemove(key, values);
     }
 
     /**
@@ -1080,7 +1087,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Double zIncrementScore(String key, String value, double delta) {
-        return stringRedisTemplate.opsForZSet().incrementScore(key, value, delta);
+        return zSetCacheService.zIncrementScore(key, value, delta);
     }
 
     /**
@@ -1091,7 +1098,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return 0表示第一位
      */
     public Long zRank(String key, Object value) {
-        return stringRedisTemplate.opsForZSet().rank(key, value);
+        return zSetCacheService.zRank(key, value);
     }
 
     /**
@@ -1102,7 +1109,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zReverseRank(String key, Object value) {
-        return stringRedisTemplate.opsForZSet().reverseRank(key, value);
+        return zSetCacheService.zReverseRank(key, value);
     }
 
     /**
@@ -1116,15 +1123,15 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> zRange(String key, long start, long end) {
-        return stringRedisTemplate.opsForZSet().range(key, start, end);
+        return zSetCacheService.zRange(key, start, end);
     }
-    
+
     /**
      * 获取zset集合的所有元素, 从小到大排序
      *
      */
     public Set<String> zRangeAll(String key) {
-        return zRange(key,0,-1);
+        return zSetCacheService.zRangeAll(key);
     }
 
     /**
@@ -1137,7 +1144,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<TypedTuple<String>> zRangeWithScores(String key, long start,
                                                     long end) {
-        return stringRedisTemplate.opsForZSet().rangeWithScores(key, start, end);
+        return zSetCacheService.zRangeWithScores(key, start, end);
     }
 
     /**
@@ -1151,9 +1158,8 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> zRangeByScore(String key, double min, double max) {
-        return stringRedisTemplate.opsForZSet().rangeByScore(key, min, max);
+        return zSetCacheService.zRangeByScore(key, min, max);
     }
-
 
     /**
      * 根据Score值查询集合元素, 从小到大排序
@@ -1167,7 +1173,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<TypedTuple<String>> zRangeByScoreWithScores(String key,
                                                            double min, double max) {
-        return stringRedisTemplate.opsForZSet().rangeByScoreWithScores(key, min, max);
+        return zSetCacheService.zRangeByScoreWithScores(key, min, max);
     }
 
     /**
@@ -1181,8 +1187,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<TypedTuple<String>> zRangeByScoreWithScores(String key,
                                                            double min, double max, long start, long end) {
-        return stringRedisTemplate.opsForZSet().rangeByScoreWithScores(key, min, max,
-                start, end);
+        return zSetCacheService.zRangeByScoreWithScores(key, min, max, start, end);
     }
 
     /**
@@ -1194,13 +1199,11 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Set<String> zReverseRange(String key, long start, long end) {
-        return stringRedisTemplate.opsForZSet().reverseRange(key, start, end);
-
+        return zSetCacheService.zReverseRange(key, start, end);
     }
 
     public Set<String> zReverseRangeByScore(String key, long min, long max) {
-        return stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min, max);
-
+        return zSetCacheService.zReverseRangeByScore(key, min, max);
     }
 
     /**
@@ -1213,8 +1216,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<TypedTuple<String>> zReverseRangeWithScores(String key,
                                                            long start, long end) {
-        return stringRedisTemplate.opsForZSet().reverseRangeWithScores(key, start,
-                end);
+        return zSetCacheService.zReverseRangeWithScores(key, start, end);
     }
 
     /**
@@ -1227,7 +1229,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<String> zReverseRangeByScore(String key, double min,
                                             double max) {
-        return stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min, max);
+        return zSetCacheService.zReverseRangeByScore(key, min, max);
     }
 
     /**
@@ -1240,8 +1242,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<TypedTuple<String>> zReverseRangeByScoreWithScores(
             String key, double min, double max) {
-        return stringRedisTemplate.opsForZSet().reverseRangeByScoreWithScores(key,
-                min, max);
+        return zSetCacheService.zReverseRangeByScoreWithScores(key, min, max);
     }
 
     /**
@@ -1255,8 +1256,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Set<String> zReverseRangeByScore(String key, double min,
                                             double max, long start, long end) {
-        return stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min, max,
-                start, end);
+        return zSetCacheService.zReverseRangeByScore(key, min, max, start, end);
     }
 
     /**
@@ -1268,7 +1268,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zCount(String key, double min, double max) {
-        return stringRedisTemplate.opsForZSet().count(key, min, max);
+        return zSetCacheService.zCount(key, min, max);
     }
 
     /**
@@ -1278,7 +1278,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zSize(String key) {
-        return stringRedisTemplate.opsForZSet().size(key);
+        return zSetCacheService.zSize(key);
     }
 
     /**
@@ -1288,7 +1288,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zZCard(String key) {
-        return stringRedisTemplate.opsForZSet().zCard(key);
+        return zSetCacheService.zZCard(key);
     }
 
     /**
@@ -1299,7 +1299,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Double zScore(String key, Object value) {
-        return stringRedisTemplate.opsForZSet().score(key, value);
+        return zSetCacheService.zScore(key, value);
     }
 
     /**
@@ -1311,7 +1311,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zRemoveRange(String key, long start, long end) {
-        return stringRedisTemplate.opsForZSet().removeRange(key, start, end);
+        return zSetCacheService.zRemoveRange(key, start, end);
     }
 
     /**
@@ -1323,7 +1323,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zRemoveRangeByScore(String key, double min, double max) {
-        return stringRedisTemplate.opsForZSet().removeRangeByScore(key, min, max);
+        return zSetCacheService.zRemoveRangeByScore(key, min, max);
     }
 
     /**
@@ -1335,7 +1335,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Long zUnionAndStore(String key, String otherKey, String destKey) {
-        return stringRedisTemplate.opsForZSet().unionAndStore(key, otherKey, destKey);
+        return zSetCacheService.zUnionAndStore(key, otherKey, destKey);
     }
 
     /**
@@ -1347,8 +1347,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Long zUnionAndStore(String key, Collection<String> otherKeys,
                                String destKey) {
-        return stringRedisTemplate.opsForZSet()
-                .unionAndStore(key, otherKeys, destKey);
+        return zSetCacheService.zUnionAndStore(key, otherKeys, destKey);
     }
 
     /**
@@ -1361,8 +1360,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Long zIntersectAndStore(String key, String otherKey,
                                    String destKey) {
-        return stringRedisTemplate.opsForZSet().intersectAndStore(key, otherKey,
-                destKey);
+        return zSetCacheService.zIntersectAndStore(key, otherKey, destKey);
     }
 
     /**
@@ -1375,8 +1373,7 @@ public class CacheService extends CachingConfigurerSupport {
      */
     public Long zIntersectAndStore(String key, Collection<String> otherKeys,
                                    String destKey) {
-        return stringRedisTemplate.opsForZSet().intersectAndStore(key, otherKeys,
-                destKey);
+        return zSetCacheService.zIntersectAndStore(key, otherKeys, destKey);
     }
 
     /**
@@ -1386,7 +1383,7 @@ public class CacheService extends CachingConfigurerSupport {
      * @return
      */
     public Cursor<TypedTuple<String>> zScan(String key, ScanOptions options) {
-        return stringRedisTemplate.opsForZSet().scan(key, options);
+        return zSetCacheService.zScan(key, options);
     }
 
     /**
@@ -1407,7 +1404,7 @@ public class CacheService extends CachingConfigurerSupport {
         });
         return  keys;
     }
-    
+
     /**
      * 管道技术，提高性能
      * @param type

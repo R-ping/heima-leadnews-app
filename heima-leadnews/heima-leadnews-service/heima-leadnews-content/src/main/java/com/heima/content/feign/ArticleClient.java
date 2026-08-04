@@ -39,10 +39,10 @@ public class ArticleClient implements IArticleClient {
     @Autowired
     private ArticleStatisticsService articleStatisticsService;
 
-    @PostMapping("/api/v1/article/save")
-    public ResponseResult saveArticle(@RequestBody ArticleDto dto, @RequestParam("executeTime") long executeTime) {
-        return apArticleService.saveArticle(dto, executeTime);
-    }
+//    @PostMapping("/api/v1/article/save")
+//    public ResponseResult saveArticle(@RequestBody ArticleDto dto, @RequestParam("executeTime") long executeTime) {
+//        return apArticleService.saveArticle(dto, executeTime);
+//    }
 
     @PostMapping("/api/v1/article/event")
     public void eventUpdate(@RequestBody ArticleEvent event) {
@@ -62,10 +62,6 @@ public class ArticleClient implements IArticleClient {
     @GetMapping("/api/v1/article/info")
     public ApArticle getArticleInfo(@RequestParam("articleId") Long articleId) {
         return apArticleService.getById(articleId);
-    }
-    @PostMapping("/api/v1/article/generate/event")
-    public boolean generateArticleEvent(@RequestBody ApArticle article, @RequestParam("lastExecuteInterval") long lastExecuteInterval) {
-       return apArticleService.generateArticleEvent(article, lastExecuteInterval);
     }
 
     @PostMapping("/api/v1/article/publish")

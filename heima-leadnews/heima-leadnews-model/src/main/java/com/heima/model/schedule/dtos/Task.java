@@ -15,11 +15,11 @@ public class Task implements Serializable {
     /**
      * 类型
      */
-    private Integer taskType;
+//    private Integer taskType;
     /**
      * 优先级
      */
-    private Integer priority;
+//    private Integer priority;
     /**
      * 预执行时间
      * lastExecInterval-5~10分钟，提前执行复杂业务

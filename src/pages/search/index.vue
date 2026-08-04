@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="art-page">
         <div class="art-top"><TopBar @onSubmit="doSearch" @onInput="onInput"/></div>
         <div class="scroller" :style="{'height':scrollerHeight}" show-scrollbar="true">
@@ -98,7 +98,7 @@
                 if (!val || !val.trim()) return
                 val = val.trim()
                 addSearchHistory(val)
-                this.$router.push({ name: 'search_result', params: { 'keyword': val } })
+                this.$router.push({ name: 'search_result', query: { 'keyword': val } })
             },
             loadSearchHistory: function () {
                 this.data.history = getSearchHistory()

@@ -191,7 +191,7 @@ export default {
             todayMonth: new Date().getMonth() + 1,
             today: new Date().getDate(),
             dashboard: {
-                user: { name: '', level: '' },
+                user: { name: '', level: '', userId: 0 },
                 todayStatus: 'NORMAL',
                 stats: { consecutive: 0, total: 0, ore: 0 },
                 cards: { retroactive: 0 },
@@ -251,11 +251,11 @@ export default {
                 return
             }
             if (tab.key === 'lottery') {
-                toast('幸运抽奖功能开发中', 2)
+                this.$router.push('/user/lottery')
                 return
             }
             if (tab.key === 'exchange') {
-                toast('福利兑换功能开发中', 2)
+                this.$router.push('/user/welfare')
                 return
             }
             if (tab.key === 'harvest') {
@@ -293,19 +293,39 @@ export default {
                 if (res && res.code === 200 && res.data) {
                     const data = res.data
                     this.dashboard.user = {
-                        name: data.user && data.user.name ? data.user.name : '用户',
-                        level: data.user && data.user.level ? data.user.level : 'JY.1'
+                        name: data.userInfo && data.userInfo.nickname ? data.userInfo.nickname : '用户',
+                        level: data.userInfo && data.userInfo.level ? data.userInfo.level : 'JY.1'
                     }
-                    this.dashboard.todayStatus = data.todayStatus || 'NORMAL'
+                    const stats = data.checkinStats || {}
+                    this.dashboard.todayStatus = stats.todaySigned ? 'SIGNED' : 'NORMAL'
                     this.dashboard.stats = {
-                        consecutive: data.stats && data.stats.consecutive != null ? data.stats.consecutive : 0,
-                        total: data.stats && data.stats.total != null ? data.stats.total : 0,
-                        ore: data.stats && data.stats.ore != null ? data.stats.ore : 0
+                        consecutive: stats.continuousDays != null ? stats.continuousDays : 0,
+                        total: stats.totalDays != null ? stats.totalDays : 0,
+                        ore: stats.oreBalance != null ? stats.oreBalance : 0
                     }
                     this.dashboard.cards = {
-                        retroactive: data.cards && data.cards.retroactive != null ? data.cards.retroactive : 0
+                        retroactive: data.patchCardCount != null ? data.patchCardCount : 0
                     }
-                    this.dashboard.calendar = data.calendar || []
+                    // 标准化日历数据
+                    if (data.calendar) {
+                        this.dashboard.calendar = data.calendar.map(item => {
+                            const statusMap = {
+                                'signed': 'SIGNED',
+                                'repaired': 'SIGNED',
+                                'miss': 'MISSED',
+                                'today': 'NORMAL',
+                                'future': 'FUTURE'
+                            }
+                            return {
+                                date: item.date,
+                                status: statusMap[item.status] || 'FUTURE',
+                                reward: item.oreReward || null,
+                                extra_label: item.isSpecial ? '特殊' : null
+                            }
+                        })
+                    } else {
+                        this.dashboard.calendar = []
+                    }
                     this.dashboard.tasks = data.tasks || []
                 }
             } catch (error) {
@@ -313,23 +333,8 @@ export default {
             }
         },
         async loadRecords() {
-            try {
-                const res = await getCheckInRecords({
-                    year: this.currentYear,
-                    month: this.currentMonth
-                })
-                if (res && res.code === 200 && res.data) {
-                    const records = res.data.records || res.data || []
-                    this.dashboard.calendar = records.map(r => ({
-                        date: r.date,
-                        status: r.status,
-                        reward: r.reward,
-                        extra_label: r.extra_label
-                    }))
-                }
-            } catch (error) {
-                // Keep current calendar data on error
-            }
+            // 重新加载仪表盘数据以获取日历（后端已包含近2个月数据）
+            await this.loadDashboard()
         },
         async handleCellClick(cell) {
             if (cell.isEmpty) return

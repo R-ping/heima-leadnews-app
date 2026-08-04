@@ -1,5 +1,6 @@
 package com.heima.file.utils;
 
+import cn.hutool.core.util.StrUtil;
 import com.heima.file.config.MinIOConfig;
 import com.heima.model.search.vos.SearchArticleVo;
 import com.rabbitmq.client.Channel;
@@ -14,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,7 +31,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 @Component
 @Slf4j
@@ -43,11 +44,12 @@ public class MinioUtil {
     private final static String separator = "/";
 
     /**
-     * @param filename yyyy/mm/dd/file.jpg
+     * @param dirPath 目录路径，默认“”
+     * @param filename articleId
      */
     public String builderFilePath(String dirPath, String filename) {
         StringBuilder stringBuilder = new StringBuilder(50);
-        if (!StringUtils.isEmpty(dirPath)) {
+        if (!StrUtil.isEmpty(dirPath)) {
             stringBuilder.append(dirPath).append(separator);
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
@@ -109,7 +111,30 @@ public class MinioUtil {
             return urlPath.toString();
         } catch (Exception ex) {
             log.error("minio put file error.", ex);
-            ex.printStackTrace();
+            log.error("异常信息", ex);
+            throw new RuntimeException("上传文件失败");
+        }
+    }
+
+    /**
+     * 上传字符串内容到 MinIO
+     *
+     * @param content 字符串内容
+     * @param objectName 对象名称（完整路径）
+     * @param contentType 内容类型，如 "text/html"
+     */
+    public void uploadString(String content, String objectName, String contentType) {
+        try {
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+            PutObjectArgs putObjectArgs = PutObjectArgs.builder()
+                .object(objectName)
+                .contentType(contentType)
+                .bucket(prop.getBucket())
+                .stream(inputStream, inputStream.available(), -1)
+                .build();
+            minioClient.putObject(putObjectArgs);
+        } catch (Exception ex) {
+            log.error("minio upload string error, bucket={}, objectName={}", prop.getBucket()   , objectName, ex);
             throw new RuntimeException("上传文件失败");
         }
     }
@@ -202,7 +227,7 @@ public class MinioUtil {
             minioClient.removeObject(removeObjectArgs);
         } catch (Exception e) {
             log.error("minio remove file error.  pathUrl:{}", pathUrl);
-            e.printStackTrace();
+            log.error("异常信息", e);
         }
     }
 
@@ -224,7 +249,7 @@ public class MinioUtil {
                 GetObjectArgs.builder().bucket(prop.getBucket()).object(filePath).build());
         } catch (Exception e) {
             log.error("minio down file error.  pathUrl:{}", pathUrl);
-            e.printStackTrace();
+            log.error("异常信息", e);
         }
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -236,7 +261,7 @@ public class MinioUtil {
                     break;
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("异常信息", e);
             }
             byteArrayOutputStream.write(buff, 0, rc);
         }
@@ -255,7 +280,7 @@ public class MinioUtil {
 //        try {
 //            found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //            return false;
 //        }
 //        return found;
@@ -271,7 +296,7 @@ public class MinioUtil {
 //                .bucket(bucketName)
 //                .build());
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //            return false;
 //        }
 //        return true;
@@ -286,7 +311,7 @@ public class MinioUtil {
 //                .bucket(bucketName)
 //                .build());
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //            return false;
 //        }
 //        return true;
@@ -299,7 +324,7 @@ public class MinioUtil {
 //            List<Bucket> buckets = minioClient.listBuckets();
 //            return buckets;
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //        }
 //        return null;
 //    }
@@ -325,7 +350,7 @@ public class MinioUtil {
 //            //文件名称相同会覆盖
 //            minioClient.putObject(objectArgs);
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //            return null;
 //        }
 //        return objectName;
@@ -343,7 +368,7 @@ public class MinioUtil {
 //            String url = minioClient.getPresignedObjectUrl(build);
 //            return url;
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //        }
 //        return null;
 //    }
@@ -376,7 +401,7 @@ public class MinioUtil {
 //                }
 //            }
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //        }
 //    }
 //
@@ -393,7 +418,7 @@ public class MinioUtil {
 //                items.add(result.get());
 //            }
 //        } catch (Exception e) {
-//            e.printStackTrace();
+
 //            return null;
 //        }
 //        return items;

@@ -35,7 +35,7 @@ public class CollectBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult execute(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId(); // 文章/沸点/专栏ID
@@ -85,7 +85,7 @@ public class CollectBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult rollback(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId();

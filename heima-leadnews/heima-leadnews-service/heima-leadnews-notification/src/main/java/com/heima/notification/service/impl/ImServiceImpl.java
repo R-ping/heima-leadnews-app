@@ -91,7 +91,7 @@ public class ImServiceImpl implements ImService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult sendMessage(Long senderId, ImMessageDto dto) {
         Long receiverId = dto.getReceiverId();
         if (receiverId == null || receiverId.equals(senderId)) {
@@ -155,7 +155,7 @@ public class ImServiceImpl implements ImService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult markRead(Long userId, ImReadDto dto) {
         if (dto.getSessionId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);

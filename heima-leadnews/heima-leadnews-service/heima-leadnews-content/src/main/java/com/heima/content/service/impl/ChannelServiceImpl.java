@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class ChannelServiceImpl extends ServiceImpl<ChannelMapper, ApChannel> implements ChannelService {
 

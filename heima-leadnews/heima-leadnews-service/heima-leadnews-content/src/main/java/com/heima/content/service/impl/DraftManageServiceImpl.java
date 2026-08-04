@@ -50,7 +50,7 @@ public class DraftManageServiceImpl extends ServiceImpl<ApArticleDraftMapper, Ap
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult deleteDraft(Long id) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
@@ -72,7 +72,7 @@ public class DraftManageServiceImpl extends ServiceImpl<ApArticleDraftMapper, Ap
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult addDraft(ApArticleDraft draft) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
@@ -88,7 +88,7 @@ public class DraftManageServiceImpl extends ServiceImpl<ApArticleDraftMapper, Ap
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateDraft(ApArticleDraft draft) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {

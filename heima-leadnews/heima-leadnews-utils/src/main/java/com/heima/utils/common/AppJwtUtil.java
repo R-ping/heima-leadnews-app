@@ -1,7 +1,6 @@
 package com.heima.utils.common;
 
 import io.jsonwebtoken.*;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.*;
@@ -12,15 +11,16 @@ public class AppJwtUtil {
     private static final int TOKEN_TIME_OUT = 3_600;
     // 最小刷新间隔(S)
     private static final int REFRESH_TIME = 600;
-    // 默认加密KEY（仅当环境变量未设置时使用，生产环境禁止依赖默认值）
-    private static final String DEFAULT_TOKEN_ENCRY_KEY = "MDk4ZjZiY2Q0NjIxZDM3M2NMDk4ZjZiY2Q0NjIxZDM3M2NhZGU0ZTgzMjYyN2I0ZjYhZGU0ZTgzMjYyN2I0ZjY";
-
     /**
-     * 获取JWT签名密钥，优先从环境变量 JWT_SIGNING_KEY 读取
+     * 获取JWT签名密钥，从环境变量 JWT_SECRET 读取（与网关模块统一）
+     * 生产环境必须设置该环境变量，无默认值
      */
     private static String getTokenEncryKey() {
-        String envKey = System.getenv("JWT_SIGNING_KEY");
-        return (envKey != null && !envKey.isBlank()) ? envKey : DEFAULT_TOKEN_ENCRY_KEY;
+        String envKey = System.getenv("JWT_SECRET");
+        if (envKey == null || envKey.isBlank()) {
+            throw new IllegalStateException("JWT secret is not configured. Set 'JWT_SECRET' environment variable");
+        }
+        return envKey;
     }
 
     // 生产ID
@@ -89,7 +89,7 @@ public class AppJwtUtil {
     }
 
     /**
-     * 获取hearder body信息
+     * 获取header body信息
      */
     public static JwsHeader getHeaderBody(String token) {
         return getJws(token).getHeader();

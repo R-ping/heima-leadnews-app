@@ -41,7 +41,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
     private ArticleAutoScanService articleAutoScanService;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult createDraft(ApArticleDraft draft) {
         ApUser user = AppThreadLocalUtil.getUser();
         draft.setCreatedTime(new Date());
@@ -53,7 +53,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateDraft(ApArticleDraft draft) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (draft.getId() == null) {
@@ -72,7 +72,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult publishFromDraft(Long draftId) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (draftId == null) {
@@ -128,12 +128,6 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         removeById(draftId);
 
         // 异步提交审核
-        // 不能直接抛异常触发回滚，因为有用户申诉业务（其实就是一个专门的“反馈 & 建议”的沸点的圈子），如果直接回滚掉整个文章信息，用户申诉成功也拿不回文章了
-        // 审核失败还缺少站内信的“系统通知”业务逻辑，如“你的文章 你知道的，我们上午是不写代码的 因违反社区规范已被删除， 详细规则请见  社区规范
-        // 文章内容: 存在色情低俗内容，建议删除带有低俗导向的图片/文字”
-        // 审核成功发布，需要通知等级服务，是否满足增加经验要求，如每天发2篇文章+10经验等，然后经验是否满足等级升级，升级后解锁相关权限或赠送“钻石”物品。
-        // 异步提交审核，审核结果由 ArticleAutoScanService 内部处理（经验值、通知、状态更新等）
-        // 不再同步等待审核结果，直接返回成功
         articleAutoScanService.autoScanArticle(article.getId());
         log.info("文章已提交审核（异步）, articleId: {}", article.getId());
 

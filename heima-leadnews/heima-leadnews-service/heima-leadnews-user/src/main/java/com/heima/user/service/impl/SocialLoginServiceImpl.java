@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class SocialLoginServiceImpl extends ServiceImpl<ApUserSocialMapper, ApUserSocial>
     implements SocialLoginService {
 
@@ -91,7 +91,7 @@ public class SocialLoginServiceImpl extends ServiceImpl<ApUserSocialMapper, ApUs
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult socialBind(SocialBindDto dto) {
         String platform = dto.getPlatform();
         String platformUid = dto.getPlatformUid();
