@@ -31,7 +31,7 @@ public class BrowseBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult execute(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId();
@@ -81,7 +81,7 @@ public class BrowseBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult rollback(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId();

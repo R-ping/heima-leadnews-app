@@ -126,7 +126,7 @@ Request.prototype = {
             'Content-Type': 'application/json; charset=UTF-8',
             'accToken': token,
             't': '' + time,
-            'md': this.sign(parms)
+            // 'md': this.sign(parms)
         }
         var config = {
             method: type,
@@ -158,8 +158,16 @@ Request.prototype = {
             // 401未授权 — 仅当原请求使用用户token时才清除过期token并弹出登录窗口
             if (error.response && error.response.status === 401 && retryCount < 1 && usedUserToken) {
                 _this.store.dispatch('logout')
-                _this.store.dispatch('showLogin')
+                // 防止重复弹出登录框
+                if (!_this.store.state.isLoginPopupShowing) {
+                    _this.store.dispatch('showLogin')
+                }
                 return Promise.reject(error.response || error)
+            }
+            // 403权限不足
+            if (error.response && error.response.status === 403) {
+                console.warn('[request.js] 403 Forbidden:', error.response.config.url)
+                return Promise.reject(error.response)
             }
             // 网络错误
             if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
@@ -197,19 +205,7 @@ Request.prototype = {
         })
     },
     sign: function (parms) {
-        var arr = []
-        for (var key in parms) {
-            arr.push(key)
-        }
-        arr.sort()
-        var str = ''
-        for (var i in arr) {
-            if (str !== '') {
-                str += '&'
-            }
-            str += arr[i] + '=' + parms[arr[i]]
-        }
-        return crypto.MD5(str).toString()
+        return ''
     }
 }
 

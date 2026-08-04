@@ -31,7 +31,7 @@ public class CommentBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult execute(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId();
@@ -64,7 +64,7 @@ public class CommentBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult rollback(BehaviorContext context) {
         // 评论的撤销通常是删除评论，由评论服务自身处理
         // 这里仅更新行为记录状态

@@ -12,4 +12,8 @@ public class CommentDto {
     private String content;
     private Integer page;
     private Integer size;
+    /** 目标类型: 1-文章, 2-沸点 */
+    private Integer articleType;
+    /** 目标作者ID */
+    private Integer targetUserId;
 }

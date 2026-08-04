@@ -28,7 +28,7 @@ public class ApCourseChapterServiceImpl implements ApCourseChapterService {
     private ApCourseMapper courseMapper;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult createChapter(ChapterDto dto, Long userId) {
         if (dto.getCourseId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "课程ID不能为空");
@@ -71,7 +71,7 @@ public class ApCourseChapterServiceImpl implements ApCourseChapterService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateChapter(ChapterDto dto, Long userId) {
         if (dto.getId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "章节ID不能为空");
@@ -110,7 +110,7 @@ public class ApCourseChapterServiceImpl implements ApCourseChapterService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult deleteChapter(Long chapterId, Long userId) {
         if (chapterId == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
@@ -142,7 +142,7 @@ public class ApCourseChapterServiceImpl implements ApCourseChapterService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateSort(ChapterSortDto dto, Long userId) {
         if (dto.getCourseId() == null || dto.getItems() == null || dto.getItems().isEmpty()) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);

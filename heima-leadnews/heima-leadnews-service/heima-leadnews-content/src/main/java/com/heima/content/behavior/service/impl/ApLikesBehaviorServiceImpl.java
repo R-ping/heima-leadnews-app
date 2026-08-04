@@ -22,7 +22,7 @@ import java.util.Date;
 
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class ApLikesBehaviorServiceImpl implements ApLikesBehaviorService {
 

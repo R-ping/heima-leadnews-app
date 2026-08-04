@@ -81,7 +81,7 @@ public class LevelServiceImpl implements LevelService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void recordAction(Long userId, String actionType, String actionDetail) {
         Integer score = ACTION_SCORE_MAP.getOrDefault(actionType, 0);
         if (score == 0) {
@@ -127,32 +127,32 @@ public class LevelServiceImpl implements LevelService {
 
         userLevelMapper.updateById(userLevel);
 
-        log.info("用户{}执行行为{}，获得逐日分{}，当前逐日等级{}", userId, actionType, actualScore, userLevel.getDailyLevel());
+        log.info("用户{}执行行为{}，获得逐日分{}，当前逐日等级{}", userId, actionType, actualScore,
+            userLevel.getDailyLevel());
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void calculatePower(Long userId, Long articleId, String changeType, Integer powerChange) {
         Map<String, Object> result = calculatePowerWithLimit(userId, articleId, changeType, powerChange);
     }
 
     @Override
-    @Transactional
-    public Map<String, Object> calculatePowerWithLimit(Long userId, Long articleId, String changeType, Integer powerChange) {
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> calculatePowerWithLimit(Long userId, Long articleId, String changeType,
+        Integer powerChange) {
         Map<String, Object> result = new HashMap<>();
 
         int actualPower = calculateActualPower(userId, changeType, powerChange);
+        ApUserLevel userLevel = getUserLevel(userId);
         if (actualPower <= 0) {
             result.put("success", false);
             result.put("message", "未获得逐力值");
             result.put("power", 0);
-            result.put("powerValue", getUserLevel(userId).getPowerValue());
-            result.put("powerLevel", getUserLevel(userId).getPowerLevel());
+            result.put("powerValue", userLevel.getPowerValue());
+            result.put("powerLevel", userLevel.getPowerLevel());
             return result;
         }
-
-        ApUserLevel userLevel = getUserLevel(userId);
-
         ApUserPowerLog powerLog = new ApUserPowerLog();
         powerLog.setUserId(userId);
         powerLog.setPowerChange(actualPower);
@@ -206,28 +206,12 @@ public class LevelServiceImpl implements LevelService {
             }
         }
 
-        int basePower = 0;
-        switch (changeType) {
-            case "publish_article":
-                basePower = 10;
-                break;
-            case "get_like":
-                basePower = 1;
-                break;
-            case "get_comment":
-                basePower = 1;
-                break;
-            case "get_favorite":
-                basePower = 1;
-                break;
-            case "get_read":
-                basePower = powerChange / 100;
-                break;
-            default:
-                basePower = powerChange;
-        }
-
-        return basePower;
+        return switch (changeType) {
+            case "publish_article" -> 10;
+            case "get_like", "get_comment", "get_favorite" -> 1;
+            case "get_read" -> powerChange / 100;
+            default -> powerChange;
+        };
     }
 
     @Override
@@ -283,7 +267,7 @@ public class LevelServiceImpl implements LevelService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> checkIn(Long userId) {
         Map<String, Object> result = new HashMap<>();
 
@@ -350,7 +334,7 @@ public class LevelServiceImpl implements LevelService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> recordActionWithLimit(Long userId, String actionType, String actionDetail) {
         Map<String, Object> result = new HashMap<>();
 
@@ -407,7 +391,8 @@ public class LevelServiceImpl implements LevelService {
 
         userLevelMapper.updateById(userLevel);
 
-        log.info("用户{}执行行为{}，获得逐日分{}，当前逐日等级{}", userId, actionType, actualScore, userLevel.getDailyLevel());
+        log.info("用户{}执行行为{}，获得逐日分{}，当前逐日等级{}", userId, actionType, actualScore,
+            userLevel.getDailyLevel());
 
         result.put("success", true);
         result.put("message", "行为记录成功");
@@ -442,7 +427,7 @@ public class LevelServiceImpl implements LevelService {
         return 1;
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void updateUserPermissions(Long userId, int levelType, int oldLevel, int newLevel) {
         LambdaQueryWrapper<ApPermissionDefinition> query = new LambdaQueryWrapper<>();
         query.eq(ApPermissionDefinition::getRelatedLevelType, levelType);
@@ -509,7 +494,7 @@ public class LevelServiceImpl implements LevelService {
         query.eq(ApUserActionLog::getUserId, userId);
         query.apply("DATE(created_time) = {0}", today);
         return actionLogMapper.selectList(query).stream()
-                .mapToInt(ApUserActionLog::getScoreChange).sum();
+            .mapToInt(ApUserActionLog::getScoreChange).sum();
     }
 
     /**
@@ -525,6 +510,7 @@ public class LevelServiceImpl implements LevelService {
 
     /**
      * 等级升级时发放钻石奖励
+     *
      * @param userId 用户ID
      * @param levelType 等级类型：1-逐日等级，2-逐力值等级
      * @param newLevel 新等级

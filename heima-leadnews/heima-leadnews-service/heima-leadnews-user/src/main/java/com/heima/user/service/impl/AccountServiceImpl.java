@@ -89,7 +89,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updatePassword(PasswordUpdateDTO dto) {
         ApUser currentUser = AppThreadLocalUtil.getUser();
         if (currentUser == null) {
@@ -117,7 +117,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult deleteAccount() {
         ApUser currentUser = AppThreadLocalUtil.getUser();
         if (currentUser == null) {
@@ -137,7 +137,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updatePrivacyMessage(PrivacyMessageDTO dto) {
         ApUser currentUser = AppThreadLocalUtil.getUser();
         if (currentUser == null) {

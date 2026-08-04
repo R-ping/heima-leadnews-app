@@ -38,19 +38,19 @@ logging:
   level:
     com.heima: debug
 
-# 第三方登录 OAuth 配置（请替换为实际的参数值）
+# 第三方登录 OAuth 配置（通过环境变量注入，禁止硬编码敏感信息）
 oauth:
   weibo:
-    client-id: 3770872274
-    redirect-uri: https://195b7e5b.r40.cpolar.top/oauth/callback
+    client-id: ${OAUTH_WEIBO_CLIENT_ID}
+    redirect-uri: ${OAUTH_REDIRECT_URI:https://195b7e5b.r40.cpolar.top/oauth/callback}
     authorize-url: https://api.weibo.com/oauth2/authorize
   github:
-    client-id: Ov23liBlhpjPoc6XKPbf
-    redirect-uri: https://195b7e5b.r40.cpolar.top/oauth/callback
+    client-id: ${OAUTH_GITHUB_CLIENT_ID}
+    redirect-uri: ${OAUTH_REDIRECT_URI:https://195b7e5b.r40.cpolar.top/oauth/callback}
     authorize-url: https://github.com/login/oauth/authorize
   wechat:
-    # 公众号二维码图片URL（需替换为实际的公众号二维码）
-    qrcode-url: mmexport1780758632985.jpeg
+    # 公众号二维码图片URL（通过环境变量配置）
+    qrcode-url: ${OAUTH_WECHAT_QRCODE_URL:mmexport1780758632985.jpeg}
 
 aliyun:
   oss:

@@ -13,15 +13,14 @@ import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.mess.UpdateArticleMess;
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class ApReadBehaviorServiceImpl implements ApReadBehaviorService {
 
@@ -35,6 +34,7 @@ public class ApReadBehaviorServiceImpl implements ApReadBehaviorService {
     private ApArticleService apArticleService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult readBehavior(ReadBehaviorDto dto) {
         //1.检查参数
         if (dto == null || dto.getArticleId() == null) {

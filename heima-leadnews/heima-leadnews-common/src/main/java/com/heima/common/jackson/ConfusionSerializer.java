@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ConfusionSerializer extends JsonSerializer<Object> {
 
     @Override
@@ -16,7 +18,7 @@ public class ConfusionSerializer extends JsonSerializer<Object> {
                 return;
             }
         }catch (Exception e){
-            e.printStackTrace();
+            log.error("异常信息", e);
         }
         serializers.defaultSerializeValue(value, jsonGenerator);
     }

@@ -80,7 +80,7 @@ public class ArticleManageServiceImpl extends ServiceImpl<ApArticleMapper, ApArt
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult deleteArticle(Long id) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {

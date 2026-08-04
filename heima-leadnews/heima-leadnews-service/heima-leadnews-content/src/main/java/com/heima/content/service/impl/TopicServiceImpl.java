@@ -242,7 +242,7 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, ApTopic> implemen
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void incrView(Long topicId, Long userId) {
         // 防刷：单用户+单话题 1分钟内最多5次
         String rateKey = TOPIC_VIEW_RATE_LIMIT_PREFIX + userId + ":" + topicId;

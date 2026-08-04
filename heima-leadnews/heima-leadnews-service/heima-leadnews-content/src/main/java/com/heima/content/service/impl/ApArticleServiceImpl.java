@@ -1,6 +1,8 @@
 package com.heima.content.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,10 +19,13 @@ import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticleConfig;
 import com.heima.model.article.pojos.ApArticleContent;
 import com.heima.model.article.pojos.ArticleEvent;
+import com.heima.model.article.pojos.ApArticle.Status;
+import com.heima.apis.search.ISearchClient;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.mess.ArticleVisitStreamMess;
 import com.heima.model.mess.UpdateArticleMess;
+import com.heima.model.search.vos.SearchArticleVo;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle> implements ApArticleService {
 
@@ -49,6 +54,8 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
     private ArticleFreemarkerService articleFreemarkerService;
     @Autowired
     private ApArticleEventMapper apArticleEventMapper;
+    @Autowired
+    private ISearchClient searchClient;
 
     /**
      * 加载文章列表
@@ -92,7 +99,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
      * 保存app端相关文章
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult saveArticle(ArticleDto dto, long executeTimeInterval) {
         //1.检查参数
         if (dto == null) {
@@ -152,6 +159,9 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
             // 本地消息表入库（事务内）
             ArticleEvent event = buildArticleEvent();
             event.setArticleId(article.getId());
+            SearchArticleVo searchArticleVo = new SearchArticleVo();
+            searchArticleVo.setId(article.getId());
+            event.setParameter(JSONUtil.toJsonStr(searchArticleVo));
             apArticleEventMapper.insertArticleEvent(event);
             log.info("文章本地消息表保存成功，文章id：{}", article.getId());
         } catch (Exception e) {
@@ -169,6 +179,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
      */
     private static ArticleEvent buildArticleEvent() {
         ArticleEvent event = new ArticleEvent();
+        event.setRetryCount((byte) 0);
         event.setCreateTime(new Date());
         event.setUpdateTime(new Date());
         return event;
@@ -248,6 +259,65 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
         apArticle.setViews(apArticle.getViews() == null ? 0 : apArticle.getViews() + mess.getView());
         updateById(apArticle);
 
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateArticleStatus(Long articleId) {
+        log.info("更新文章发布状态, articleId={}", articleId);
+        boolean dbSuccess = false;
+        boolean esSuccess = false;
+
+        try {
+            // 1. 更新 DB 文章状态
+            boolean updated = update(Wrappers.<ApArticle>lambdaUpdate()
+                .eq(ApArticle::getId, articleId)
+                .set(ApArticle::getStatus, Status.PUBLISHED.getCode()));
+            if (updated) {
+                dbSuccess = true;
+                log.info("DB文章状态更新成功, articleId={}", articleId);
+            } else {
+                log.warn("DB文章状态更新可能未生效, articleId={}", articleId);
+            }
+        } catch (Exception e) {
+            log.error("DB文章状态更新失败, articleId={}", articleId, e);
+        }
+
+        try {
+            // 2. Feign 调用 ES 更新状态
+            ResponseResult result = searchClient.updateArticleStatus(articleId);
+            if (result != null && result.getCode() == 200) {
+                esSuccess = true;
+                log.info("ES文章状态更新成功, articleId={}", articleId);
+            } else {
+                log.warn("ES文章状态更新返回异常, articleId={}, result={}", articleId,
+                    result != null ? result.getCode() : "null");
+            }
+        } catch (Exception e) {
+            log.error("ES文章状态更新Feign调用失败, articleId={}", articleId, e);
+        }
+
+        // 3. 更新本地消息表 pub_status
+        try {
+            ArticleEvent event = apArticleEventMapper.selectOne(
+                Wrappers.<ArticleEvent>lambdaQuery().eq(ArticleEvent::getArticleId, articleId));
+            if (event != null) {
+                if (dbSuccess && esSuccess) {
+                    event.setPubStatus((byte) 2); // 成功
+                } else {
+                    event.setPubStatus((byte) 1); // 待重试
+                    event.setRetryTime(new Date(System.currentTimeMillis() + 5000));
+                }
+                event.setUpdateTime(new Date());
+                apArticleEventMapper.updateById(event);
+                log.info("本地消息表pub_status更新成功, articleId={}, status={}",
+                    articleId, dbSuccess && esSuccess ? 2 : 1);
+            } else {
+                log.warn("未找到本地消息表记录, articleId={}", articleId);
+            }
+        } catch (Exception e) {
+            log.error("更新本地消息表pub_status失败, articleId={}", articleId, e);
+        }
     }
 
     /**

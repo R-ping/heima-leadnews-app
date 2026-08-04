@@ -51,7 +51,7 @@ public class ErrorConfiguration {
                 Long articleId = searchArticleVo.getId();
                 ArticleEvent event = new ArticleEvent();
                 event.setArticleId(articleId);
-                event.setSendStatus((byte) 1);
+//                event.setSendStatus((byte) 1);
                 event.setRetryCount((byte) 2);
                 articleClient.eventUpdate(event);
 

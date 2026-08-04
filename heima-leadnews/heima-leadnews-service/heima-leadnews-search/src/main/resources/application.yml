@@ -22,14 +22,10 @@ spring:
 #      config:
 #        server-addr: 192.168.200.130:8848
 #        file-extension: yml
-  minio:
-  accessKey: ${MINIO_ACCESS_KEY:minio}
-  secretKey: ${MINIO_SECRET_KEY:minio123}
-  bucket: ${MINIO_BUCKET:leadnews}
-  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
-  readPath: ${MINIO_READ_PATH:http://127.0.0.1:9000}
 
 elasticsearch:
-  host: 192.168.44.128
-  port: 9200
+  host: ${ES_HOST:192.168.44.128}
+  port: ${ES_PORT:9200}
+  article:
+    index: ${ES_ARTICLE_INDEX:app_info_article}
 

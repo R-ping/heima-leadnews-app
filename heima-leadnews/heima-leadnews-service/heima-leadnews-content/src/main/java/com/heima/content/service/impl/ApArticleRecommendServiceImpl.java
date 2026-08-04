@@ -7,6 +7,7 @@ import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.common.dtos.ResponseResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -16,9 +17,11 @@ import java.util.stream.Collectors;
 @Service
 public class ApArticleRecommendServiceImpl implements ApArticleRecommendService {
 
-    private static final int MAX_CANDIDATES = 500;
     private static final int DEFAULT_SIZE = 10;
     private static final int MAX_SIZE = 50;
+
+    @Value("${recommend.max-candidates:500}")
+    private int maxCandidates;
 
     @Autowired
     private ApArticleMapper apArticleMapper;
@@ -40,7 +43,7 @@ public class ApArticleRecommendServiceImpl implements ApArticleRecommendService 
         if (!"__all__".equals(channel)) {
             try { channelId = Integer.parseInt(channel); } catch (NumberFormatException ignored) {}
         }
-        List<ApArticle> candidates = apArticleMapper.selectRecommendCandidates(channelId, MAX_CANDIDATES);
+        List<ApArticle> candidates = apArticleMapper.selectRecommendCandidates(channelId, maxCandidates);
         if (candidates == null || candidates.isEmpty()) {
             log.info("Recommend: no candidates for channel={}", channel);
             return ResponseResult.okResult(buildEmptyResponse(seed, page, size));

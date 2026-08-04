@@ -93,7 +93,7 @@ public class CircleServiceImpl extends ServiceImpl<ApCircleMapper, ApCircle> imp
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void join(Long circleId, Integer userId) {
         LambdaQueryWrapper<ApUserCircle> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ApUserCircle::getCircleId, circleId)

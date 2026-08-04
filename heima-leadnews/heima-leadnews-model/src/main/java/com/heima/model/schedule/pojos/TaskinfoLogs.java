@@ -25,31 +25,17 @@ public class TaskinfoLogs implements Serializable {
     @TableId(type = IdType.ASSIGN_ID)
     private Long taskId;
     /**
-     * 预执行时间
-     * executeTime-5~10分钟，提前执行复杂业务
-     */
-//    @TableField("first_time")
-//    private Date firstTime;
-    /**
      * 执行时间
      */
     @TableField("execute_time")
     private Date executeTime;
+    @TableField("in_one_hour")
+    private boolean inOneHour;
     /**
      * 参数
      */
     @TableField("parameters")
     private byte[] parameters;
-    /**
-     * 优先级
-     */
-    @TableField("priority")
-    private Integer priority;
-    /**
-     * 任务类型
-     */
-    @TableField("task_type")
-    private Integer taskType;
     /**
      * 版本号,用乐观锁
      */

@@ -287,7 +287,7 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult createCourse(CourseDto dto, Long userId) {
         if (userId == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
@@ -331,7 +331,7 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateCourse(CourseDto dto, Long userId) {
         if (dto.getId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
@@ -421,7 +421,7 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult softDelete(Long courseId, Long userId) {
         if (courseId == null || userId == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);

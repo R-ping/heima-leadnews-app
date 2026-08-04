@@ -1,16 +1,18 @@
 package com.heima.content.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.heima.apis.search.ISearchClient;
 import com.heima.content.mapper.ApArticleContentMapper;
-import com.heima.content.schedule.service.TaskService;
+import com.heima.content.mapper.ApArticleEventMapper;
+import com.heima.content.schedule.listener.RedissonDelayQueue;
 import com.heima.content.service.ArticleFreemarkerService;
 import com.heima.content.utils.MarkdownUtils;
-import com.heima.model.common.enums.TaskTypeEnum;
 import com.heima.file.config.MinIOConfig;
 import com.heima.file.utils.MinioUtil;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticleContent;
+import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.model.search.vos.SearchArticleVo;
 import com.heima.model.search.vos.TocItem;
@@ -27,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
 
 
@@ -40,7 +42,9 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
     @Autowired
     private ISearchClient searchClient;
     @Autowired
-    private TaskService taskService;
+    private ApArticleEventMapper apArticleEventMapper;
+    @Autowired
+    private RedissonDelayQueue redissonDelayQueue;
 
     /**
      * 生成静态文件上传到minIO中
@@ -48,8 +52,7 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
     @Async
     @Override
     public void buildHTMLAndSend(ApArticle apArticle, String content, long lastExecuteInterval) {
-        // 添加延迟发布任务（使用Redisson延迟队列替代RabbitMQ）
-        addDelayTask(apArticle.getId(), lastExecuteInterval);
+        addLastDelayTask(apArticle.getId(), lastExecuteInterval);
         //已知文章的id
         SearchArticleVo vo = new SearchArticleVo();
         BeanUtils.copyProperties(apArticle, vo);
@@ -57,12 +60,25 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
         vo.setContent(markdown);
         buildHtmlContent(vo, markdown);
         buildFileNameAndPath(apArticle, vo);
-        // 同步文章到ES索引（使用Feign调用替代RabbitMQ）
         try {
             searchClient.syncArticle(vo);
             log.info("文章同步到ES成功, articleId={}", apArticle.getId());
+            updateArticleEventStatus(apArticle.getId(), "es", (byte) 2);
         } catch (Exception e) {
             log.error("文章同步到ES失败, articleId={}", apArticle.getId(), e);
+            updateArticleEventStatus(apArticle.getId(), "es", (byte) 1);
+        }
+        // 上传 HTML 到 MinIO
+        try {
+            String htmlContent = vo.getHtmlContent();
+            if (StringUtils.isNotBlank(htmlContent)) {
+                minioUtil.uploadString(htmlContent,vo.getFileName(), "text/html");
+                log.info("文章HTML上传MinIO成功, articleId={}", apArticle.getId());
+                updateArticleEventStatus(apArticle.getId(), "minio", (byte) 2);
+            }
+        } catch (Exception e) {
+            log.error("文章HTML上传MinIO失败, articleId={}", apArticle.getId(), e);
+            updateArticleEventStatus(apArticle.getId(), "minio", (byte) 1);
         }
     }
 
@@ -90,40 +106,51 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
     }
 
     /**
-     * 添加延迟发布任务（使用Redisson延迟队列替代RabbitMQ）
+     * 添加最终延迟发布任务（使用Redisson延迟队列替代RabbitMQ）
      */
-    private void addDelayTask(Long articleId, long lastExecuteInterval) {
+    private void addLastDelayTask(Long articleId, long lastExecuteInterval) {
         ApArticle apArticle = new ApArticle();
         apArticle.setId(articleId);
-        Date now = new Date();
-        long firstExecInterval;
-        if (lastExecuteInterval <= 5 * 60 * 1000) {
-            firstExecInterval = 0;
-        } else {
-            long delay = (long) (Math.random() * 5 + 5);
-            delay = delay * 60 * 1000;
-            firstExecInterval = lastExecuteInterval - delay;
-        }
-        Date executeTime = new Date(now.getTime() + lastExecuteInterval);
-
         Task task = new Task();
-        task.setFirstExecInterval(Math.max(0, firstExecInterval));
-        task.setObjExecInterval(lastExecuteInterval);
-        task.setExecuteTime(executeTime);
-        task.setTaskType(TaskTypeEnum.NEWS_SCAN_TIME.getTaskType());
-        task.setPriority(TaskTypeEnum.NEWS_SCAN_TIME.getPriority());
         task.setParameters(ProtostuffUtil.serialize(apArticle));
-        taskService.addTask(task);
+        String lastTaskJson = JSON.toJSONString(task);
+        redissonDelayQueue.addTask("TASK_LAST_EXECUTE_DELAY_QUEUE", lastTaskJson, lastExecuteInterval);
         log.info("延迟任务添加成功, articleId={}, delay={}ms", articleId, lastExecuteInterval);
     }
 
     private void buildFileNameAndPath(ApArticle apArticle, SearchArticleVo vo) {
         // "yyyy/MM/dd/articleId"
-        String fileName = minioUtil.builderFilePath("", String.valueOf(apArticle.getId()));
-        vo.setFileName(fileName);
-        // path http://xx:9000/bucketName/2020/08/05/articleId.html
-        String path = prop.getReadPath() + "/" + prop.getBucket() + "/" + fileName + ".html";
+        String objectName = minioUtil.builderFilePath("articles", String.valueOf(apArticle.getId()));
+        vo.setFileName(objectName);
+        // path http://xx:9000/bucketName/2020/08/05/articleId
+        String path = prop.getReadPath() + "/" + prop.getBucket() + "/" + objectName;
         vo.setStaticUrl(path);
+    }
+
+    /**
+     * 更新本地消息表中指定操作的状态
+     * @param articleId 文章ID
+     * @param type 操作类型：minio/es
+     * @param status 状态值：0=初始化 1=待重试 2=成功
+     */
+    private void updateArticleEventStatus(Long articleId, String type, byte status) {
+        try {
+            ArticleEvent event = apArticleEventMapper.selectOne(
+                Wrappers.<ArticleEvent>lambdaQuery().eq(ArticleEvent::getArticleId, articleId));
+            if (event != null) {
+                if ("minio".equals(type)) {
+                    event.setMinioStatus(status);
+                } else if ("es".equals(type)) {
+                    event.setEsStatus(status);
+                }
+                if (status == 1) { // 待重试
+                    event.setRetryTime(new Date(System.currentTimeMillis() + 5000)); // 5秒后重试
+                }
+                apArticleEventMapper.updateArticleEvent(event);
+            }
+        } catch (Exception e) {
+            log.error("更新本地消息表状态失败, articleId={}, type={}", articleId, type, e);
+        }
     }
 
 }

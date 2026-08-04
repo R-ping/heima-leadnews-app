@@ -17,6 +17,6 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface TaskinfoLogsMapper extends BaseMapper<TaskinfoLogs> {
 
-    @Select("select * from taskinfo_logs where status = 1 and execute_time <= #{nextHour}")
+    @Select("select * from taskinfo_logs where status = 1 and execute_time <= #{nextHour} and in_one_hour = 0")
     List<TaskinfoLogs> selectGoal(Date nextHour);
 }

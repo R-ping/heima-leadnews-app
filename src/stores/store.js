@@ -113,6 +113,7 @@ var store = new Vuex.Store({
         guestToken: '',
         userInfo: cachedUserInfo,  // { userId, nickName, avatar, phone }
         showLoginModal: false,
+        isLoginPopupShowing: false,  // 防止重复弹出登录框
         showSocialBindModal: false,
         // 社交登录绑定状态（暂存，用于OAuth回调后弹出绑定弹窗）
         socialBindInfo: null  // { platform, platformUid }
@@ -142,9 +143,11 @@ var store = new Vuex.Store({
         },
         SHOW_LOGIN_MODAL(state) {
             state.showLoginModal = true
+            state.isLoginPopupShowing = true
         },
         HIDE_LOGIN_MODAL(state) {
             state.showLoginModal = false
+            state.isLoginPopupShowing = false
         },
         SHOW_SOCIAL_BIND_MODAL(state) {
             state.showSocialBindModal = true

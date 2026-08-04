@@ -133,6 +133,7 @@
                     <div class="tasks-today-score">
                         今日掘友分 +{{ levelInfo.dailyScoreToday || 0 }}
                     </div>
+                    <div class="jscore-link" @click="goToJScore">掘友分明细 ›</div>
                 </div>
                 <div
                     v-for="group in taskGroups"
@@ -391,6 +392,9 @@ export default {
     methods: {
         goBack() {
             this.$router.back()
+        },
+        goToJScore() {
+            this.$router.push('/user/growth/jscore')
         },
         async loadData() {
             await Promise.all([
@@ -963,6 +967,16 @@ export default {
 .tasks-today-score {
     font-size: 14px;
     color: #52C41A;
+}
+
+.jscore-link {
+    font-size: 13px;
+    color: #1A73E8;
+    cursor: pointer;
+    margin-left: 12px;
+    &:hover {
+        color: #1557B0;
+    }
 }
 
 // 任务分组

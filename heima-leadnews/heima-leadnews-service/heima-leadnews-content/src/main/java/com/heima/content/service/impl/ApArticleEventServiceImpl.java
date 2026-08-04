@@ -1,10 +1,11 @@
 package com.heima.content.service.impl;
 
-import com.alibaba.fastjson.JSON;
+import cn.hutool.json.JSONUtil;
 import com.heima.apis.search.ISearchClient;
 import com.heima.content.mapper.ApArticleEventMapper;
 import com.heima.content.service.ApArticleEventService;
 import com.heima.content.service.ApArticleService;
+import com.heima.file.utils.MinioUtil;
 import com.heima.model.article.pojos.ArticleEvent;
 import com.heima.model.search.vos.SearchArticleVo;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ public class ApArticleEventServiceImpl implements ApArticleEventService {
 
     @Autowired
     private ApArticleService apArticleService;
+    @Autowired
+    private MinioUtil minioUtil;
 
     @Override
     public void updateEvent(ArticleEvent event) {
@@ -36,19 +39,20 @@ public class ApArticleEventServiceImpl implements ApArticleEventService {
     public void processEvent() {
         ArrayList<Long> success_list = new ArrayList<>();
         for (ArticleEvent event : apArticleEventMapper.loadArticleEvent()) {
+            SearchArticleVo searchArticleVo = JSONUtil.toBean(event.getParameter(), SearchArticleVo.class);
             // 检查是否超过最大重试次数
             if (event.getRetryCount() != null && event.getMaxRetryCount() != null
-                    && event.getRetryCount() >= event.getMaxRetryCount()) {
+                && event.getRetryCount() >= event.getMaxRetryCount()) {
                 log.error("文章事件超过最大重试次数，标记为死信, articleId={}, retryCount={}, maxRetryCount={}",
-                        event.getArticleId(), event.getRetryCount(), event.getMaxRetryCount());
+                    event.getArticleId(), event.getRetryCount(), event.getMaxRetryCount());
                 success_list.add(event.getArticleId());
                 continue;
             }
 
             // 所有状态都成功，从本地消息表删除
             if (event.getMinioStatus() != null && event.getMinioStatus() == 2
-                    && event.getEsStatus() != null && event.getEsStatus() == 2
-                    && event.getPubStatus() != null && event.getPubStatus() == 2) {
+                && event.getEsStatus() != null && event.getEsStatus() == 2
+                && event.getPubStatus() != null && event.getPubStatus() == 2) {
                 success_list.add(event.getArticleId());
                 continue;
             }
@@ -61,7 +65,6 @@ public class ApArticleEventServiceImpl implements ApArticleEventService {
             // ES 同步重试
             if (event.getEsStatus() != null && event.getEsStatus() == 1 && isBackward) {
                 try {
-                    SearchArticleVo searchArticleVo = JSON.parseObject(event.getParameter(), SearchArticleVo.class);
                     if (searchArticleVo != null) {
                         searchClient.syncArticle(searchArticleVo);
                         event.setEsStatus((byte) 2);
@@ -80,11 +83,13 @@ public class ApArticleEventServiceImpl implements ApArticleEventService {
             // 记录日志并标记为不再重试
             if (event.getMinioStatus() != null && event.getMinioStatus() == 1 && isBackward) {
                 try {
-                    log.warn("MinIO上传失败，标记为不再重试, articleId={}", event.getArticleId());
+                    String objectName = minioUtil.builderFilePath("articles", String.valueOf(searchArticleVo.getId()));
+                    minioUtil.uploadString(searchArticleVo.getHtmlContent(), objectName, "text/html");
                     event.setMinioStatus((byte) 2);
                     event.setRetryCount((byte) (event.getRetryCount() != null ? event.getRetryCount() + 1 : 1));
                     event.setUpdateTime(new Date());
                     apArticleEventMapper.updateArticleEvent(event);
+                    log.info("MinIO重试处理成功, articleId={}", event.getArticleId());
                 } catch (Exception e) {
                     log.error("MinIO重试处理异常, articleId={}", event.getArticleId(), e);
                 }

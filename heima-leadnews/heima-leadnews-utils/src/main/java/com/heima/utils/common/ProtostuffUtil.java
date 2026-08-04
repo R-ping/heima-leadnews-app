@@ -5,7 +5,9 @@ import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ProtostuffUtil {
 
     /**
@@ -35,9 +37,9 @@ public class ProtostuffUtil {
             Schema schema = RuntimeSchema.getSchema(t.getClass());
              ProtostuffIOUtil.mergeFrom(bytes,t,schema);
         } catch (InstantiationException e) {
-            e.printStackTrace();
+            log.error("异常信息", e);
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            log.error("异常信息", e);
         }
         return t;
     }

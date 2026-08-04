@@ -36,7 +36,7 @@ public class LikeBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult execute(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId(); // 文章/沸点ID
@@ -88,7 +88,7 @@ public class LikeBehaviorHandler implements BehaviorHandler {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BehaviorResult rollback(BehaviorContext context) {
         Integer userId = context.getUserId();
         Long targetId = context.getTargetId();

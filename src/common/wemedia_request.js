@@ -43,6 +43,11 @@ service.interceptors.response.use(
     return response.data
   },
   error => {
+    // 403权限不足
+    if (error.response && error.response.status === 403) {
+      console.warn('[wemedia_request.js] 403 Forbidden:', error.response.config.url)
+      return Promise.reject(error)
+    }
     // 444 — accessToken过期，尝试刷新后重放
     if (error.response && error.response.status === 444) {
       return refreshTokenAndRetry(error.config)

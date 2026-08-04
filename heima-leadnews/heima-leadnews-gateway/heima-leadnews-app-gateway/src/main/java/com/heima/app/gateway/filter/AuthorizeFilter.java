@@ -27,16 +27,18 @@ public class AuthorizeFilter implements Ordered, GlobalFilter {
         String path = request.getURI().getPath();
         //2.判断是否是登录/注册/token刷新/社交登录相关接口（放行）
         // 注意：使用精确前缀/后缀匹配，避免 path.contains() 被路径中包含关键词的任意请求绕过
-        if (path.endsWith("/login") || path.endsWith("/login_auth")||path.endsWith("/recommend")
-            || path.startsWith("/api/v1/login/")
-            || path.startsWith("/user/api/v1/login/")
+        if (path.equals("/api/v1/login")
+            || path.equals("/api/v1/login_auth")
             || path.startsWith("/api/v1/oauth2/")
             || path.startsWith("/api/v1/token/")
             || path.startsWith("/user/api/v1/token/")
-            || path.startsWith("/load") || path.startsWith("/using")
-            || path.startsWith("/article/api/v1/pins/list")
-            || path.startsWith("/article/api/v1/pins/circles")
-            || path.startsWith("/article/api/v1/topics/")) {
+            || path.startsWith("/api/v1/login/")
+            || path.startsWith("/user/api/v1/login/")
+            || path.startsWith("/content/api/v1/pins/list")
+            || path.startsWith("/content/api/v1/pins/circles")
+            || path.startsWith("/content/api/v1/topics/")
+            || path.startsWith("/api/v1/recommend/")
+            || path.equals("/api/v1/recommend")) {
 //        if(true){
             //放行
             return chain.filter(exchange);

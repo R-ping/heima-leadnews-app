@@ -63,7 +63,7 @@ public class SettlementServiceImpl implements SettlementService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void executeMonthlySettlement(String month) {
         log.info("开始执行月度结算: {}", month);
 

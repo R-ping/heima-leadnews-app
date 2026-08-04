@@ -9,6 +9,9 @@ spring:
     nacos:
       server-addr: 127.0.0.1:8848
 
+jwt:
+  secret: ${JWT_SECRET}
+
 #  cloud:
 #    nacos:
 #      discovery:

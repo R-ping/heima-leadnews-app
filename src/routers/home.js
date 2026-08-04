@@ -11,7 +11,10 @@ const OAuthCallback = () => import('@/pages/oauth_callback/index')
 const User = () => import('@/pages/user/index')
 const UserSettings = () => import('@/pages/user/settings/index')
 const UserGrowth = () => import('@/pages/user/growth/index')
+const UserGrowthJScore = () => import('@/pages/user/growth/jscore')
 const UserCheckin = () => import('@/pages/user/checkin/index')
+const UserLottery = () => import('@/pages/user/lottery/index')
+const UserWelfare = () => import('@/pages/user/welfare/index')
 const UserCourses = () => import('@/pages/user/courses/index')
 const UserHistory = () => import('@/pages/user/history/index')
 const Notification = () => import('@/pages/notification/index')
@@ -56,9 +59,24 @@ let routes = [
                 component:UserGrowth
             },
             {
+                path:'/user/growth/jscore',
+                name:'user-growth-jscore',
+                component:UserGrowthJScore
+            },
+            {
                 path:'/user/checkin',
                 name:'user-checkin',
                 component:UserCheckin
+            },
+            {
+                path:'/user/lottery',
+                name:'user-lottery',
+                component:UserLottery
+            },
+            {
+                path:'/user/welfare',
+                name:'user-welfare',
+                component:UserWelfare
             },
             {
                 path:'/user/courses',
