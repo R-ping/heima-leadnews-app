@@ -3,7 +3,7 @@ package com.heima.content.schedule.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.heima.common.constants.ScheduleConstants;
 import com.heima.common.redis.CacheService;
-import com.heima.content.mapper.ApArticleMapper;
+import com.heima.content.mapper.article.ApArticleMapper;
 import com.heima.content.schedule.listener.RedissonDelayQueue;
 import com.heima.content.schedule.mapper.TaskinfoLogsMapper;
 import com.heima.content.schedule.service.TaskService;

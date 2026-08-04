@@ -2,13 +2,13 @@ package com.heima.content.behavior.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.heima.content.behavior.service.BehaviorHandler;
-import com.heima.content.mapper.ApFollowMapper;
-import com.heima.content.mapper.UserBehaviorRecordMapper;
+import com.heima.content.mapper.follow.ApFollowMapper;
+import com.heima.content.mapper.user.UserBehaviorRecordMapper;
 import com.heima.model.behavior.BehaviorContext;
 import com.heima.model.behavior.BehaviorResult;
 import com.heima.model.behavior.BehaviorType;
 import com.heima.model.behavior.pojos.UserBehaviorRecord;
-import com.heima.model.article.pojos.ApFollow;
+import com.heima.model.follow.pojos.ApFollow;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

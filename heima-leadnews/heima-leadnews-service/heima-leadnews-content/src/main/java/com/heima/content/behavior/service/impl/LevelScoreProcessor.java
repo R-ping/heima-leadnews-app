@@ -1,7 +1,7 @@
 package com.heima.content.behavior.service.impl;
 
 import com.heima.content.behavior.service.BehaviorPostProcessor;
-import com.heima.content.service.LevelService;
+import com.heima.content.service.level.LevelService;
 import com.heima.model.behavior.BehaviorContext;
 import com.heima.model.behavior.BehaviorResult;
 import com.heima.model.behavior.BehaviorType;

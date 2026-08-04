@@ -2,11 +2,11 @@ package com.heima.content.behavior.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.heima.content.behavior.service.ApReadBehaviorService;
-import com.heima.content.mapper.ApArticleMapper;
-import com.heima.content.mapper.ApBrowseHistoryMapper;
-import com.heima.content.service.ApArticleService;
+import com.heima.content.mapper.article.ApArticleMapper;
+import com.heima.content.mapper.interaction.ApBrowseHistoryMapper;
+import com.heima.content.service.article.ApArticleService;
 import com.heima.model.article.pojos.ApArticle;
-import com.heima.model.article.pojos.ApBrowseHistory;
+import com.heima.model.behavior.pojos.ApBrowseHistory;
 import com.heima.model.behavior.dtos.ReadBehaviorDto;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;

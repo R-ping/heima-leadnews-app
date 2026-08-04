@@ -2,11 +2,11 @@ package com.heima.content.feign;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.heima.apis.article.IArticleClient;
-import com.heima.content.service.ApArticleContentService;
-import com.heima.content.service.ApArticleEventService;
-import com.heima.content.service.ApArticleService;
-import com.heima.content.service.ArticleStatisticsService;
-import com.heima.content.service.ArticleTaskService;
+import com.heima.content.service.article.ApArticleContentService;
+import com.heima.content.service.article.ApArticleEventService;
+import com.heima.content.service.article.ApArticleService;
+import com.heima.content.service.article.ArticleStatisticsService;
+import com.heima.content.service.article.ArticleTaskService;
 import com.heima.model.article.dtos.ArticleDto;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticleContent;

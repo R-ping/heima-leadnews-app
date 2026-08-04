@@ -1,7 +1,7 @@
 package com.heima.apis.article.fallback;
 
 import com.heima.apis.article.ICommentClient;
-import com.heima.model.article.dtos.CommentDto;
+import com.heima.model.comment.dtos.CommentDto;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import lombok.extern.slf4j.Slf4j;

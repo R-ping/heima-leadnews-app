@@ -1,8 +1,8 @@
 package com.heima.content.behavior.service.impl;
 
 import com.heima.content.behavior.service.BehaviorPostProcessor;
-import com.heima.content.mapper.ApUserLevelMapper;
-import com.heima.model.article.pojos.ApUserLevel;
+import com.heima.content.mapper.level.ApUserLevelMapper;
+import com.heima.model.level.pojos.ApUserLevel;
 import com.heima.model.behavior.BehaviorContext;
 import com.heima.model.behavior.BehaviorResult;
 import com.heima.model.behavior.BehaviorType;
