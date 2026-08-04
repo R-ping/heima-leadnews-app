@@ -7,21 +7,30 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.heima.content.mapper.ApColumnMapper;
 import com.heima.content.service.ColumnService;
 import com.heima.model.article.pojos.ApColumn;
+import com.heima.model.audit.AuditContext;
+import com.heima.model.audit.AuditEntityType;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
 @Slf4j
 public class ColumnServiceImpl extends ServiceImpl<ApColumnMapper, ApColumn> implements ColumnService {
+
+    @Autowired
+    private ColumnAuditService columnAuditService;
 
     @Override
     public ResponseResult list(Long authorId, Integer page, Integer size, String status, String title) {
@@ -79,7 +88,7 @@ public class ColumnServiceImpl extends ServiceImpl<ApColumnMapper, ApColumn> imp
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult createColumn(ApColumn column) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
@@ -101,11 +110,15 @@ public class ColumnServiceImpl extends ServiceImpl<ApColumnMapper, ApColumn> imp
         column.setCreatedTime(new Date());
         column.setUpdatedTime(new Date());
         save(column);
+
+        // 异步审核专栏
+        asyncReviewColumn(column);
+
         return ResponseResult.okResult(column);
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult updateColumn(ApColumn column) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
@@ -136,7 +149,7 @@ public class ColumnServiceImpl extends ServiceImpl<ApColumnMapper, ApColumn> imp
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult deleteColumn(Long id) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
@@ -155,6 +168,33 @@ public class ColumnServiceImpl extends ServiceImpl<ApColumnMapper, ApColumn> imp
         column.setIsDeleted(true);
         updateById(column);
         return ResponseResult.okResult();
+    }
+
+    /**
+     * 异步审核专栏
+     */
+    @Async
+    public void asyncReviewColumn(ApColumn column) {
+        try {
+            log.info("开始异步审核专栏, columnId={}", column.getId());
+
+            // 构建审核上下文
+            AuditContext auditContext = new AuditContext(AuditEntityType.COLUMN, column.getId(), column.getAuthorId());
+            auditContext.withTitle(column.getTitle() != null ? column.getTitle() : "")
+                .withContent(column.getDescription() != null ? column.getDescription() : "")
+                .withAuthorName(column.getAuthorName());
+
+            // 封面图片也需审核
+            if (column.getCoverImage() != null && !column.getCoverImage().isEmpty()) {
+                auditContext.withImageUrl(column.getCoverImage());
+            }
+
+            // 执行审核
+            columnAuditService.audit(auditContext);
+            log.info("专栏审核完成, columnId={}", column.getId());
+        } catch (Exception e) {
+            log.error("专栏审核异常, columnId={}", column.getId(), e);
+        }
     }
 
     private Byte getStatusCode(String status) {

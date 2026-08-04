@@ -16,7 +16,7 @@ public final class LevelScoreConstants {
     /** 行为类型 → 积分值 */
     public static final Map<String, Integer> ACTION_SCORE_MAP = new HashMap<>();
     static {
-        ACTION_SCORE_MAP.put("daily_login", 10);
+        ACTION_SCORE_MAP.put("daily_login", 2);
         ACTION_SCORE_MAP.put("article_read", 2);
         ACTION_SCORE_MAP.put("comment_article", 2);
         ACTION_SCORE_MAP.put("comment_pin", 2);
@@ -24,8 +24,8 @@ public final class LevelScoreConstants {
         ACTION_SCORE_MAP.put("like_pin", 1);
         ACTION_SCORE_MAP.put("share", 3);
         ACTION_SCORE_MAP.put("follow_user", 4);
-        ACTION_SCORE_MAP.put("publish_article", 10);
-        ACTION_SCORE_MAP.put("publish_pins", 2);
+        ACTION_SCORE_MAP.put("publish_article", 8);
+        ACTION_SCORE_MAP.put("publish_pins", 8);
         ACTION_SCORE_MAP.put("daily_checkin", 2);
         ACTION_SCORE_MAP.put("upload_avatar", 1);
         ACTION_SCORE_MAP.put("collect_article", 1);
@@ -38,10 +38,10 @@ public final class LevelScoreConstants {
     static {
         DAILY_ACTION_LIMIT.put("publish_article", 2);
         DAILY_ACTION_LIMIT.put("publish_pins", 2);
-        DAILY_ACTION_LIMIT.put("comment_article", 5);
+        DAILY_ACTION_LIMIT.put("comment_article", 2);
         DAILY_ACTION_LIMIT.put("comment_pin", 5);
-        DAILY_ACTION_LIMIT.put("like_article", 10);
-        DAILY_ACTION_LIMIT.put("like_pin", 10);
+        DAILY_ACTION_LIMIT.put("like_article", 2);
+        DAILY_ACTION_LIMIT.put("like_pin", 2);
         DAILY_ACTION_LIMIT.put("follow_user", 2);
         DAILY_ACTION_LIMIT.put("daily_checkin", 1);
         DAILY_ACTION_LIMIT.put("upload_avatar", 1);

@@ -195,6 +195,53 @@ public class BailianAiServiceImpl implements BailianAiService {
     }
 
     @Override
+    public Map<String, Object> checkViolation(Long entityId, String title, String content) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", false);
+        result.put("is_violation", false);
+        result.put("violation_type", "");
+        result.put("violation_reason", "");
+
+        if (content == null || content.isEmpty()) {
+            log.warn("Content is empty for violation check, entityId={}", entityId);
+            result.put("success", true);
+            return result;
+        }
+
+        String truncatedContent = content.length() > 4000 ? content.substring(0, 4000) : content;
+        String safeTitle = title != null ? title : "";
+
+        try {
+            log.info("Starting AI violation check for entityId={}", entityId);
+            String violationPrompt = String.format(VIOLATION_CHECK_PROMPT, safeTitle, truncatedContent);
+            String violationResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, violationPrompt);
+
+            if (violationResponse != null) {
+                JSONObject violationJson = parseJsonResponse(violationResponse);
+                if (violationJson != null) {
+                    Boolean isViolation = violationJson.getBoolean("is_violation");
+                    String violationType = violationJson.getString("violation_type");
+                    String violationReason = violationJson.getString("violation_reason");
+
+                    result.put("is_violation", isViolation != null && isViolation);
+                    result.put("violation_type", violationType != null ? violationType : "");
+                    result.put("violation_reason", violationReason != null ? violationReason : "");
+
+                    log.info("AI violation check completed for entityId={}, is_violation={}, type={}",
+                            entityId, result.get("is_violation"), result.get("violation_type"));
+                }
+            }
+            result.put("success", true);
+        } catch (Exception e) {
+            log.error("AI violation check failed for entityId={}: {}", entityId, e.getMessage(), e);
+            result.put("success", true);
+            result.put("is_violation", false);
+        }
+
+        return result;
+    }
+
+    @Override
     public Map<String, Object> checkViolation(ApArticle article, String content) {
         Map<String, Object> result = new HashMap<>();
         result.put("success", false);
