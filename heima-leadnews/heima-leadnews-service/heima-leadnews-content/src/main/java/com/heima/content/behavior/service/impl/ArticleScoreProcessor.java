@@ -2,7 +2,7 @@ package com.heima.content.behavior.service.impl;
 
 import com.heima.common.constants.ArticleConstants;
 import com.heima.content.behavior.service.BehaviorPostProcessor;
-import com.heima.content.mapper.ApArticleMapper;
+import com.heima.content.mapper.article.ApArticleMapper;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.behavior.BehaviorContext;
 import com.heima.model.behavior.BehaviorResult;

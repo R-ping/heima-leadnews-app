@@ -1,8 +1,8 @@
 package com.heima.content.behavior.service.impl;
 
 import com.heima.content.behavior.service.ApUnlikesBehaviorService;
-import com.heima.content.mapper.ApUserActionLogMapper;
-import com.heima.model.article.pojos.ApUserActionLog;
+import com.heima.content.mapper.pins.ApUserActionLogMapper;
+import com.heima.model.user.pojos.ApUserActionLog;
 import com.heima.model.behavior.dtos.UnLikesBehaviorDto;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;

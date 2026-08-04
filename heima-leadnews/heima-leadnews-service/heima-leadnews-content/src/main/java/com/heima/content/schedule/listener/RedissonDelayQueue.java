@@ -2,7 +2,7 @@ package com.heima.content.schedule.listener;
 
 import com.alibaba.fastjson.JSON;
 import com.heima.content.schedule.service.TaskService;
-import com.heima.content.service.ApArticleService;
+import com.heima.content.service.article.ApArticleService;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.utils.common.ProtostuffUtil;

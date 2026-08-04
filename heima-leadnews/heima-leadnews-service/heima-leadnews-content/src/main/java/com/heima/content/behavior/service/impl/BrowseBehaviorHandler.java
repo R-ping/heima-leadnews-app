@@ -2,7 +2,7 @@ package com.heima.content.behavior.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.heima.content.behavior.service.BehaviorHandler;
-import com.heima.content.mapper.UserBehaviorRecordMapper;
+import com.heima.content.mapper.user.UserBehaviorRecordMapper;
 import com.heima.model.behavior.BehaviorContext;
 import com.heima.model.behavior.BehaviorResult;
 import com.heima.model.behavior.BehaviorType;
