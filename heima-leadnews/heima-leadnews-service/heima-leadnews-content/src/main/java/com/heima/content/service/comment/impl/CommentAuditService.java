@@ -1,21 +1,20 @@
 package com.heima.content.service.comment.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heima.content.service.article.impl.AbstractAuditService;
 import com.heima.apis.notification.INotificationClient;
 import com.heima.content.mapper.comment.ApCommentMapper;
 import com.heima.content.mapper.user.UserBehaviorRecordMapper;
+import com.heima.content.utils.NotificationHelper;
 import com.heima.model.comment.pojos.ApComment;
 import com.heima.model.audit.AuditContext;
 import com.heima.model.behavior.pojos.UserBehaviorRecord;
-import com.heima.model.common.dtos.ResponseResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 评论异步审核服务
@@ -39,36 +38,29 @@ public class CommentAuditService extends AbstractAuditService {
     @Autowired
     private UserBehaviorRecordMapper behaviorRecordMapper;
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
     /**
      * 异步审核评论（延迟5-10秒）
      * 用户发布评论后立即显示，后台异步审核
+     * 使用 CompletableFuture.delayedExecutor 避免阻塞 @Async 线程池线程
      */
     @Async
     public void asyncAuditComment(AuditContext context) {
-        try {
-            // 延迟5-10秒执行审核，模拟"即时"体验
-            long delay = 5000 + (long) (Math.random() * 5000);
-            Thread.sleep(delay);
+        long delay = 5000 + (long) (Math.random() * 5000);
+        CompletableFuture.runAsync(() -> {
+            try {
+                log.info("开始异步审核评论, commentId={}", context.getEntityId());
+                com.heima.model.audit.AuditResult result = audit(context);
 
-            log.info("开始异步审核评论, commentId={}", context.getEntityId());
-            com.heima.model.audit.AuditResult result = audit(context);
-
-            if (result.isPassed()) {
-                // 审核通过后，站内信通知由 handlePassed 处理
-                log.info("评论异步审核通过, commentId={}", context.getEntityId());
-            } else {
-                // 审核失败，handleFailed 已处理删除和通知
-                log.info("评论异步审核未通过, commentId={}, reason={}",
-                    context.getEntityId(), result.getReason());
+                if (result.isPassed()) {
+                    log.info("评论异步审核通过, commentId={}", context.getEntityId());
+                } else {
+                    log.info("评论异步审核未通过, commentId={}, reason={}",
+                        context.getEntityId(), result.getReason());
+                }
+            } catch (Exception e) {
+                log.error("评论异步审核异常, commentId={}", context.getEntityId(), e);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("评论异步审核被中断, commentId={}", context.getEntityId());
-        } catch (Exception e) {
-            log.error("评论异步审核异常, commentId={}", context.getEntityId(), e);
-        }
+        }, CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS));
     }
 
     @Override
@@ -83,7 +75,8 @@ public class CommentAuditService extends AbstractAuditService {
         // 查找评论的目标内容作者（通过文章/沸点的作者）
         // 评论的 targetUserId 在 context 中已设置
         if (context.getTargetUserId() != null) {
-            sendCommentNotification(
+            NotificationHelper.sendCommentNotification(
+                notificationClient,
                 context.getTargetUserId(),
                 context.getUserId(),
                 comment.getContent(),
@@ -122,75 +115,12 @@ public class CommentAuditService extends AbstractAuditService {
         }
 
         // 发送系统通知给评论者
-        sendViolationNotification(comment, reason);
-    }
-
-    /**
-     * 发送评论通知给内容作者
-     */
-    private void sendCommentNotification(Integer targetUserId, Integer fromUserId,
-                                          String content, Integer targetType, Long targetId) {
-        try {
-            if (notificationClient == null) {
-                log.warn("通知服务不可用，跳过发送评论通知");
-                return;
-            }
-
-            Map<String, Object> contentMap = new HashMap<>();
-            contentMap.put("action_user_id", fromUserId);
-            contentMap.put("content", truncate(content, 20));
-            contentMap.put("target_type", targetType == 1 ? "article" : "pin");
-            contentMap.put("target_id", targetId);
-            contentMap.put("notification_type", "comment");
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("userId", targetUserId.longValue());
-            params.put("type", 1); // 评论通知
-            params.put("sourceId", String.valueOf(targetId));
-            params.put("content", objectMapper.writeValueAsString(contentMap));
-
-            notificationClient.createNotification(params);
-            log.info("评论审核通过通知已发送, to={}, commentId={}", targetUserId, targetId);
-        } catch (Exception e) {
-            log.error("发送评论通知失败, to={}", targetUserId, e);
-        }
-    }
-
-    /**
-     * 发送违规通知给评论者
-     */
-    private void sendViolationNotification(ApComment comment, String reason) {
-        try {
-            if (notificationClient == null) {
-                log.warn("通知服务不可用，跳过发送违规通知");
-                return;
-            }
-
-            String message = String.format(
-                "你的评论因违反社区规范已被删除。内容: %s",
-                truncate(comment.getContent() != null ? comment.getContent() : "", 50)
-            );
-
-            Map<String, Object> contentMap = new HashMap<>();
-            contentMap.put("commentId", String.valueOf(comment.getId()));
-            contentMap.put("message", message);
-            contentMap.put("notification_type", "system");
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("userId", comment.getUserId().longValue());
-            params.put("type", 4); // 系统通知
-            params.put("sourceId", String.valueOf(comment.getId()));
-            params.put("content", objectMapper.writeValueAsString(contentMap));
-
-            notificationClient.createNotification(params);
-            log.info("评论违规删除通知已发送, to={}, commentId={}", comment.getUserId(), comment.getId());
-        } catch (Exception e) {
-            log.error("发送评论违规通知失败, commentId={}", comment.getId(), e);
-        }
-    }
-
-    private String truncate(String str, int maxLen) {
-        if (str == null) return "";
-        return str.length() > maxLen ? str.substring(0, maxLen) + "..." : str;
+        NotificationHelper.sendViolationNotification(
+            notificationClient,
+            comment.getUserId().longValue(),
+            comment.getId(),
+            comment.getContent(),
+            reason
+        );
     }
 }

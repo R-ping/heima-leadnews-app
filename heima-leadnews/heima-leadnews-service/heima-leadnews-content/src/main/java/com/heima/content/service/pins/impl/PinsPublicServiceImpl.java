@@ -2,7 +2,6 @@ package com.heima.content.service.pins.impl;
 
 import com.heima.content.service.pins.PinsPublicService;
 import com.heima.model.pins.dtos.PinsCommentDTO;
-import com.heima.model.pins.dtos.PinsLikeDTO;
 import com.heima.model.pins.dtos.PinsLinkPreviewDTO;
 import com.heima.model.pins.dtos.PinsPublishDTO;
 import com.heima.model.pins.dtos.PinsShareDTO;
@@ -47,8 +46,14 @@ public class PinsPublicServiceImpl implements PinsPublicService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult like(PinsLikeDTO dto) {
-        return pinsInteractionService.like(dto);
+    public ResponseResult like(Long pinsId) {
+        return pinsInteractionService.like(pinsId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult unlike(Long pinsId) {
+        return pinsInteractionService.unlike(pinsId);
     }
 
     @Override

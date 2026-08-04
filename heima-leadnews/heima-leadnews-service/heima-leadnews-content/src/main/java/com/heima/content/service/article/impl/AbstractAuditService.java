@@ -5,6 +5,7 @@ import com.heima.content.service.article.AuditService;
 import com.heima.content.service.article.BailianAiService;
 import com.heima.model.audit.AuditContext;
 import com.heima.model.audit.AuditResult;
+import com.heima.model.audit.ImageScanResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -96,15 +97,12 @@ public abstract class AbstractAuditService implements AuditService {
             List<String> imageUrls = context.getImageUrls();
             for (String imageUrl : imageUrls) {
                 if (imageUrl == null || imageUrl.isEmpty()) continue;
-                Map map = greenImageScan.imageScan(imageUrl);
-                if (map != null) {
-                    String level = (String) map.get("level");
-                    if ("high".equals(level)) {
-                        return AuditResult.failed("图片违规", "图片存在违规内容");
-                    }
-                    if ("medium".equals(level)) {
-                        return AuditResult.failed("图片违规", "图片存在不确定内容");
-                    }
+                ImageScanResult result = toImageScanResult(greenImageScan.imageScan(imageUrl));
+                if (result.isHighRisk()) {
+                    return AuditResult.failed("图片违规", "图片存在违规内容");
+                }
+                if (result.isMediumRisk()) {
+                    return AuditResult.failed("图片违规", "图片存在不确定内容");
                 }
             }
             return AuditResult.passed();
@@ -112,6 +110,18 @@ public abstract class AbstractAuditService implements AuditService {
             log.error("图片审核异常, entityType={}, entityId={}", context.getEntityType(), context.getEntityId(), e);
             return AuditResult.failed("图片审核异常");
         }
+    }
+
+    /**
+     * 将 GreenImageScanPlus 的 Map 结果转换为 ImageScanResult 值对象
+     */
+    @SuppressWarnings("unchecked")
+    private ImageScanResult toImageScanResult(java.util.Map map) {
+        if (map == null) {
+            return new ImageScanResult(null);
+        }
+        Object level = map.get("level");
+        return new ImageScanResult(level != null ? level.toString() : null);
     }
 
     // ==================== 子类回调方法 ====================
@@ -125,5 +135,4 @@ public abstract class AbstractAuditService implements AuditService {
      * 审核失败回调（子类实现）
      */
     protected abstract void handleFailed(AuditContext context, String reason);
-
-    }
+}
