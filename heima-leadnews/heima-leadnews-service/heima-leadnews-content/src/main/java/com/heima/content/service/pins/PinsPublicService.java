@@ -1,7 +1,6 @@
 package com.heima.content.service.pins;
 
 import com.heima.model.pins.dtos.PinsCommentDTO;
-import com.heima.model.pins.dtos.PinsLikeDTO;
 import com.heima.model.pins.dtos.PinsLinkPreviewDTO;
 import com.heima.model.pins.dtos.PinsPublishDTO;
 import com.heima.model.pins.dtos.PinsShareDTO;
@@ -25,9 +24,14 @@ public interface PinsPublicService {
     ResponseResult publish(PinsPublishDTO dto);
 
     /**
-     * 点赞/取消点赞
+     * 点赞
      */
-    ResponseResult like(PinsLikeDTO dto);
+    ResponseResult like(Long pinsId);
+
+    /**
+     * 取消点赞
+     */
+    ResponseResult unlike(Long pinsId);
 
     /**
      * 创建评论

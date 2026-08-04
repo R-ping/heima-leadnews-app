@@ -5,7 +5,6 @@ import com.heima.content.mapper.pins.ApPinsCommentMapper;
 import com.heima.content.mapper.pins.ApPinsLikeMapper;
 import com.heima.content.mapper.pins.ApPinsMapper;
 import com.heima.model.pins.dtos.PinsCommentDTO;
-import com.heima.model.pins.dtos.PinsLikeDTO;
 import com.heima.model.pins.dtos.PinsShareDTO;
 import com.heima.model.pins.pojos.ApPins;
 import com.heima.model.pins.pojos.ApPinsComment;
@@ -35,48 +34,64 @@ public class PinsInteractionService {
     private ApPinsCommentMapper apPinsCommentMapper;
 
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult like(PinsLikeDTO dto) {
+    public ResponseResult like(Long pinsId) {
         ApUser user = AppThreadLocalUtil.getUser();
         if (user == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
         }
-        if (dto.getPinsId() == null) {
+        if (pinsId == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "pinsId不能为空");
         }
 
         LambdaQueryWrapper<ApPinsLike> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApPinsLike::getPinsId, dto.getPinsId());
+        wrapper.eq(ApPinsLike::getPinsId, pinsId);
         wrapper.eq(ApPinsLike::getUserId, user.getId());
         ApPinsLike existLike = apPinsLikeMapper.selectOne(wrapper);
 
-        if (Boolean.TRUE.equals(dto.getLiked())) {
-            // 点赞
-            if (existLike != null) {
-                return ResponseResult.okResult();
-            }
-            ApPinsLike like = new ApPinsLike();
-            like.setPinsId(dto.getPinsId());
-            like.setUserId(user.getId());
-            like.setCreatedTime(new Date());
-            apPinsLikeMapper.insert(like);
-            // 更新沸点点赞数
-            ApPins pins = apPinsMapper.selectById(dto.getPinsId());
-            if (pins != null) {
-                pins.setLikes((pins.getLikes() != null ? pins.getLikes() : 0) + 1);
-                apPinsMapper.updateById(pins);
-            }
-        } else {
-            // 取消点赞
-            if (existLike == null) {
-                return ResponseResult.okResult();
-            }
-            apPinsLikeMapper.deleteById(existLike.getId());
-            ApPins pins = apPinsMapper.selectById(dto.getPinsId());
-            if (pins != null) {
-                int newLikes = Math.max(0, (pins.getLikes() != null ? pins.getLikes() : 0) - 1);
-                pins.setLikes(newLikes);
-                apPinsMapper.updateById(pins);
-            }
+        if (existLike != null) {
+            return ResponseResult.okResult();
+        }
+
+        ApPinsLike like = new ApPinsLike();
+        like.setPinsId(pinsId);
+        like.setUserId(user.getId());
+        like.setCreatedTime(new Date());
+        apPinsLikeMapper.insert(like);
+
+        // 更新沸点点赞数
+        ApPins pins = apPinsMapper.selectById(pinsId);
+        if (pins != null) {
+            pins.setLikes((pins.getLikes() != null ? pins.getLikes() : 0) + 1);
+            apPinsMapper.updateById(pins);
+        }
+        return ResponseResult.okResult();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult unlike(Long pinsId) {
+        ApUser user = AppThreadLocalUtil.getUser();
+        if (user == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
+        }
+        if (pinsId == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "pinsId不能为空");
+        }
+
+        LambdaQueryWrapper<ApPinsLike> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ApPinsLike::getPinsId, pinsId);
+        wrapper.eq(ApPinsLike::getUserId, user.getId());
+        ApPinsLike existLike = apPinsLikeMapper.selectOne(wrapper);
+
+        if (existLike == null) {
+            return ResponseResult.okResult();
+        }
+        apPinsLikeMapper.deleteById(existLike.getId());
+
+        ApPins pins = apPinsMapper.selectById(pinsId);
+        if (pins != null) {
+            int newLikes = Math.max(0, (pins.getLikes() != null ? pins.getLikes() : 0) - 1);
+            pins.setLikes(newLikes);
+            apPinsMapper.updateById(pins);
         }
         return ResponseResult.okResult();
     }

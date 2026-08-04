@@ -76,7 +76,7 @@ public class PinsPublicController {
     }
 
     /**
-     * 点赞/取消点赞
+     * 点赞
      */
     @PostMapping("/like")
     @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 500, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
@@ -85,8 +85,22 @@ public class PinsPublicController {
         if (dto.getPinsId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "pinsId不能为空");
         }
-        log.info("沸点点赞, pinsId={}, liked={}", dto.getPinsId(), dto.getLiked());
-        return pinsPublicService.like(dto);
+        log.info("沸点点赞, pinsId={}", dto.getPinsId());
+        return pinsPublicService.like(dto.getPinsId());
+    }
+
+    /**
+     * 取消点赞
+     */
+    @PostMapping("/unlike")
+    @RateLimit(dimension = RateLimit.Dimension.GLOBAL, count = 500, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    @RateLimit(dimension = RateLimit.Dimension.USER, count = 30, interval = 1, timeUnit = RateLimit.TimeUnit.MINUTES)
+    public ResponseResult unlike(@RequestBody PinsLikeDTO dto) {
+        if (dto.getPinsId() == null) {
+            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "pinsId不能为空");
+        }
+        log.info("沸点取消点赞, pinsId={}", dto.getPinsId());
+        return pinsPublicService.unlike(dto.getPinsId());
     }
 
     /**
