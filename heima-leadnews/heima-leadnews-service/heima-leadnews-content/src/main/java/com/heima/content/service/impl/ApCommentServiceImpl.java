@@ -8,6 +8,8 @@ import com.heima.content.service.ApCommentService;
 import com.heima.model.article.dtos.CommentDto;
 import com.heima.model.article.pojos.ApComment;
 import com.heima.model.article.pojos.ApCommentLike;
+import com.heima.model.audit.AuditContext;
+import com.heima.model.audit.AuditEntityType;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.utils.thread.AppThreadLocalUtil;
@@ -26,6 +28,9 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
 
     @Autowired
     private ApCommentLikeMapper apCommentLikeMapper;
+
+    @Autowired
+    private CommentAuditService commentAuditService;
 
     @Override
     public ResponseResult getCommentList(CommentDto dto) {
@@ -111,7 +116,7 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult addComment(CommentDto dto) {
         if (dto == null || dto.getArticleId() == null || dto.getContent() == null || dto.getContent().trim().isEmpty()) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "请输入评论内容");
@@ -147,6 +152,27 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
             }
         }
 
+        // 异步审核评论（立即展示，后台5-10秒后审核）
+        if (comment.getId() != null) {
+            try {
+                int targetType = dto.getArticleType() != null ? dto.getArticleType() : 1;
+                Integer targetUserId = dto.getTargetUserId();
+                AuditContext auditContext = new AuditContext(AuditEntityType.COMMENT, comment.getId(), user.getId().longValue());
+                auditContext.withTitle("")
+                    .withContent(comment.getContent())
+                    .withAuthorName(comment.getUserName())
+                    .withUserId(user.getId())
+                    .withTargetType(targetType)
+                    .withTargetId(dto.getArticleId())
+                    .withTargetUserId(targetUserId);
+
+                commentAuditService.asyncAuditComment(auditContext);
+                log.info("评论已加入异步审核队列, commentId={}, targetType={}", comment.getId(), targetType);
+            } catch (Exception e) {
+                log.error("触发评论异步审核异常, commentId={}", comment.getId(), e);
+            }
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("id", comment.getId());
         result.put("articleId", comment.getArticleId());
@@ -162,7 +188,7 @@ public class ApCommentServiceImpl extends ServiceImpl<ApCommentMapper, ApComment
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult likeComment(CommentDto dto) {
         if (dto == null || dto.getCommentId() == null) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);

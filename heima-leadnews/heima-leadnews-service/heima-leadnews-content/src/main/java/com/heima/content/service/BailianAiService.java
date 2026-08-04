@@ -21,4 +21,13 @@ public interface BailianAiService {
      * @return 检测结果Map，包含: success(Boolean), is_violation(Boolean), violation_type(String), violation_reason(String)
      */
     Map<String, Object> checkViolation(ApArticle article, String content);
+
+    /**
+     * 通用AI违规内容检测（不依赖ApArticle对象）
+     * @param entityId 实体ID（用于日志）
+     * @param title 标题（可为空）
+     * @param content 文本内容
+     * @return 检测结果Map，包含: success(Boolean), is_violation(Boolean), violation_type(String), violation_reason(String)
+     */
+    Map<String, Object> checkViolation(Long entityId, String title, String content);
 }

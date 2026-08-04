@@ -7,6 +7,7 @@ import com.heima.content.mapper.ApArticleConfigMapper;
 import com.heima.content.mapper.ApArticleContentMapper;
 import com.heima.content.mapper.ApArticleMapper;
 import com.heima.content.service.ArticleAutoScanService;
+import com.heima.content.behavior.service.BehaviorEventBus;
 import com.heima.content.service.ArticleSimilarityService;
 import com.heima.content.service.ArticleTaskService;
 import com.heima.content.service.BailianAiService;
@@ -19,6 +20,8 @@ import com.heima.model.article.pojos.ApArticleAuditRecord;
 import com.heima.model.article.pojos.ApArticleConfig;
 import com.heima.model.article.pojos.ApArticleContent;
 import com.heima.model.article.pojos.ApArticleDraft.ContPic;
+import com.heima.model.behavior.BehaviorContext;
+import com.heima.model.behavior.BehaviorType;
 import com.heima.model.common.dtos.ResponseResult;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +73,9 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
 
     @Autowired
     private ApArticleAuditRecordMapper apArticleAuditRecordMapper;
+
+    @Autowired(required = false)
+    private BehaviorEventBus behaviorEventBus;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     @Override
@@ -163,26 +169,19 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
         }
 
         // 审核全部通过
-//        updateArticle(article, Status.PUBLISHED.getCode(), null);
         log.info("文章审核完成, articleId={}, isHighSimilarity={}", articleId, isHighSimilarity);
 
-        // 7. 审核通过，增加经验值
+        // 7. 通过事件总线触发发布行为（等级积分、统计等）
         try {
-            if (article.getAuthorId() != null) {
-                Map<String, Object> expResult = levelService.recordActionWithLimit(
-                    article.getAuthorId(), "publish_article", 
-                    "发布文章: " + (article.getTitle() != null ? article.getTitle() : ""));
-                if (expResult != null && Boolean.TRUE.equals(expResult.get("success"))) {
-                    log.info("文章发布经验值增加成功, articleId={}, authorId={}, score={}",
-                        articleId, article.getAuthorId(), expResult.get("score"));
-                } else {
-                    log.info("文章发布经验值: {}, articleId={}, authorId={}",
-                        expResult != null ? expResult.get("message") : "未获得",
-                        articleId, article.getAuthorId());
-                }
+            if (article.getAuthorId() != null && behaviorEventBus != null) {
+                BehaviorContext behaviorContext = new BehaviorContext(BehaviorType.PUBLISH_ARTICLE, article.getAuthorId().intValue());
+                behaviorContext.withTarget(1, article.getId())
+                    .withUserInfo(article.getAuthorName(), article.getAuthorImage());
+                behaviorEventBus.execute(behaviorContext);
+                log.info("文章发布行为已通过事件总线处理, articleId={}, authorId={}", articleId, article.getAuthorId());
             }
         } catch (Exception e) {
-            log.error("经验值增加异常, articleId={}, 不影响审核流程", articleId, e);
+            log.error("文章发布行为事件处理异常, articleId={}, 不影响审核流程", articleId, e);
         }
 
         // 不管是不是延迟发布，都添加到调度任务，只不过不延迟时interval：0，多经过了Task任务类流转
@@ -193,8 +192,8 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
     /**
      * 更新文章配置的推荐状态
      */
-    @Transactional
-    private void updateArticleConfig(Long articleId, boolean isRecommend) {
+    @Transactional(rollbackFor = Exception.class)
+    protected void updateArticleConfig(Long articleId, boolean isRecommend) {
         try {
             QueryWrapper<ApArticleConfig> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("article_id", articleId);
@@ -227,7 +226,7 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
 
             if (powerBonus > 0 && article.getAuthorId() != null) {
                 Map<String, Object> powerResult = levelService.calculatePowerWithLimit(
-                    article.getAuthorId(), article.getId(), "ai_quality_score", powerBonus);
+                    article.getAuthorId(), article.getId(), "publish_article", powerBonus);
 
                 if (powerResult != null && Boolean.TRUE.equals(powerResult.get("success"))) {
                     log.info("AI质量评分逐力值加成, articleId={}, authorId={}, qualityScore={}, powerBonus={}",
@@ -337,8 +336,8 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
      * FAIL状态：设置reason，写审计记录，发送通知（不软删除，保留用于申诉）
      * PUBLISHED状态：仅设置status
      */
-    @Transactional
-    private void updateArticle(ApArticle article, byte status, String reason) {
+    @Transactional(rollbackFor = Exception.class)
+    protected void updateArticle(ApArticle article, byte status, String reason) {
         article.setStatus(status);
         if (status == Status.FAIL.getCode()) {
             article.setReason(reason);
@@ -356,8 +355,8 @@ public class ArticleAutoScanServiceImpl implements ArticleAutoScanService {
     /**
      * 保存审核失败记录到审计表
      */
-    @Transactional
-    private void saveAuditRecord(ApArticle article, String reason) {
+    @Transactional(rollbackFor = Exception.class)
+    protected void saveAuditRecord(ApArticle article, String reason) {
         try {
             ApArticleAuditRecord record = new ApArticleAuditRecord();
             record.setArticleId(article.getId());
