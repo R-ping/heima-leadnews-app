@@ -165,29 +165,13 @@
                             <div class="checkin-info">
                                 <span class="checkin-icon">&#xf058;</span>
                                 <span class="checkin-label" v-if="!isLoggedIn">每日签到</span>
-                                <span class="checkin-label" v-else-if="!checkinTodayStatus.isSignedIn">每日签到</span>
-                                <span class="checkin-label signed" v-else>已连续签到 {{ checkinTodayStatus.consecutiveDays }} 天</span>
+                                <span class="checkin-label" v-else>每日签到</span>
                             </div>
                             <span class="checkin-btn" v-if="isLoggedIn && !checkinTodayStatus.isSignedIn">去签到</span>
+                            <span class="checkin-btn signed" v-else-if="isLoggedIn && checkinTodayStatus.isSignedIn">已签到</span>
                             <span class="checkin-arrow">&#xf105;</span>
                         </div>
-                        <div class="checkin-extra" v-if="isLoggedIn">
-                            <span class="ore-text">矿石 {{ checkinTodayStatus.totalOre || 0 }}</span>
-                        </div>
                     </div>
-
-                    <!-- 签到进度弹框 -->
-                    <CheckinProgressModal
-                        :visible="showCheckinModal"
-                        :mode="checkinModalMode"
-                        :earnedOre="checkinResult.earnedOre"
-                        :milestoneProgress="checkinResult.milestoneProgress"
-                        :nextSpecial="checkinResult.nextSpecial"
-                        :isSigned="checkinTodayStatus.isSignedIn"
-                        @close="closeCheckinModal"
-                        @checkin-success="handleCheckinSuccess"
-                        @go-checkin-page="closeCheckinModal"
-                    />
 
                     <!-- 推荐话题 -->
                     <div class="aside-card topic-card">
@@ -374,6 +358,9 @@
                 return this.$route.path === '/hot'
             },
             greetingText() {
+                if (this.isLoggedIn && this.checkinTodayStatus && this.checkinTodayStatus.consecutiveDays > 0) {
+                    return '连续签到 ' + this.checkinTodayStatus.consecutiveDays + ' 天'
+                }
                 const hour = new Date().getHours()
                 if (hour < 6) return '凌晨好'
                 if (hour < 12) return '上午好'
@@ -541,19 +528,24 @@
             },
             goToHome() {
                 this.currentNav = 'home'
+                this.searchKeyword = ''
                 this.$router.push('/home')
             },
             goToPins() {
                 this.currentNav = 'pins'
+                this.searchKeyword = ''
                 this.$router.push('/pins')
             },
             goToCourse() {
                 this.currentNav = 'course'
+                this.searchKeyword = ''
                 this.$router.push('/course')
             },
             selectCategory(category) {
                 this.currentCategory = category
+                this.searchKeyword = ''
                 if (category === 'ranking') {
+                    this.currentNav = 'home'
                     this.$router.push('/hot')
                     return
                 }
@@ -562,15 +554,22 @@
                         this.showLogin()
                         return
                     }
+                    this.currentNav = 'home'
                     this.$router.push('/home/following')
                 } else if (category === 'comprehensive') {
+                    this.currentNav = 'home'
                     this.$router.push('/home')
                 } else {
+                    this.currentNav = 'home'
                     this.$router.push(`/home/${category}`)
                 }
             },
             syncCategoryFromRoute() {
                 var path = this.$route.path
+                if (path.indexOf('/search_result') === 0) {
+                    this.currentNav = ''
+                    return
+                }
                 if (path === '/hot') {
                     this.currentCategory = 'ranking'
                     this.currentNav = 'home'
@@ -706,14 +705,7 @@
                     this.showLogin()
                     return
                 }
-                if (!this.checkinTodayStatus.isSignedIn) {
-                    // 未签到，打开签到弹框
-                    this.checkinModalMode = 'entry'
-                    this.showCheckinModal = true
-                } else {
-                    // 已签到，跳转签到页
-                    this.$router.push('/user/checkin')
-                }
+                this.$router.push('/user/checkin')
             },
             closeCheckinModal() {
                 this.showCheckinModal = false
@@ -1337,6 +1329,9 @@
             border-radius: 12PX;
             font-size: 12PX;
             font-weight: 500;
+        }
+        .checkin-btn.signed {
+            background: linear-gradient(135deg, #52c41a, #73d13d);
         }
         .checkin-arrow {
             font-family: fontawesome;

@@ -12,4 +12,7 @@ public interface ILevelClient {
 
     @GetMapping("/api/v1/level/user/{userId}/info")
     Map<String, Object> getUserLevelInfo(@PathVariable("userId") Long userId);
+
+    @GetMapping("/api/v1/level/user/{userId}/data")
+    Map<String, Object> getUserLevelData(@PathVariable("userId") Long userId);
 }

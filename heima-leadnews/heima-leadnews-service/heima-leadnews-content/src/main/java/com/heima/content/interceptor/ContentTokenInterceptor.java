@@ -8,7 +8,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
 
-public class AppTokenInterceptor implements HandlerInterceptor {
+public class ContentTokenInterceptor implements HandlerInterceptor {
 
     /**
      * 得到header中的用户信息，并且存入到当前线程中
