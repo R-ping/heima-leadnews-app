@@ -3,27 +3,39 @@
         <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
 
         <div class="checkin-content">
+            <!-- 签到进度弹框 -->
+            <CheckinProgressModal
+                :visible="showCheckinModal"
+                :mode="checkinModalMode"
+                :earnedOre="checkinResult.earnedOre"
+                :milestoneProgress="checkinResult.milestoneProgress"
+                :nextSpecial="checkinResult.nextSpecial"
+                :isSigned="dashboard.checkinStats.todaySigned"
+                @close="closeCheckinModal"
+                @checkin-success="handleCheckinSuccess"
+            />
+
             <!-- User Info Bar -->
             <div class="user-info-bar">
                 <div class="user-info-section">
-                    <span class="user-nickname">{{ dashboard.user.name || '用户' }}</span>
-                    <span class="user-level-badge">{{ dashboard.user.level || 'JY.1' }}</span>
+                    <span class="user-nickname">{{ dashboard.userInfo.nickname || '用户' }}</span>
+                    <span class="user-level-badge">{{ dashboard.userInfo.level || 'ZR.1' }}</span>
                 </div>
                 <span class="info-separator">|</span>
                 <div class="user-info-section">
-                    <span class="info-value">{{ dashboard.stats.consecutive || 0 }}</span>
+                    <span class="info-value">{{ dashboard.checkinStats.continuousDays || 0 }}</span>
                     <span class="info-label">连续签到天数</span>
                 </div>
                 <span class="info-separator">|</span>
                 <div class="user-info-section">
-                    <span class="info-value">{{ dashboard.stats.total || 0 }}</span>
+                    <span class="info-value">{{ dashboard.checkinStats.totalDays || 0 }}</span>
                     <span class="info-label">累计签到天数</span>
                 </div>
                 <span class="info-separator">|</span>
                 <div class="user-info-section ore-section">
-                    <span class="info-value ore-value">{{ dashboard.stats.ore || 0 }}</span>
+                    <span class="info-value ore-value">{{ dashboard.checkinStats.oreBalance || 0 }}</span>
                     <span class="ore-icon">&#xf06d;</span>
-                    <span class="ore-question">&#xf059;</span>
+                    <span class="ore-question" title="矿石说明">?</span>
                 </div>
             </div>
 
@@ -48,6 +60,13 @@
                         <div class="encourage-line">领取矿石</div>
                         <div class="encourage-line">加速升级</div>
                     </div>
+                    <button 
+                        class="checkin-action-btn" 
+                        :class="{ 'signed-btn': dashboard.checkinStats.todaySigned }"
+                        @click="handleCheckinBtnClick"
+                    >
+                        {{ dashboard.checkinStats.todaySigned ? '今日已签到' : '立即签到' }}
+                    </button>
                 </div>
 
                 <div class="calendar-center">
@@ -71,11 +90,11 @@
                             >
                                 <template v-if="!cell.isEmpty">
                                     <span class="cell-date">{{ cell.day }}</span>
-                                    <span v-if="cell.status === 'SIGNED' && cell.reward" class="cell-reward">
-                                        +{{ cell.reward }}
+                                    <span v-if="cell.oreReward" class="cell-reward">
+                                        +{{ cell.oreReward }}
                                     </span>
-                                    <span v-if="cell.status === 'MISSED'" class="cell-missed-label">补签</span>
-                                    <span v-if="cell.extraLabel" class="cell-extra-label">{{ cell.extraLabel }}</span>
+                                    <span v-if="cell.status === 'repaired'" class="cell-patched-label">补</span>
+                                    <span v-if="cell.isSpecialDay" class="cell-special-label">奖</span>
                                 </template>
                             </div>
                         </div>
@@ -91,7 +110,17 @@
                     <div class="today-btn" @click="goToday">今天</div>
                     <div class="patch-card-info">
                         <span class="patch-label">补签卡</span>
-                        <span class="patch-count">{{ dashboard.cards.retroactive || 0 }}张</span>
+                        <span class="patch-count">{{ dashboard.patchCardCount || 0 }}张</span>
+                    </div>
+                    <div class="next-reward" v-if="dashboard.nextSpecialReward">
+                        <div class="next-reward-title">下一奖励</div>
+                        <div class="next-reward-item">
+                            <span class="next-day">第{{ dashboard.nextSpecialReward.day }}天</span>
+                            <span class="next-ore">+{{ dashboard.nextSpecialReward.ore }}</span>
+                        </div>
+                        <div class="next-days-left">
+                            还需{{ dashboard.nextSpecialReward.daysLeft }}天
+                        </div>
                     </div>
                     <div class="qr-code-area">
                         <div class="qr-placeholder">&#xf029;</div>
@@ -132,7 +161,7 @@
             <div class="tasks-section">
                 <div class="tasks-header">
                     <span class="tasks-title">我的任务</span>
-                    <span class="tasks-question-icon">&#xf059;</span>
+                    <span class="tasks-question-icon" title="任务说明">?</span>
                 </div>
                 <div class="tasks-list">
                     <div
@@ -167,13 +196,14 @@
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
+import CheckinProgressModal from '@/components/checkin/CheckinProgressModal.vue'
 import Utils from '@/utils/env'
-import { getDashboard, doCheckIn, doRetroactive, getCheckInRecords } from '@/apis/checkin'
+import { getDashboard, doCheckIn, doRetroactive } from '@/apis/checkin'
 import { toast } from '@/utils/toast'
 
 export default {
     name: 'UserCheckin',
-    components: { HomeBar },
+    components: { HomeBar, CheckinProgressModal },
     data() {
         return {
             activeTab: 'checkin',
@@ -190,11 +220,27 @@ export default {
             todayYear: new Date().getFullYear(),
             todayMonth: new Date().getMonth() + 1,
             today: new Date().getDate(),
+            // 签到弹框相关
+            showCheckinModal: false,
+            checkinModalMode: 'entry',
+            checkinResult: {
+                earnedOre: 0,
+                milestoneProgress: { current: 0, total: 30, percent: 0, specialDays: [] },
+                nextSpecial: null
+            },
             dashboard: {
-                user: { name: '', level: '', userId: 0 },
-                todayStatus: 'NORMAL',
-                stats: { consecutive: 0, total: 0, ore: 0 },
-                cards: { retroactive: 0 },
+                userInfo: { nickname: '', level: '', userId: 0 },
+                checkinStats: { 
+                    continuousDays: 0, 
+                    totalDays: 0, 
+                    oreBalance: 0, 
+                    todaySigned: false,
+                    pendingReward: 0
+                },
+                patchCardCount: 0,
+                currentPeriodDay: 0,
+                nextSpecialReward: null,
+                milestoneProgress: { current: 0, total: 30, percent: 0, specialDays: [] },
                 calendar: [],
                 tasks: []
             }
@@ -209,25 +255,28 @@ export default {
             const firstDay = new Date(this.currentYear, this.currentMonth - 1, 1).getDay()
             const totalDays = new Date(this.currentYear, this.currentMonth, 0).getDate()
 
-            // 填充前置空白格
             for (let i = 0; i < firstDay; i++) {
                 cells.push({ isEmpty: true })
             }
 
-            // 填充日期格
             for (let d = 1; d <= totalDays; d++) {
                 const dateStr = this.formatDateStr(d)
                 const match = this.dashboard.calendar.find(
                     item => item.date === dateStr
                 )
 
+                // 判断是否为特殊奖励日
+                const periodDay = match ? match.periodDay : null
+                const specialDays = [3, 7, 14, 21, 30]
+                const isSpecialDay = specialDays.includes(periodDay)
+
                 cells.push({
                     isEmpty: false,
                     day: d,
                     date: dateStr,
                     status: match ? match.status : this.getDefaultStatus(d),
-                    reward: match ? match.reward : null,
-                    extraLabel: match ? match.extra_label : null
+                    reward: match ? match.oreReward : null,
+                    isSpecialDay: isSpecialDay
                 })
             }
 
@@ -268,22 +317,23 @@ export default {
                 this.currentYear === this.todayYear &&
                 this.currentMonth === this.todayMonth
             if (isCurrentMonth && d === this.today) {
-                return 'NORMAL'
+                return 'today'
             }
             const cellDate = new Date(this.currentYear, this.currentMonth - 1, d)
             const todayDate = new Date(this.todayYear, this.todayMonth - 1, this.today)
             if (cellDate > todayDate) {
-                return 'FUTURE'
+                return 'future'
             }
-            return 'MISSED'
+            return 'miss'
         },
         cellClass(cell) {
             if (cell.isEmpty) return 'is-empty'
             const map = {
-                SIGNED: 'is-signed',
-                MISSED: 'is-missed',
-                NORMAL: 'is-today',
-                FUTURE: 'is-future'
+                signed: 'is-signed',
+                repaired: 'is-repaired',
+                miss: 'is-missed',
+                today: 'is-today',
+                future: 'is-future'
             }
             return map[cell.status] || ''
         },
@@ -292,35 +342,31 @@ export default {
                 const res = await getDashboard()
                 if (res && res.code === 200 && res.data) {
                     const data = res.data
-                    this.dashboard.user = {
-                        name: data.userInfo && data.userInfo.nickname ? data.userInfo.nickname : '用户',
-                        level: data.userInfo && data.userInfo.level ? data.userInfo.level : 'JY.1'
+                    this.dashboard.userInfo = data.userInfo || { nickname: '用户', level: 'ZR.1' }
+                    this.dashboard.checkinStats = data.checkinStats || { 
+                        continuousDays: 0, totalDays: 0, oreBalance: 0, todaySigned: false 
                     }
-                    const stats = data.checkinStats || {}
-                    this.dashboard.todayStatus = stats.todaySigned ? 'SIGNED' : 'NORMAL'
-                    this.dashboard.stats = {
-                        consecutive: stats.continuousDays != null ? stats.continuousDays : 0,
-                        total: stats.totalDays != null ? stats.totalDays : 0,
-                        ore: stats.oreBalance != null ? stats.oreBalance : 0
-                    }
-                    this.dashboard.cards = {
-                        retroactive: data.patchCardCount != null ? data.patchCardCount : 0
-                    }
+                    this.dashboard.patchCardCount = data.patchCardCount || 0
+                    this.dashboard.currentPeriodDay = data.currentPeriodDay || 0
+                    this.dashboard.nextSpecialReward = data.nextSpecialReward || null
+                    this.dashboard.milestoneProgress = data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] }
+                    
                     // 标准化日历数据
                     if (data.calendar) {
                         this.dashboard.calendar = data.calendar.map(item => {
                             const statusMap = {
-                                'signed': 'SIGNED',
-                                'repaired': 'SIGNED',
-                                'miss': 'MISSED',
-                                'today': 'NORMAL',
-                                'future': 'FUTURE'
+                                'signed': 'signed',
+                                'repaired': 'repaired',
+                                'miss': 'miss',
+                                'today': 'today',
+                                'future': 'future'
                             }
                             return {
                                 date: item.date,
-                                status: statusMap[item.status] || 'FUTURE',
-                                reward: item.oreReward || null,
-                                extra_label: item.isSpecial ? '特殊' : null
+                                status: statusMap[item.status] || 'future',
+                                oreReward: item.oreReward || null,
+                                periodDay: item.periodDay || null,
+                                isSpecial: item.isSpecial || false
                             }
                         })
                     } else {
@@ -333,27 +379,27 @@ export default {
             }
         },
         async loadRecords() {
-            // 重新加载仪表盘数据以获取日历（后端已包含近2个月数据）
             await this.loadDashboard()
         },
         async handleCellClick(cell) {
             if (cell.isEmpty) return
-            if (cell.status === 'FUTURE') return
+            if (cell.status === 'future') return
 
-            if (cell.status === 'SIGNED') {
+            if (cell.status === 'signed' || cell.status === 'repaired') {
                 toast('该日期已签到', 2)
                 return
             }
 
-            if (cell.status === 'MISSED') {
-                if (this.dashboard.cards.retroactive <= 0) {
+            if (cell.status === 'miss') {
+                if (this.dashboard.patchCardCount <= 0) {
                     toast('没有补签卡了', 2)
                     return
                 }
                 try {
                     const res = await doRetroactive(cell.date)
                     if (res && res.code === 200) {
-                        toast('补签成功', 2)
+                        const data = res.data || {}
+                        toast('补签成功！+' + (data.earnedOre || 0) + ' 矿石', 2)
                         await this.loadDashboard()
                     } else {
                         toast(res && res.message ? res.message : '补签失败', 2)
@@ -364,19 +410,40 @@ export default {
                 return
             }
 
-            if (cell.status === 'NORMAL') {
-                try {
-                    const res = await doCheckIn()
-                    if (res && res.code === 200) {
-                        const reward = res.data && res.data.reward ? res.data.reward : 10
-                        toast('签到成功！+' + reward + ' 矿石', 2)
-                        await this.loadDashboard()
-                    } else {
-                        toast(res && res.message ? res.message : '签到失败', 2)
-                    }
-                } catch (error) {
-                    toast('签到失败，请稍后重试', 2)
+            if (cell.status === 'today') {
+                this.openCheckinModal()
+            }
+        },
+        openCheckinModal() {
+            this.checkinModalMode = 'entry'
+            this.showCheckinModal = true
+        },
+        closeCheckinModal() {
+            this.showCheckinModal = false
+        },
+        async handleCheckinSuccess(data) {
+            this.checkinResult = {
+                earnedOre: data.earnedOre || 0,
+                milestoneProgress: data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] },
+                nextSpecial: data.nextSpecial || null
+            }
+            this.checkinModalMode = 'success'
+            await this.loadDashboard()
+        },
+        async handleCheckinBtnClick() {
+            if (this.dashboard.checkinStats.todaySigned) {
+                // 已签到，不做操作
+                return
+            }
+            try {
+                const res = await doCheckIn()
+                if (res && res.code === 200 && res.data) {
+                    await this.handleCheckinSuccess(res.data)
+                } else {
+                    toast(res && res.message ? res.message : '签到失败', 2)
                 }
+            } catch (error) {
+                toast('签到失败，请稍后重试', 2)
             }
         },
         prevMonth() {
@@ -491,7 +558,6 @@ export default {
     }
 
     .ore-question {
-        font-family: fontawesome;
         font-size: 14px;
         color: #ccc;
         cursor: pointer;
@@ -551,11 +617,13 @@ export default {
 }
 
 .calendar-left {
-    width: 120px;
+    width: 140px;
     flex-shrink: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 16px;
 }
 
 .encourage-text {
@@ -563,6 +631,7 @@ export default {
     border-radius: 12px;
     padding: 20px 16px;
     text-align: center;
+    width: 100%;
 }
 
 .encourage-line {
@@ -570,6 +639,29 @@ export default {
     color: #fff;
     font-weight: 500;
     line-height: 1.8;
+}
+
+.checkin-action-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #fa8c16, #ffc069);
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    &.signed-btn {
+        background: #52c41a;
+        cursor: not-allowed;
+    }
 }
 
 .calendar-center {
@@ -619,19 +711,40 @@ export default {
     }
 
     &.is-signed {
-        background: #52c41a;
+        background: #f6ffed;
 
         .cell-date {
-            color: #fff;
+            color: #52c41a;
             font-weight: 600;
         }
 
         .cell-reward {
-            color: #fff;
+            color: #52c41a;
+        }
+    }
+
+    &.is-repaired {
+        background: #fff7e6;
+        border: 1px dashed #fa8c16;
+
+        .cell-date {
+            color: #fa8c16;
+            font-weight: 600;
         }
 
-        .cell-extra-label {
-            color: rgba(255, 255, 255, 0.8);
+        .cell-reward {
+            color: #fa8c16;
+        }
+
+        .cell-patched-label {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 10px;
+            color: #fa8c16;
+            background: #fff;
+            padding: 0 3px;
+            border-radius: 2px;
         }
     }
 
@@ -642,8 +755,13 @@ export default {
             color: #999;
         }
 
-        .cell-missed-label {
-            color: #1e80ff;
+        &:hover {
+            background: #e6f7ff;
+            cursor: pointer;
+
+            .cell-date {
+                color: #1e80ff;
+            }
         }
     }
 
@@ -653,10 +771,6 @@ export default {
         .cell-date {
             color: #fff;
             font-weight: 600;
-        }
-
-        .cell-extra-label {
-            color: rgba(255, 255, 255, 0.8);
         }
 
         &:hover {
@@ -672,12 +786,20 @@ export default {
         }
     }
 
-    &:hover:not(.is-empty):not(.is-future):not(.is-missed) {
+    &:hover:not(.is-empty):not(.is-future) {
         opacity: 0.85;
     }
 
-    &.is-missed:hover {
-        background: #e8e8e8;
+    .cell-special-label {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        font-size: 9px;
+        color: #fa8c16;
+        background: #fff7e6;
+        padding: 0 3px;
+        border-radius: 2px;
+        font-weight: 600;
     }
 }
 
@@ -694,26 +816,13 @@ export default {
     font-weight: 500;
 }
 
-.cell-missed-label {
-    font-size: 11px;
-    color: #1e80ff;
-    margin-top: 2px;
-    font-weight: 500;
-}
-
-.cell-extra-label {
-    font-size: 10px;
-    margin-top: 1px;
-}
-
-// Calendar Right
 .calendar-right {
-    width: 120px;
+    width: 160px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     padding-top: 8px;
 }
 
@@ -778,6 +887,44 @@ export default {
     font-size: 14px;
     color: #1e80ff;
     font-weight: 500;
+}
+
+.next-reward {
+    width: 100%;
+    background: linear-gradient(135deg, #fff7e6, #ffe7ba);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+}
+
+.next-reward-title {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.next-reward-item {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.next-day {
+    font-size: 13px;
+    color: #fa8c16;
+    font-weight: 500;
+}
+
+.next-ore {
+    font-size: 13px;
+    color: #fa8c16;
+    font-weight: 600;
+}
+
+.next-days-left {
+    font-size: 11px;
+    color: #999;
 }
 
 .qr-code-area {
@@ -1029,6 +1176,8 @@ export default {
 
     .calendar-left {
         width: 100%;
+        flex-direction: row;
+        justify-content: space-around;
     }
 
     .encourage-text {

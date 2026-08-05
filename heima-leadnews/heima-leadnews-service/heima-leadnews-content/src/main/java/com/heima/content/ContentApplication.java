@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = "com.heima")
 @EnableDiscoveryClient
 @MapperScan({"com.heima.content.mapper", "com.heima.content.schedule.mapper"})
-@EnableAsync
+@EnableAsync(proxyTargetClass = true)
 @EnableScheduling
 @EnableFeignClients(basePackages = "com.heima.apis")
 public class ContentApplication {
