@@ -1,7 +1,6 @@
 // ============  主页路由MODEL  ==================
 // 布局组件（app shell）保持静态导入，避免首屏闪烁
 import Layout from '@/components/layouts/layout_main'
-import LayoutSearch from '@/components/layouts/layout_search'
 // 路由组件全部使用动态导入，实现按需加载
 const Home = () => import('@/pages/home/index')
 const Article = () => import('@/pages/article/index')
@@ -148,7 +147,7 @@ let routes = [
         ]
     },{
         path:'/search_result',
-        component: LayoutSearch,
+        component: Layout,
         children: [{
             path:'',
             name:'search_result',
