@@ -6,12 +6,10 @@
             <span v-else class="dropdown-avatar-icon">&#xf007;</span>
             <div class="dropdown-user-info">
                 <div class="dropdown-username">{{ userName }}</div>
-                <div class="dropdown-user-level">{{ levelBadge }}</div>
-            </div>
-            <div class="dropdown-diamond" @click.stop>
-                <span class="diamond-icon">&#xf219;</span>
-                <span class="diamond-text">矿石: {{ formattedDiamond }}</span>
-                <span class="diamond-arrow">&#xf105;</span>
+                <div class="dropdown-diamond-row" @click.stop>
+                    <span class="diamond-icon">&#xf219;</span>
+                    <span class="diamond-text">矿石: {{ formattedDiamond }}</span>
+                </div>
             </div>
         </div>
         <!-- 等级进度条 -->
@@ -149,21 +147,14 @@ export default {
     color: #252933;
     margin-bottom: 4px;
 }
-.dropdown-user-level {
-    font-size: 12px;
-    color: #1e80ff;
-    background: #eaf2ff;
-    padding: 2px 8px;
-    border-radius: 4px;
-    display: inline-block;
-}
-.dropdown-diamond {
+.dropdown-diamond-row {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 2px 8px;
     background: #fff7e6;
-    border-radius: 12px;
+    border-radius: 10px;
+    width: fit-content;
     cursor: pointer;
     .diamond-icon {
         font-family: fontawesome;
@@ -171,11 +162,6 @@ export default {
         color: #fa8c16;
     }
     .diamond-text {
-        font-size: 12px;
-        color: #fa8c16;
-    }
-    .diamond-arrow {
-        font-family: fontawesome;
         font-size: 12px;
         color: #fa8c16;
     }
