@@ -415,6 +415,9 @@
     .search-result-page {
         width: 100%;
         padding-bottom: 40px;
+        background-color: #fff;
+        border-radius: 8px;
+        min-height: 400px;
     }
 
     /* Tab切换 */

@@ -102,7 +102,7 @@
             </div>
 
             <div class="desktop-container">
-                <div class="desktop-sidebar" v-if="!isUserPage && !isPinsPage && !isCoursePage">
+                <div class="desktop-sidebar" v-if="!isUserPage && !isPinsPage && !isCoursePage && !isSearchPage">
                     <div class="sidebar-nav">
                         <div class="nav-item" :class="{ active: currentCategory === 'following' }" @click="selectCategory('following')">
                             <span class="nav-icon">&#xf004;</span>
@@ -151,11 +151,11 @@
                     </div>
                 </div>
 
-                <div class="desktop-content" :class="{ 'user-page-content': isUserPage }">
+                <div class="desktop-content" :class="{ 'user-page-content': isUserPage, 'search-page-content': isSearchPage }">
                     <router-view/>
                 </div>
 
-                <div class="desktop-aside" v-if="!isUserPage && !isPinsPage && !isCoursePage">
+                <div class="desktop-aside" v-if="!isUserPage && !isPinsPage && !isCoursePage && !isSearchPage">
                     <!-- 签到入口 -->
                     <div class="aside-card checkin-card">
                         <div class="greeting-section">
@@ -360,6 +360,9 @@
             },
             isUserPage() {
                 return this.$route.path.startsWith('/user/') || this.$route.path === '/notification';
+            },
+            isSearchPage() {
+                return this.$route.path.startsWith('/search_result');
             },
             isPinsPage() {
                 return this.$route.path.startsWith('/pins') || this.$route.path.startsWith('/pin/');
@@ -1256,6 +1259,11 @@
 
         .user-page-content {
             max-width: 100%;
+        }
+
+        .search-page-content {
+            max-width: 700PX;
+            margin: 0 auto;
         }
 
         .desktop-aside {

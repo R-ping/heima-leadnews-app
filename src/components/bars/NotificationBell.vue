@@ -1,23 +1,25 @@
 <template>
-    <div class="notification-bell" @mouseenter="showDropdown = true" @mouseleave="showDropdown = false">
+    <div class="notification-bell" @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
         <span class="bell-icon" @click.stop="$emit('go-to-notification', 'comment')">&#xf0f3;</span>
         <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-        <div class="notification-dropdown" v-if="showDropdown" @mouseenter="showDropdown = true" @mouseleave="showDropdown = false">
-            <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'comment')">
-                <span>评论</span>
-                <span v-if="unreadCount > 0" class="item-unread">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-            </div>
-            <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'like')">
-                <span>赞和收藏</span>
-            </div>
-            <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'follow')">
-                <span>新增粉丝</span>
-            </div>
-            <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'message')">
-                <span>私信</span>
-            </div>
-            <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'system')">
-                <span>系统通知</span>
+        <div class="dropdown-wrapper" v-if="showDropdown" @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
+            <div class="notification-dropdown">
+                <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'comment')">
+                    <span>评论</span>
+                    <span v-if="unreadCount > 0" class="item-unread">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                </div>
+                <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'like')">
+                    <span>赞和收藏</span>
+                </div>
+                <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'follow')">
+                    <span>新增粉丝</span>
+                </div>
+                <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'message')">
+                    <span>私信</span>
+                </div>
+                <div class="dropdown-item" @click.stop="$emit('go-to-notification', 'system')">
+                    <span>系统通知</span>
+                </div>
             </div>
         </div>
     </div>
@@ -34,7 +36,30 @@ export default {
     },
     data() {
         return {
-            showDropdown: false
+            showDropdown: false,
+            hideTimer: null
+        }
+    },
+    methods: {
+        onMouseEnter() {
+            if (this.hideTimer) {
+                clearTimeout(this.hideTimer)
+                this.hideTimer = null
+            }
+            this.showDropdown = true
+        },
+        onMouseLeave() {
+            var self = this
+            this.hideTimer = setTimeout(function() {
+                self.showDropdown = false
+                self.hideTimer = null
+            }, 200)
+        }
+    },
+    beforeDestroy() {
+        if (this.hideTimer) {
+            clearTimeout(this.hideTimer)
+            this.hideTimer = null
         }
     }
 }
@@ -76,17 +101,19 @@ export default {
     padding: 0 4px;
     transform: translate(30%, -30%);
 }
-.notification-dropdown {
+.dropdown-wrapper {
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 8px;
+    padding-top: 8px;
+    min-width: 160px;
+    z-index: 300;
+}
+.notification-dropdown {
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-    z-index: 300;
     overflow: hidden;
-    min-width: 160px;
 }
 .dropdown-item {
     display: flex;
