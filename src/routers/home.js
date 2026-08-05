@@ -15,6 +15,7 @@ const UserGrowthJScore = () => import('@/pages/user/growth/jscore')
 const UserCheckin = () => import('@/pages/user/checkin/index')
 const UserLottery = () => import('@/pages/user/lottery/index')
 const UserWelfare = () => import('@/pages/user/welfare/index')
+const UserWelfareRedeem = () => import('@/pages/user/welfare/redeem')
 const UserCourses = () => import('@/pages/user/courses/index')
 const UserHistory = () => import('@/pages/user/history/index')
 const Notification = () => import('@/pages/notification/index')
@@ -77,6 +78,11 @@ let routes = [
                 path:'/user/welfare',
                 name:'user-welfare',
                 component:UserWelfare
+            },
+            {
+                path:'/user/welfare/redeem/:id',
+                name:'user-welfare-redeem',
+                component:UserWelfareRedeem
             },
             {
                 path:'/user/courses',
