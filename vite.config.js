@@ -78,6 +78,21 @@ export default defineConfig({
           }
         }
       },
+      '/article': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true,
+        bypass(req) {
+          // 前端路由 /article/:id 由 SPA 处理，不代理到后端
+          // 但 /article/api/* 的 API 请求需要代理到后端
+          if (req.url && req.url.startsWith('/article/') && !req.url.includes('/api/')) {
+            return req.url;
+          }
+        }
+      },
+      '/reward': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true
+      },
       '/minio-static': {
         target: 'http://127.0.0.1:9005',
         changeOrigin: true,
