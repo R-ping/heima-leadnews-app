@@ -152,18 +152,6 @@
           </div>
 
           <div class="drawer-section">
-            <label class="section-label">文章封面</label>
-            <div class="cover-upload-area" @click="selectSinglePic">
-              <div v-if="!singlePic" class="upload-placeholder">
-                <i class="fa fa-plus upload-icon"></i>
-                <span class="upload-text">上传封面（不上传则为无图文章）</span>
-              </div>
-              <img v-else :src="parseImage(singlePic)" class="cover-preview-img" />
-            </div>
-            <p v-if="singlePic" class="cover-tip">建议尺寸: 192*128px</p>
-          </div>
-
-          <div class="drawer-section">
             <label class="section-label">编辑摘要</label>
             <div class="summary-wrapper">
               <el-input
@@ -184,54 +172,6 @@
         </div>
       </div>
     </el-drawer>
-
-    <el-dialog
-      :visible.sync="showPicDialog"
-      width="50%"
-      :close-on-click-modal="false"
-      :show-close="false"
-      :center="true"
-      :modal-append-to-body="true"
-      :append-to-body="true"
-    >
-      <el-tabs type="card" v-model="activeName">
-        <el-tab-pane label="素材库" name="first">
-          <el-radio-group @change="getImgData" v-model="activeName2" style="margin-bottom: 30px;">
-            <el-radio-button label="all">全部</el-radio-button>
-            <el-radio-button label="collect">收藏</el-radio-button>
-          </el-radio-group>
-          <div class="img_list_con">
-            <div
-              class="img_list"
-              v-for="item in imgData"
-              :key="item.id"
-              @click="selectPic(item.id,item.url)"
-            >
-              <img :src="item.url">
-              <img v-if="item.id == selectedImg.id" :src="selected_img_url" class="selected">
-            </div>
-          </div>
-          <div class="pagination">
-            <el-pagination
-              background
-              layout="total, prev, pager, next, jumper"
-              :page-size="imgPage.pageSize"
-              :total="imgPage.total"
-              :page-count="imgPage.pageCount"
-              :current-page.sync="imgPage.currentPage"
-              @current-change="getImgData"
-            ></el-pagination>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane label="上传图片" name="second">
-          <upload :imgChange="uploadSuccess"/>
-        </el-tab-pane>
-      </el-tabs>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="cancleImg">取 消</el-button>
-        <el-button type="primary" @click="btnOKImg">确 定</el-button>
-      </span>
-    </el-dialog>
 
     <el-dialog
       title="文章导入"
@@ -272,19 +212,13 @@
 
 <script>
   import ByteMdEditor from "@/pages/creator/components/editor/ByteMdEditor.vue";
-  import Upload from "@/pages/creator/components/Upload/upload.vue";
   import { getArticleById, getDraftById } from "@/apis/creator/content";
   import {
-    getAllImgData,
     getChannels,
-    publishArticles,
-    modifyArticles,
     getTagList,
     getTopicList,
     importMarkdown
   } from "@/apis/creator/publish";
-  import selectedImgUrl from "@/static/images/creator/selected.png";
-  import uploadImgUrl from "@/static/images/creator/pic_bg.png";
   import { mapGetters } from 'vuex';
   import { permission } from "@/utils/permission";
   import { API_DRAFT_CREATE, API_DRAFT_UPDATE, API_DRAFT_PUBLISH } from "@/pages/creator/constants/api";
@@ -292,7 +226,7 @@
 
   export default {
     name: "PublishEditor",
-    components: { Upload, ByteMdEditor },
+    components: { ByteMdEditor },
     data() {
       return {
         FormData: {
@@ -310,26 +244,7 @@
         canAddVideo: false,
         canSchedulePublish: false,
         host: '',
-        singlePic: null,
-        threePicList: [null, null, null],
         channel_list: [],
-        showPicDialog: false,
-        activeName: "first",
-        activeName2: "all",
-        selected_img_url: selectedImgUrl,
-        upload_img_url: uploadImgUrl,
-        imgPage: {
-          total: 0,
-          currentPage: 1,
-          pageSize: 5,
-          pageCount: 1
-        },
-        imgData: [],
-        selectedImg: {},
-        currentType: {
-          type: "",
-          index: null
-        },
         publishDrawerVisible: false,
         syncScroll: true,
         charCount: 0,
@@ -380,9 +295,6 @@
         handler() { this.saveStatus = ''; this.scheduleDraftSave() }
       },
       'FormData.publish_time': {
-        handler() { this.saveStatus = ''; this.scheduleDraftSave() }
-      },
-      singlePic: {
         handler() { this.saveStatus = ''; this.scheduleDraftSave() }
       }
     },
@@ -548,13 +460,6 @@
           })
         }
       },
-      parseImage: function (item) {
-        if (item) {
-          return item;
-        } else {
-          return this.upload_img_url
-        }
-      },
       async getChannels() {
         let result = await getChannels();
         this.channel_list = result.data;
@@ -575,8 +480,7 @@
           this.FormData.labels || '',
           this.FormData.topic || '',
           this.FormData.summary || '',
-          this.FormData.publish_time || '',
-          this.singlePic || ''
+          this.FormData.publish_time || ''
         ]
         return parts.join('|||')
       },
@@ -590,18 +494,17 @@
         this.saveStatus = 'saving'
         this.draftHash = currentHash
         try {
-          let images = this.getImages()
           let data = {
             id: this.draftId,
             title: this.FormData.title,
             content: this.FormData.content,
             channelId: this.FormData.channel_id,
-            images: images.join(','),
+            images: '',
             labels: this.FormData.labels,
             topic: this.FormData.topic,
             summary: this.FormData.summary,
             publishTime: this.FormData.publish_time,
-            layout: images.length > 0 ? 1 : 0
+            layout: 0
           }
 
           let result
@@ -684,70 +587,10 @@
         const plainText = content.replace(/[#*`>\-\[\]()!_~\n\r\s]/g, '');
         this.wordCount = plainText.length;
       },
-      selectPic(id, url) {
-        this.selectedImg = { id, url };
-      },
-      uploadSuccess(url) {
-        this.selectedImg = { url };
-      },
-      uploadPic() {
-        this.imgPage.currentPage = 1
-        this.showPicDialog = true;
-        this.getImgData();
-      },
-      btnOKImg() {
-        if (this.selectedImg.url) {
-          if (this.currentType.type == "single") {
-            this.singlePic = this.selectedImg.url;
-          } else if (this.currentType.type == "three") {
-            this.threePicList[this.currentType.index] = this.selectedImg.url;
-            this.$forceUpdate();
-          }
-        }
-        this.currentType = {};
-        this.selectedImg = {};
-        this.showPicDialog = false;
-      },
-      cancleImg() {
-        this.showPicDialog = false;
-      },
-      selectThreePic(index) {
-        this.currentType.type = "three";
-        this.currentType.index = index;
-        this.uploadPic();
-      },
-      selectSinglePic() {
-        this.currentType.type = "single";
-        this.uploadPic();
-      },
-      async getImgData(page) {
-        let temp = page == undefined ? this.imgPage.currentPage : page
-        try {
-          temp = parseInt(temp)
-        } catch (e) {
-          temp = 1
-        }
-        let isCollect = this.activeName2 == "collect";
-        let result = await getAllImgData({
-          size: this.imgPage.pageSize,
-          page: temp,
-          is_collected: isCollect ? 1 : 0
-        });
-        this.imgData = result.data.list;
-        this.imgPage.total = result.data.total;
-        this.imgPage.pageCount = Math.ceil(
-          this.imgPage.total / this.imgPage.pageSize
-        );
-      },
       transImages(type, images) {
-        if (!images) return;
-        images = images.split(",")
-        if (images.length > 0 && images[0]) {
-          this.singlePic = images[0];
-        }
       },
       getImages() {
-        return this.singlePic ? [this.singlePic] : [];
+        return [];
       },
       saveDraft() {
         this.autoSaveDraft()
@@ -1108,82 +951,6 @@
     width: 100%;
   }
 
-  .cover-type-group {
-    margin-bottom: 16px;
-    :deep(.el-radio) {
-      margin-right: 20px;
-    }
-  }
-
-  .cover-upload-area {
-    width: 200px;
-    height: 140px;
-    border: 1px dashed #d9d9d9;
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    overflow: hidden;
-    transition: all 0.2s;
-    background-color: #fafafa;
-    &:hover {
-      border-color: @brandBlue;
-      background-color: #f5f7ff;
-    }
-    .upload-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      .upload-icon {
-        font-size: 32px;
-        color: @textMuted;
-        margin-bottom: 10px;
-      }
-      .upload-text {
-        font-size: 14px;
-        color: @textMuted;
-        font-weight: 500;
-      }
-    }
-    .cover-preview-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-
-  .cover-upload-three {
-    display: flex;
-    gap: 12px;
-    .three-cover {
-      width: 120px;
-      height: 85px;
-      .upload-placeholder {
-        .upload-icon {
-          font-size: 22px;
-          margin-bottom: 6px;
-        }
-        .upload-text {
-          font-size: 12px;
-        }
-      }
-    }
-  }
-
-  .cover-tip {
-    font-size: 13px;
-    color: @textSecondary;
-    margin-top: 10px;
-    margin-bottom: 0;
-    padding: 6px 10px;
-    background: #f7f8fa;
-    border-radius: 4px;
-    display: inline-block;
-  }
-
   .summary-wrapper {
     position: relative;
     .summary-textarea {
@@ -1210,41 +977,6 @@
     justify-content: flex-end;
     gap: 12px;
     flex-shrink: 0;
-  }
-
-  .img_list_con {
-    overflow: hidden;
-    margin-left: 20px;
-    height: 250px;
-  }
-  .img_list {
-    width: 128px;
-    height: 100px;
-    float: left;
-    margin: 0px 20px 20px 0;
-    border: 1px solid #eee;
-    overflow: hidden;
-    border-radius: 4px;
-    position: relative;
-    img {
-      width: 128px;
-      height: 100px;
-      display: block;
-      cursor: pointer;
-    }
-  }
-  .selected {
-    width: 60px !important;
-    height: 60px !important;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    margin-left: 50%;
-    margin-bottom: 50%;
-    transform: translate(-30px, 50px);
-  }
-  .pagination {
-    text-align: center;
   }
 
   .import-dialog {

@@ -1,7 +1,7 @@
 import request from '@/common/article_request'
 
-const API_USERPROFILE = 'user/profile'
-const API_HEAD = 'user/photo'
+const API_USERPROFILE = '/api/v1/user/profile'
+const API_HEAD = '/api/v1/user/photo'
 
 // 获取用户个人资料
 export const getUserProfile = () => {

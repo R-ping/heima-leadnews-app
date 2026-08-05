@@ -1,4 +1,4 @@
-import request from '@/common/request'
+import request from '@/common/article_request'
 
 export const getJScoreOverview = () => {
   return request.get('/api/v1/jscore/overview')

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.heima.content.mapper.OssImageCleanupMapper">
+
+    <select id="findArticleCoverImages" resultType="java.lang.String">
+        SELECT cover_image FROM ap_article
+        WHERE cover_image IS NOT NULL
+        AND created_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <select id="findArticleContentImages" resultType="java.lang.String">
+        SELECT content FROM ap_article_content
+        WHERE content IS NOT NULL
+        AND created_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <select id="findPinsImages" resultType="java.lang.String">
+        SELECT image_urls FROM ap_pins
+        WHERE image_urls IS NOT NULL
+        AND image_urls != ''
+        AND created_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <select id="findColumnCoverImages" resultType="java.lang.String">
+        SELECT cover_image FROM ap_column
+        WHERE cover_image IS NOT NULL
+        AND created_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <select id="findCourseCoverImages" resultType="java.lang.String">
+        SELECT cover_image FROM ap_course
+        WHERE cover_image IS NOT NULL
+        AND created_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+</mapper>

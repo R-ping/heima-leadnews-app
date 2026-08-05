@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.heima.content.mapper.article.ApArticleAiAnalysisMapper;
 import com.heima.content.service.article.BailianAiService;
 import com.heima.common.bailian.DashScopeClient;
+import com.heima.common.bailian.PromptSanitizer;
+import com.heima.common.bailian.PromptSecurityConstants;
 import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.pojos.ApArticleAiAnalysis;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +31,15 @@ public class BailianAiServiceImpl implements BailianAiService {
     @Autowired
     private ApArticleAiAnalysisMapper aiAnalysisMapper;
 
+    @Autowired
+    private PromptSanitizer promptSanitizer;
+
     // ==================== 提示词模板 ====================
 
-    private static final String SYSTEM_PROMPT = "你是一个专业的技术文章审核专家，负责对技术社区的文章进行多维度质量评估。请严格按照要求的JSON格式输出分析结果，不要输出任何额外的解释或markdown格式。";
+    // Layer 2: 提示词加固 —— 在 system prompt 末尾追加防注入指令
+    private static final String SYSTEM_PROMPT =
+        "你是一个专业的技术文章审核专家，负责对技术社区的文章进行多维度质量评估。请严格按照要求的JSON格式输出分析结果，不要输出任何额外的解释或markdown格式。"
+        + PromptSecurityConstants.ANTI_INJECTION_INSTRUCTION;
 
     // 标题与内容相关性分析提示词
     private static final String TITLE_RELEVANCE_PROMPT =
@@ -117,7 +125,15 @@ public class BailianAiServiceImpl implements BailianAiService {
 
         // 截断内容，避免token超限
         String truncatedContent = content.length() > 4000 ? content.substring(0, 4000) : content;
-        String title = article.getTitle() != null ? article.getTitle() : "";
+        String rawTitle = article.getTitle() != null ? article.getTitle() : "";
+
+        // Layer 1: 输入净化 —— 清洗用户输入中的注入内容
+        String safeTitle = promptSanitizer.sanitize(rawTitle);
+        String safeContent = promptSanitizer.sanitize(truncatedContent);
+
+        // Layer 1: UUID 动态分隔符包裹 —— 防止攻击者伪造边界标签
+        String wrappedTitle = promptSanitizer.wrapWithDelimiters("title", safeTitle);
+        String wrappedContent = promptSanitizer.wrapWithDelimiters("article", safeContent);
 
         ApArticleAiAnalysis analysis = new ApArticleAiAnalysis();
         analysis.setArticleId(article.getId());
@@ -128,7 +144,7 @@ public class BailianAiServiceImpl implements BailianAiService {
         try {
             // 1. 标题相关性分析
             log.info("Starting title relevance analysis for articleId={}", article.getId());
-            String titlePrompt = String.format(TITLE_RELEVANCE_PROMPT, title, truncatedContent);
+            String titlePrompt = String.format(TITLE_RELEVANCE_PROMPT, wrappedTitle, wrappedContent);
             String titleResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, titlePrompt);
 
             if (titleResponse != null) {
@@ -143,7 +159,7 @@ public class BailianAiServiceImpl implements BailianAiService {
 
             // 2. 内容质量评分
             log.info("Starting quality analysis for articleId={}", article.getId());
-            String qualityPrompt = String.format(QUALITY_PROMPT, title, truncatedContent);
+            String qualityPrompt = String.format(QUALITY_PROMPT, wrappedTitle, wrappedContent);
             String qualityResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, qualityPrompt);
 
             if (qualityResponse != null) {
@@ -161,7 +177,7 @@ public class BailianAiServiceImpl implements BailianAiService {
 
             // 3. 技术相关性判断
             log.info("Starting tech relevance analysis for articleId={}", article.getId());
-            String techPrompt = String.format(TECH_RELEVANCE_PROMPT, title, truncatedContent);
+            String techPrompt = String.format(TECH_RELEVANCE_PROMPT, wrappedTitle, wrappedContent);
             String techResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, techPrompt);
 
             if (techResponse != null) {
@@ -209,11 +225,16 @@ public class BailianAiServiceImpl implements BailianAiService {
         }
 
         String truncatedContent = content.length() > 4000 ? content.substring(0, 4000) : content;
-        String safeTitle = title != null ? title : "";
+        String rawTitle = title != null ? title : "";
+
+        // Layer 1: 输入净化
+        String safeTitle = promptSanitizer.sanitize(rawTitle);
+        String safeContent = promptSanitizer.sanitize(truncatedContent);
+        String wrappedContent = promptSanitizer.wrapWithDelimiters("check-content", safeContent);
 
         try {
             log.info("Starting AI violation check for entityId={}", entityId);
-            String violationPrompt = String.format(VIOLATION_CHECK_PROMPT, safeTitle, truncatedContent);
+            String violationPrompt = String.format(VIOLATION_CHECK_PROMPT, safeTitle, wrappedContent);
             String violationResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, violationPrompt);
 
             if (violationResponse != null) {
@@ -257,11 +278,16 @@ public class BailianAiServiceImpl implements BailianAiService {
 
         // 截断内容，避免token超限
         String truncatedContent = content.length() > 4000 ? content.substring(0, 4000) : content;
-        String title = article.getTitle() != null ? article.getTitle() : "";
+        String rawTitle = article.getTitle() != null ? article.getTitle() : "";
+
+        // Layer 1: 输入净化
+        String safeTitle = promptSanitizer.sanitize(rawTitle);
+        String safeContent = promptSanitizer.sanitize(truncatedContent);
+        String wrappedContent = promptSanitizer.wrapWithDelimiters("violation-check", safeContent);
 
         try {
             log.info("Starting AI violation check for articleId={}", article.getId());
-            String violationPrompt = String.format(VIOLATION_CHECK_PROMPT, title, truncatedContent);
+            String violationPrompt = String.format(VIOLATION_CHECK_PROMPT, safeTitle, wrappedContent);
             String violationResponse = dashScopeClient.callGeneration(SYSTEM_PROMPT, violationPrompt);
 
             if (violationResponse != null) {

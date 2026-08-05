@@ -1,27 +1,27 @@
 import request from '@/common/article_request'
 
 export const getArticleList = (params) => {
-  return request.get('/api/v1/content/manage/list', { params })
+  return request.get('/api/v1/article/manage/list', { params })
 }
 
 export const getArticleStatistics = () => {
-  return request.get('/api/v1/content/manage/statistics')
+  return request.get('/api/v1/article/manage/statistics')
 }
 
 export const getNewsStatistics = () => {
-  return request.get('/api/v1/content/manage/statistics')
+  return request.get('/api/v1/article/manage/statistics')
 }
 
 export const searchArticle = (params) => {
-  return request.get('/api/v1/content/manage/search', { params })
+  return request.get('/api/v1/article/manage/search', { params })
 }
 
 export const getArticleById = (id) => {
-  return request.get('/api/v1/content/manage/detail', { params: { id } })
+  return request.get('/api/v1/article/manage/detail', { params: { id } })
 }
 
 export const deleteArticle = (id) => {
-  return request.post('/api/v1/content/manage/delete', { id })
+  return request.post('/api/v1/article/manage/delete', { id })
 }
 
 export const getDraftList = (params) => {

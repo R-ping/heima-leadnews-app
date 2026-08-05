@@ -1,6 +1,7 @@
 import conf from '@/common/conf'
 import request from '@/common/request'
 import store from '@/stores/store'
+import articleRequest from '@/common/article_request'
 
 function Api(){}
 Api.prototype = {
@@ -50,7 +51,7 @@ Api.prototype = {
         return store.getEquipmentId().then(function(equipmentId) {
             body.equipmentId = equipmentId
             return new Promise(function(resolve, reject) {
-                request.post('/content/api/v1/content/recommend', body, {}).then(function(d) {
+                articleRequest.post('/api/v1/content/recommend', body, {}).then(function(d) {
                     resolve(d)
                 }).catch(function(e) {
                     reject(e)
