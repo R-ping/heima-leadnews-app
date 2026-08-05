@@ -17,7 +17,6 @@
 </template>
 <script>
 import { uploadFile } from '@/common/oss_upload'
-import { saveMaterial } from '@/apis/creator/publish'
 import picBgUrl from '@/static/images/creator/pic_bg.png'
 export default {
   name:"upload",
@@ -37,8 +36,6 @@ export default {
           this.uploadPercent = 0
           uploadFile(file, (percent) => {
               this.uploadPercent = percent
-          }).then((url) => {
-              return saveMaterial(url).then(() => url)
           }).then((url) => {
               this.$emit('input', url)
               this.uploading = false

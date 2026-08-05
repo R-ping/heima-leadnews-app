@@ -78,6 +78,10 @@ export default defineConfig({
           }
         }
       },
+      '/reward': {
+        target: 'http://127.0.0.1:51601/',
+        changeOrigin: true
+      },
       '/minio-static': {
         target: 'http://127.0.0.1:9005',
         changeOrigin: true,

@@ -5,7 +5,7 @@ import tokenManager from './tokenManager'
 
 // create an axios instance
 const service = axios.create({
-  baseURL: '/article',
+  baseURL: '/content',
   timeout: 10000,
   transformResponse(data) {
     if (data)
@@ -14,7 +14,7 @@ const service = axios.create({
 })
 
 const isImgUpload = (config) => {
-  return config.url && (config.url.indexOf('upload_picture') !== -1 || config.url.indexOf('user/photo') !== -1 || config.url.indexOf('article/import') !== -1)
+  return config.url && config.url.indexOf('content/import') !== -1
 }
 
 // request interceptor

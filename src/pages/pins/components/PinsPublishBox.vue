@@ -117,7 +117,8 @@
 </template>
 
 <script>
-import { uploadImage, previewLink } from '@/apis/pins'
+import { previewLink } from '@/apis/pins'
+import { uploadFile } from '@/common/oss_upload'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -252,15 +253,10 @@ export default {
             const file = e.target.files[0]
             if (!file) return
             try {
-                const res = await uploadImage(file)
-                if (res && res.code === 200 && res.data) {
-                    const url = res.data.url || res.data
-                    this.localImages.push(url)
-                    this.removeLink()
-                    this.$emit('update:images', [...this.localImages])
-                } else {
-                    toast('图片上传失败', 2)
-                }
+                const url = await uploadFile(file)
+                this.localImages.push(url)
+                this.removeLink()
+                this.$emit('update:images', [...this.localImages])
             } catch (e) {
                 toast('图片上传失败', 2)
             } finally {

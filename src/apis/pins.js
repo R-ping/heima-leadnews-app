@@ -45,13 +45,6 @@ export const getAllCircles = () => {
   return request.get('/api/v1/pins/circles')
 }
 
-// 上传图片
-export const uploadImage = (file) => {
-  const formData = new FormData()
-  formData.append('file', file)
-  return request.post('/api/v1/pins/upload-image', formData)
-}
-
 // 链接预览
 export const previewLink = (data) => {
   return request.post('/api/v1/pins/link-preview', data)

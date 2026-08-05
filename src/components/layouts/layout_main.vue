@@ -158,19 +158,36 @@
                 <div class="desktop-aside" v-if="!isUserPage && !isPinsPage && !isCoursePage">
                     <!-- 签到入口 -->
                     <div class="aside-card checkin-card">
+                        <div class="greeting-section">
+                            <span class="greeting-text">{{ greetingText }}</span>
+                        </div>
                         <div class="checkin-entry" @click="handleCheckinClick">
                             <div class="checkin-info">
                                 <span class="checkin-icon">&#xf058;</span>
                                 <span class="checkin-label" v-if="!isLoggedIn">每日签到</span>
                                 <span class="checkin-label" v-else-if="!checkinTodayStatus.isSignedIn">每日签到</span>
-                                <span class="checkin-label signed" v-else>已签到 {{ checkinTodayStatus.consecutiveDays }} 天</span>
+                                <span class="checkin-label signed" v-else>已连续签到 {{ checkinTodayStatus.consecutiveDays }} 天</span>
                             </div>
+                            <span class="checkin-btn" v-if="isLoggedIn && !checkinTodayStatus.isSignedIn">去签到</span>
                             <span class="checkin-arrow">&#xf105;</span>
                         </div>
                         <div class="checkin-extra" v-if="isLoggedIn">
                             <span class="ore-text">矿石 {{ checkinTodayStatus.totalOre || 0 }}</span>
                         </div>
                     </div>
+
+                    <!-- 签到进度弹框 -->
+                    <CheckinProgressModal
+                        :visible="showCheckinModal"
+                        :mode="checkinModalMode"
+                        :earnedOre="checkinResult.earnedOre"
+                        :milestoneProgress="checkinResult.milestoneProgress"
+                        :nextSpecial="checkinResult.nextSpecial"
+                        :isSigned="checkinTodayStatus.isSignedIn"
+                        @close="closeCheckinModal"
+                        @checkin-success="handleCheckinSuccess"
+                        @go-checkin-page="closeCheckinModal"
+                    />
 
                     <!-- 推荐话题 -->
                     <div class="aside-card topic-card">
@@ -215,6 +232,7 @@
     import { getTodayStatus, doCheckIn } from '@/apis/checkin'
     import UserDropdown from '@/components/bars/UserDropdown.vue'
     import NotificationBell from '@/components/bars/NotificationBell.vue'
+    import CheckinProgressModal from '@/components/checkin/CheckinProgressModal.vue'
     import conf from '@/common/conf'
     import request from '@/common/request'
 
@@ -270,7 +288,7 @@
 
     export default {
         name: "HeiMaLayoutMain",
-        components: { UserDropdown, NotificationBell },
+        components: { UserDropdown, NotificationBell, CheckinProgressModal },
         data() {
             return {
                 showUserDropdown: false,
@@ -296,6 +314,14 @@
                     isSignedIn: false,
                     consecutiveDays: 0,
                     totalOre: 0
+                },
+                // 签到弹框相关
+                showCheckinModal: false,
+                checkinModalMode: 'entry',
+                checkinResult: {
+                    earnedOre: 0,
+                    milestoneProgress: { current: 0, total: 30, percent: 0, specialDays: [] },
+                    nextSpecial: null
                 },
                 recommendTopics: [],
                 unreadCount: 0,
@@ -343,6 +369,14 @@
             },
             isHotPage() {
                 return this.$route.path === '/hot'
+            },
+            greetingText() {
+                const hour = new Date().getHours()
+                if (hour < 6) return '凌晨好'
+                if (hour < 12) return '上午好'
+                if (hour < 14) return '中午好'
+                if (hour < 18) return '下午好'
+                return '晚上好'
             }
         },
         mounted() {
@@ -670,17 +704,31 @@
                     return
                 }
                 if (!this.checkinTodayStatus.isSignedIn) {
-                    this.doCheckInAction()
+                    // 未签到，打开签到弹框
+                    this.checkinModalMode = 'entry'
+                    this.showCheckinModal = true
                 } else {
+                    // 已签到，跳转签到页
                     this.$router.push('/user/checkin')
                 }
+            },
+            closeCheckinModal() {
+                this.showCheckinModal = false
+            },
+            async handleCheckinSuccess(data) {
+                this.checkinResult = {
+                    earnedOre: data.earnedOre || 0,
+                    milestoneProgress: data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] },
+                    nextSpecial: data.nextSpecial || null
+                }
+                this.checkinModalMode = 'success'
+                this.loadCheckinStatus()
             },
             async doCheckInAction() {
                 try {
                     const res = await doCheckIn()
-                    if (res && res.code === 200) {
-                        toast('签到成功')
-                        this.loadCheckinStatus()
+                    if (res && res.code === 200 && res.data) {
+                        this.handleCheckinSuccess(res.data)
                     } else {
                         toast(res && res.message || '签到失败')
                     }
@@ -1236,7 +1284,15 @@
 
         /* ===== 签到入口卡片 ===== */
         .checkin-card {
-            padding: 12PX 20PX;
+            padding: 16PX 20PX;
+        }
+        .greeting-section {
+            margin-bottom: 12PX;
+        }
+        .greeting-text {
+            font-size: 20PX;
+            color: #333;
+            font-weight: 600;
         }
         .checkin-entry {
             display: flex;
@@ -1265,6 +1321,14 @@
         }
         .checkin-label.signed {
             color: #1E80FF;
+        }
+        .checkin-btn {
+            padding: 4PX 12PX;
+            background: linear-gradient(135deg, #1e80ff, #4096ff);
+            color: #fff;
+            border-radius: 12PX;
+            font-size: 12PX;
+            font-weight: 500;
         }
         .checkin-arrow {
             font-family: fontawesome;

@@ -1,10 +1,10 @@
 import request from '@/common/article_request'
 
 const API_COMMENT_LIST = '/api/v1/comment/list'
-const API_CLOSECOMMENTS = 'comments/status'
-const API_ADMIRECOMMENT = 'comment/likings'
-const API_CANCELADMIRECOMMENT = 'comment/likings/'
-const API_COMMENTS = 'comments'
+const API_CLOSECOMMENTS = '/api/v1/comment/status'
+const API_ADMIRECOMMENT = '/api/v1/comment/likings'
+const API_CANCELADMIRECOMMENT = '/api/v1/comment/likings/'
+const API_COMMENTS = '/api/v1/comment'
 
 // 获取评论列表
 export const getCommentList = (params) => {

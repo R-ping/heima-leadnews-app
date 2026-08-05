@@ -13,10 +13,6 @@
         <div class="img_list">
             <div class="img_list_item" v-for="img in imgData" :key="img.id">
                 <img :src="img.url" />
-                <div v-if="activeSelect == '0'" class="operate">
-                   <img @click="collectOrCancel(img)" :src="img.is_collection ? collectSelectedIcon : collectIcon" alt="" />
-                   <img @click="delImg(img)" :src="delIcon" alt="">
-                </div>
             </div>
         </div>
         <div class="pagination">
@@ -48,18 +44,11 @@
  </div>
  </template>
 <script>
-import { getAllImgData , delImg , collectOrCancel} from '@/apis/creator/publish'
 import Upload from  '../components/Upload/upload.vue'
-import collectIcon from '@/static/images/creator/collect.png'
-import collectSelectedIcon from '@/static/images/creator/collect_select.png'
-import delIcon from '@/static/images/creator/del.png'
 export default {
     name:'material',
     data () {
         return {
-            collectIcon,//收藏图标
-            collectSelectedIcon,//收集图标
-            delIcon,//删除图标
             imgPage:{
                total:0,
                currentPage:1,
@@ -94,28 +83,10 @@ export default {
       },
       //获取图片素材
       async  getImgData (params) {
-        let result = await getAllImgData(params)
-        this.imgData = result.data.list
-        this.imgPage.total = result.data.total
-        this.imgPage.pageCount = Math.ceil(this.imgPage.total / this.imgPage.pageSize)
-      },
-      //取消或者收藏图片
-      async collectOrCancel (img) {
-          let isCollected = img.is_collection;
-          if(isCollected==1){ isCollected = 0; }else{ isCollected=1; }
-          //取相反状态
-         await collectOrCancel(img.id , {isCollected:isCollected})
-         img.is_collection = isCollected //取相反状态
-         this.$forceUpdate() //强制更新
-         this.$message({type:'success',message:'操作成功'})
-      },
-      //删除图片
-      async delImg (img) {
-        let result =  await  this.$confirm('确认删除该素材?');
-         result ? await delImg(img.id) : null //删除数据
-        //写多了if  else 写个三元表达式 换换口味
-         this.$message({type:'success',message:'删除成功'}) &&
-         this.loadData();
+        // TODO: 素材管理 API 已废弃
+        this.imgData = []
+        this.imgPage.total = 0
+        this.imgPage.pageCount = 0
       },
      imgChangeCall () {
          //图片变化了 记录改变的状态 用于关闭弹层时 重新加载数据

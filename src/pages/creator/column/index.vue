@@ -104,7 +104,6 @@
 import avatar from '@/static/images/creator/avatar.jpg'
 import { getColumnList, getColumnStatistics, createColumn, deleteColumn } from '@/apis/creator/content'
 import { uploadFile } from '@/common/oss_upload'
-import { saveMaterial } from '@/apis/creator/publish'
 
 export default {
   name: 'ColumnManage',
@@ -186,7 +185,6 @@ export default {
       if (!file) return
       try {
         const url = await uploadFile(file)
-        await saveMaterial(url)
         this.columnForm.coverImage = url
         this.$message.success('封面上传成功')
       } catch (err) {
