@@ -51,6 +51,11 @@ public class LevelServiceImpl implements LevelService {
     }
 
     @Override
+    public Map<String, Object> getUserLevelData(Long userId) {
+        return levelQueryService.getUserLevelData(userId);
+    }
+
+    @Override
     public List<ApLevelConfig> getLevelConfigs(Integer levelType) {
         return levelQueryService.getLevelConfigs(levelType);
     }

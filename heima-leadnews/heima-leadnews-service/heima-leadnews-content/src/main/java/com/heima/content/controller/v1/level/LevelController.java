@@ -3,12 +3,16 @@ package com.heima.content.controller.v1.level;
 import com.heima.content.service.level.LevelService;
 import com.heima.model.level.pojos.ApLevelConfig;
 import com.heima.model.level.pojos.ApUserLevel;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/level")
@@ -27,6 +31,12 @@ public class LevelController {
     public ResponseEntity<Map<String, Object>> getUserLevelInfo(@PathVariable Long userId) {
         Map<String, Object> levelInfo = levelService.getUserLevelInfo(userId);
         return ResponseEntity.ok(levelInfo);
+    }
+
+    @GetMapping("/user/{userId}/data")
+    public ResponseEntity<Map<String, Object>> getUserLevelData(@PathVariable Long userId) {
+        Map<String, Object> levelData = levelService.getUserLevelData(userId);
+        return ResponseEntity.ok(levelData);
     }
 
     @GetMapping("/user/{userId}/tasks")

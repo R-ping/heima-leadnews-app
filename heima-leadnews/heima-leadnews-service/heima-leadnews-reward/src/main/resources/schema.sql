@@ -2,8 +2,8 @@
 -- leadnews_task 数据库完整建表脚本
 -- 包含：签到模块 + 抽奖模块 + 兑换模块 + 用户资产
 -- ============================================
-create database if not exists leadnews_task default charset utf8mb4;
-use leadnews_task;
+create database if not exists leadnews_reward default charset utf8mb4;
+use leadnews_reward;
 -- 1. 用户资产表（矿石余额）
 CREATE TABLE IF NOT EXISTS `user_assets` (
   `user_id` bigint(20) NOT NULL PRIMARY KEY,

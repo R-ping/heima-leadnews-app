@@ -1,11 +1,14 @@
 package com.heima.content.service.level.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.heima.apis.reward.IRewardClient;
+import com.heima.model.common.dtos.ResponseResult;
 import com.heima.content.mapper.level.ApLevelConfigMapper;
 import com.heima.content.mapper.level.ApUserLevelMapper;
 import com.heima.content.service.level.LevelPermissionService;
 import com.heima.model.level.pojos.ApLevelConfig;
 import com.heima.model.level.pojos.ApUserLevel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ import java.util.Map;
 /**
  * 用户等级查询服务 — 负责等级信息查询、等级配置查询、等级计算
  */
+@Slf4j
 @Service
 public class LevelQueryService {
 
@@ -27,6 +31,9 @@ public class LevelQueryService {
 
     @Autowired
     private LevelPermissionService permissionService;
+
+    @Autowired
+    private IRewardClient rewardClient;
 
     /**
      * 获取用户等级信息，不存在则创建默认记录
@@ -79,6 +86,57 @@ public class LevelQueryService {
         result.put("powerDescription", powerConfig != null ? powerConfig.getDescription() : "");
 
         result.put("permissions", permissionService.getUserPermissions(userId));
+
+        return result;
+    }
+
+    /**
+     * 获取用户等级数据（含等级徽章、经验值、升级进度、矿石数）
+     * 矿石数通过Feign远程调用reward服务获取，不再从ap_user_level表读取
+     */
+    public Map<String, Object> getUserLevelData(Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        ApUserLevel userLevel = getUserLevel(userId);
+
+        Integer dailyLevel = userLevel.getDailyLevel() != null ? userLevel.getDailyLevel() : 1;
+        Integer dailyScore = userLevel.getDailyScore() != null ? userLevel.getDailyScore() : 0;
+
+        Integer diamondBalance = 0;
+        try {
+            ResponseResult oreResult = rewardClient.getUserOreBalance(userId);
+            if (oreResult != null && oreResult.getCode() == 200 && oreResult.getData() != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> oreData = (Map<String, Object>) oreResult.getData();
+                Object oreVal = oreData.get("oreBalance");
+                if (oreVal instanceof Number) {
+                    diamondBalance = ((Number) oreVal).intValue();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("远程获取用户矿石余额失败，userId={}, error={}", userId, e.getMessage());
+        }
+
+        LambdaQueryWrapper<ApLevelConfig> nextLevelQuery = new LambdaQueryWrapper<>();
+        nextLevelQuery.eq(ApLevelConfig::getLevelType, 1);
+        nextLevelQuery.eq(ApLevelConfig::getLevelValue, dailyLevel + 1);
+        ApLevelConfig nextLevelConfig = levelConfigMapper.selectOne(nextLevelQuery);
+
+        int levelMax;
+        if (nextLevelConfig != null && nextLevelConfig.getMinScore() != null) {
+            levelMax = nextLevelConfig.getMinScore();
+        } else {
+            levelMax = dailyLevel * 150;
+        }
+
+        int levelPercent = levelMax > 0 ? (int) (dailyScore * 100L / levelMax) : 0;
+
+        result.put("levelBadge", "ZR." + dailyLevel);
+        result.put("levelScore", dailyScore);
+        result.put("levelMax", levelMax);
+        result.put("levelPercent", levelPercent);
+        result.put("diamondCount", diamondBalance);
+        result.put("dailyLevel", dailyLevel);
+        result.put("dailyScore", dailyScore);
 
         return result;
     }
