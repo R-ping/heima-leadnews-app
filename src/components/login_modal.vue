@@ -268,7 +268,12 @@ export default {
             var self = this
             Api.getCode(phone, 'app', 'login').then(function (d) {
                 if (d && d.code === 200) {
-                    toast('验证码已发送', 2)
+                    if (d.data) {
+                        self.params.code = String(d.data)
+                        toast('验证码已自动填充', 2)
+                    } else {
+                        toast('验证码已发送', 2)
+                    }
                 } else {
                     toast((d && d.errorMessage) || (d && d.message) || '获取验证码失败', 3)
                 }
