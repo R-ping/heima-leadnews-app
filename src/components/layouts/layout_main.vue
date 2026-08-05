@@ -541,19 +541,24 @@
             },
             goToHome() {
                 this.currentNav = 'home'
+                this.searchKeyword = ''
                 this.$router.push('/home')
             },
             goToPins() {
                 this.currentNav = 'pins'
+                this.searchKeyword = ''
                 this.$router.push('/pins')
             },
             goToCourse() {
                 this.currentNav = 'course'
+                this.searchKeyword = ''
                 this.$router.push('/course')
             },
             selectCategory(category) {
                 this.currentCategory = category
+                this.searchKeyword = ''
                 if (category === 'ranking') {
+                    this.currentNav = 'home'
                     this.$router.push('/hot')
                     return
                 }
@@ -562,15 +567,22 @@
                         this.showLogin()
                         return
                     }
+                    this.currentNav = 'home'
                     this.$router.push('/home/following')
                 } else if (category === 'comprehensive') {
+                    this.currentNav = 'home'
                     this.$router.push('/home')
                 } else {
+                    this.currentNav = 'home'
                     this.$router.push(`/home/${category}`)
                 }
             },
             syncCategoryFromRoute() {
                 var path = this.$route.path
+                if (path.indexOf('/search_result') === 0) {
+                    this.currentNav = ''
+                    return
+                }
                 if (path === '/hot') {
                     this.currentCategory = 'ranking'
                     this.currentNav = 'home'
