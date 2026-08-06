@@ -4,21 +4,21 @@ import request from '@/common/article_request'
  * 内容数据 - 文章统计概览
  */
 export const getArticleStatistics = (params) => {
-  return request.get('/api/v1/data/content/statistics', { params })
+  return request.get('/api/v1/data/article/statistics', { params })
 }
 
 /**
  * 内容数据 - 文章趋势数据
  */
 export const getArticleTrend = (params) => {
-  return request.get('/api/v1/data/content/trend', { params })
+  return request.get('/api/v1/data/article/trend', { params })
 }
 
 /**
  * 内容数据 - 文章单篇分析列表
  */
 export const getArticleDetailList = (params) => {
-  return request.get('/api/v1/data/content/detail', { params })
+  return request.get('/api/v1/data/article/detail', { params })
 }
 
 /**

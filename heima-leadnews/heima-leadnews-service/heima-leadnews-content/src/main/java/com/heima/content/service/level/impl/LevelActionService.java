@@ -5,9 +5,13 @@ import static com.heima.content.constants.LevelScoreConstants.DAILY_ACTION_LIMIT
 import static com.heima.content.constants.LevelScoreConstants.DAILY_SCORE_LIMIT;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.heima.content.mapper.level.ApBehaviorConfigMapper;
+import com.heima.content.mapper.level.ApUserDailyProgressMapper;
 import com.heima.content.mapper.level.ApUserLevelMapper;
 import com.heima.content.mapper.pins.ApUserActionLogMapper;
 import com.heima.content.service.level.LevelPermissionService;
+import com.heima.model.level.pojos.ApBehaviorConfig;
+import com.heima.model.level.pojos.ApUserDailyProgress;
 import com.heima.model.level.pojos.ApUserLevel;
 import com.heima.model.user.pojos.ApUserActionLog;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +47,12 @@ public class LevelActionService {
 
     @Autowired
     private LevelTaskProgressBuilder taskProgressBuilder;
+
+    @Autowired
+    private ApBehaviorConfigMapper behaviorConfigMapper;
+
+    @Autowired
+    private ApUserDailyProgressMapper userDailyProgressMapper;
 
     /**
      * 记录行为（默认行为，无限制校验）
@@ -77,6 +88,8 @@ public class LevelActionService {
         actionLog.setScoreChange(actualScore);
         actionLog.setActionDetail(actionDetail);
         actionLogMapper.insert(actionLog);
+
+        upsertDailyProgress(userId, actionType);
 
         userLevel.setDailyScore(userLevel.getDailyScore() + actualScore);
         userLevel.setDailyScoreToday(userLevel.getDailyScoreToday() + actualScore);
@@ -140,6 +153,8 @@ public class LevelActionService {
         actionLog.setScoreChange(actualScore);
         actionLog.setActionDetail(actionDetail);
         actionLogMapper.insert(actionLog);
+
+        upsertDailyProgress(userId, actionType);
 
         userLevel.setDailyScore(userLevel.getDailyScore() + actualScore);
         userLevel.setDailyScoreToday(userLevel.getDailyScoreToday() + actualScore);
@@ -259,5 +274,70 @@ public class LevelActionService {
         query.eq(ApUserActionLog::getActionType, actionType);
         query.apply("DATE(created_time) = {0}", today);
         return actionLogMapper.selectCount(query);
+    }
+
+    /**
+     * 记录被动行为每日进度（不发积分、不写行为日志）
+     * 用于"社区影响力"被动行为（be_followed/pin_liked/article_liked）的进度统计
+     */
+    public void recordPassiveAction(Long userId, String actionType) {
+        upsertDailyProgress(userId, actionType);
+    }
+
+    /**
+     * 写入/更新用户每日行为进度表 ap_user_daily_progress
+     * 仅统计行为配置表中存在的行为，失败不影响主流程
+     */
+    private void upsertDailyProgress(Long userId, String actionType) {
+        try {
+            String actionCode = normalizeActionCode(actionType);
+            if (actionCode == null) {
+                return;
+            }
+            // 行为不在配置表中（如 daily_checkin/share）则跳过
+            LambdaQueryWrapper<ApBehaviorConfig> configQuery = new LambdaQueryWrapper<>();
+            configQuery.eq(ApBehaviorConfig::getActionCode, actionCode);
+            configQuery.eq(ApBehaviorConfig::getIsActive, 1);
+            if (behaviorConfigMapper.selectCount(configQuery) == 0) {
+                return;
+            }
+
+            java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+            LambdaQueryWrapper<ApUserDailyProgress> progressQuery = new LambdaQueryWrapper<>();
+            progressQuery.eq(ApUserDailyProgress::getUserId, userId);
+            progressQuery.eq(ApUserDailyProgress::getStatDate, today);
+            progressQuery.eq(ApUserDailyProgress::getActionCode, actionCode);
+            ApUserDailyProgress progress = userDailyProgressMapper.selectOne(progressQuery);
+
+            if (progress != null) {
+                progress.setCount((progress.getCount() == null ? 0 : progress.getCount()) + 1);
+                progress.setUpdatedTime(new Date());
+                userDailyProgressMapper.updateById(progress);
+            } else {
+                ApUserDailyProgress newProgress = new ApUserDailyProgress();
+                newProgress.setUserId(userId);
+                newProgress.setStatDate(today);
+                newProgress.setActionCode(actionCode);
+                newProgress.setCount(1);
+                newProgress.setUpdatedTime(new Date());
+                userDailyProgressMapper.insert(newProgress);
+            }
+        } catch (Exception e) {
+            log.warn("写入用户每日行为进度失败: userId={}, actionType={}", userId, actionType, e);
+        }
+    }
+
+    /**
+     * 将行为编码归一化为 ap_behavior_config.action_code
+     */
+    private String normalizeActionCode(String actionType) {
+        if (actionType == null) {
+            return null;
+        }
+        switch (actionType) {
+            case "publish_pins": return "publish_pin";
+            case "browse_course": return "browse_article";
+            default: return actionType;
+        }
     }
 }

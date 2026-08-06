@@ -2,6 +2,7 @@ package com.heima.content.behavior.service.impl;
 
 import com.heima.content.behavior.service.BehaviorPostProcessor;
 import com.heima.content.service.level.LevelService;
+import com.heima.content.service.level.impl.LevelActionService;
 import com.heima.model.behavior.BehaviorContext;
 import com.heima.model.behavior.BehaviorResult;
 import com.heima.model.behavior.BehaviorType;
@@ -20,6 +21,9 @@ public class LevelScoreProcessor implements BehaviorPostProcessor {
 
     @Autowired
     private LevelService levelService;
+
+    @Autowired
+    private LevelActionService levelActionService;
 
     @Override
     public void postProcess(BehaviorContext context, BehaviorResult result) {
@@ -45,6 +49,17 @@ public class LevelScoreProcessor implements BehaviorPostProcessor {
 
         // 2. 目标用户（文章作者/被关注者）获得逐力值
         if (targetUserId != null) {
+            // 2.1 被动行为每日进度记录（社区影响力：被关注/沸点获赞/文章获赞），失败不影响主流程
+            try {
+                String passiveActionCode = mapToPassiveAction(type);
+                if (passiveActionCode != null) {
+                    levelActionService.recordPassiveAction(targetUserId.longValue(), passiveActionCode);
+                    log.debug("目标用户{}被动行为进度+1: actionType={}", targetUserId, passiveActionCode);
+                }
+            } catch (Exception e) {
+                log.warn("目标用户{}被动行为进度记录失败: type={}", targetUserId, type, e);
+            }
+
             String powerChangeType = mapToPowerChange(type);
             if (powerChangeType != null) {
                 try {
@@ -79,6 +94,18 @@ public class LevelScoreProcessor implements BehaviorPostProcessor {
             case PUBLISH_PIN: return "publish_pins";
             case BROWSE_ARTICLE: return "browse_article";
             case BROWSE_COURSE: return "browse_course";
+            default: return null;
+        }
+    }
+
+    /**
+     * 将行为类型映射为被动行为进度编码（社区影响力）
+     */
+    private String mapToPassiveAction(BehaviorType type) {
+        switch (type) {
+            case FOLLOW_USER: return "be_followed";
+            case LIKE_PIN: return "pin_liked";
+            case LIKE_ARTICLE: return "article_liked";
             default: return null;
         }
     }

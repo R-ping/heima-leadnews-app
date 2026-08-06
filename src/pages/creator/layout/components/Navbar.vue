@@ -170,11 +170,11 @@ export default {
     },
     goToGrowth() {
       this.showUserDropdown = false
-      this.$router.push('/user/growth')
+      this.$router.push('/user/center/growth')
     },
     goToCheckin() {
       this.showUserDropdown = false
-      this.$router.push('/user/checkin')
+      this.$router.push('/user/center/checkin')
     },
     goToCourses() {
       this.showUserDropdown = false

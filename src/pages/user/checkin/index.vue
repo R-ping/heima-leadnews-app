@@ -3,192 +3,218 @@
         <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
 
         <div class="checkin-content">
-            <!-- 签到进度弹框 -->
-            <CheckinProgressModal
-                :visible="showCheckinModal"
-                :mode="checkinModalMode"
-                :earnedOre="checkinResult.earnedOre"
-                :milestoneProgress="checkinResult.milestoneProgress"
-                :nextSpecial="checkinResult.nextSpecial"
-                :isSigned="dashboard.checkinStats.todaySigned"
-                @close="closeCheckinModal"
-                @checkin-success="handleCheckinSuccess"
+            <!-- 左侧侧边栏 -->
+            <UserCenterSidebar
+                active-menu="checkin"
+                :user-info="dashboard.userInfo"
+                @menu-click="handleSidebarMenuClick"
             />
 
-            <!-- User Info Bar -->
-            <div class="user-info-bar">
-                <div class="user-info-section">
-                    <span class="user-nickname">{{ dashboard.userInfo.nickname || '用户' }}</span>
-                    <span class="user-level-badge">{{ dashboard.userInfo.level || 'ZR.1' }}</span>
-                </div>
-                <span class="info-separator">|</span>
-                <div class="user-info-section">
-                    <span class="info-value">{{ dashboard.checkinStats.continuousDays || 0 }}</span>
-                    <span class="info-label">连续签到天数</span>
-                </div>
-                <span class="info-separator">|</span>
-                <div class="user-info-section">
-                    <span class="info-value">{{ dashboard.checkinStats.totalDays || 0 }}</span>
-                    <span class="info-label">累计签到天数</span>
-                </div>
-                <span class="info-separator">|</span>
-                <div class="user-info-section ore-section">
-                    <span class="info-value ore-value">{{ dashboard.checkinStats.oreBalance || 0 }}</span>
-                    <span class="ore-icon">&#xf06d;</span>
-                    <span class="ore-question" title="矿石说明">?</span>
-                </div>
-            </div>
+            <!-- 右侧主内容区 -->
+            <div class="main-area">
+                <!-- 签到进度弹框 -->
+                <CheckinProgressModal
+                    :visible="showCheckinModal"
+                    :mode="checkinModalMode"
+                    :earnedOre="checkinResult.earnedOre"
+                    :milestoneProgress="checkinResult.milestoneProgress"
+                    :nextSpecial="checkinResult.nextSpecial"
+                    :isSigned="dashboard.checkinStats.todaySigned"
+                    @close="closeCheckinModal"
+                    @checkin-success="handleCheckinSuccess"
+                />
 
-            <!-- Sub Tabs -->
-            <div class="sub-tabs">
-                <div
-                    v-for="tab in subTabs"
-                    :key="tab.key"
-                    class="tab-item"
-                    :class="{ active: activeTab === tab.key }"
-                    @click="switchTab(tab)"
-                >
-                    {{ tab.label }}
-                </div>
-            </div>
-
-            <!-- Calendar Section -->
-            <div class="calendar-section">
-                <div class="calendar-left">
-                    <div class="encourage-text">
-                        <div class="encourage-line">今日签到</div>
-                        <div class="encourage-line">领取矿石</div>
-                        <div class="encourage-line">加速升级</div>
+                <!-- 用户信息栏 -->
+                <div class="user-info-bar">
+                    <div class="user-info-section">
+                        <span class="user-nickname">{{ dashboard.userInfo.nickname || '用户' }}</span>
+                        <span class="user-level-badge">{{ dashboard.userInfo.level || 'ZR.1' }}</span>
                     </div>
-                    <button 
-                        class="checkin-action-btn" 
-                        :class="{ 'signed-btn': dashboard.checkinStats.todaySigned }"
-                        @click="handleCheckinBtnClick"
-                    >
-                        {{ dashboard.checkinStats.todaySigned ? '今日已签到' : '立即签到' }}
-                    </button>
-                </div>
-
-                <div class="calendar-center">
-                    <div class="calendar-grid">
-                        <div class="calendar-header-row">
-                            <div
-                                v-for="day in weekDays"
-                                :key="day"
-                                class="calendar-header-cell"
-                            >
-                                {{ day }}
-                            </div>
-                        </div>
-                        <div class="calendar-body">
-                            <div
-                                v-for="(cell, index) in calendarCells"
-                                :key="index"
-                                class="calendar-cell"
-                                :class="cellClass(cell)"
-                                @click="handleCellClick(cell)"
-                            >
-                                <template v-if="!cell.isEmpty">
-                                    <span class="cell-date">{{ cell.day }}</span>
-                                    <span v-if="cell.oreReward" class="cell-reward">
-                                        +{{ cell.oreReward }}
-                                    </span>
-                                    <span v-if="cell.status === 'repaired'" class="cell-patched-label">补</span>
-                                    <span v-if="cell.isSpecialDay" class="cell-special-label">奖</span>
-                                </template>
-                            </div>
-                        </div>
+                    <span class="info-separator">|</span>
+                    <div class="user-info-section">
+                        <span class="info-value">{{ dashboard.checkinStats.continuousDays || 0 }}</span>
+                        <span class="info-label">连续签到天数</span>
+                    </div>
+                    <span class="info-separator">|</span>
+                    <div class="user-info-section">
+                        <span class="info-value">{{ dashboard.checkinStats.totalDays || 0 }}</span>
+                        <span class="info-label">累计签到天数</span>
+                    </div>
+                    <span class="info-separator">|</span>
+                    <div class="user-info-section ore-section">
+                        <span class="info-value ore-value">{{ dashboard.checkinStats.oreBalance || 0 }}</span>
+                        <span class="ore-icon">&#xf06d;</span>
+                        <span class="ore-question" title="矿石说明">?</span>
                     </div>
                 </div>
 
-                <div class="calendar-right">
-                    <div class="month-nav">
-                        <span class="month-arrow" @click="prevMonth">&#xf104;</span>
-                        <span class="month-label">{{ currentYear }}年{{ currentMonth }}月</span>
-                        <span class="month-arrow" @click="nextMonth">&#xf105;</span>
-                    </div>
-                    <div class="today-btn" @click="goToday">今天</div>
-                    <div class="patch-card-info">
-                        <span class="patch-label">补签卡</span>
-                        <span class="patch-count">{{ dashboard.patchCardCount || 0 }}张</span>
-                    </div>
-                    <div class="next-reward" v-if="dashboard.nextSpecialReward">
-                        <div class="next-reward-title">下一奖励</div>
-                        <div class="next-reward-item">
-                            <span class="next-day">第{{ dashboard.nextSpecialReward.day }}天</span>
-                            <span class="next-ore">+{{ dashboard.nextSpecialReward.ore }}</span>
+                <!-- 签到操作区 -->
+                <div class="action-section">
+                    <div class="action-left">
+                        <div class="action-title">
+                            <span class="ore-icon">&#xf06d;</span>
+                            <span class="action-text">每日签到</span>
                         </div>
-                        <div class="next-days-left">
-                            还需{{ dashboard.nextSpecialReward.daysLeft }}天
-                        </div>
-                    </div>
-                    <div class="qr-code-area">
-                        <div class="qr-placeholder">&#xf029;</div>
-                        <div class="qr-text">扫描右侧二维码</div>
-                        <div class="qr-text">分享给好友</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bottom Sections -->
-            <div class="bottom-sections">
-                <div class="bottom-section section-notice">
-                    <div class="section-title">掘金公告</div>
-                    <div class="notice-list">
-                        <div class="notice-item">
-                            <span class="notice-name">公益计划</span>
-                            <span class="notice-link">了解详情 &#xf105;</span>
-                        </div>
-                        <div class="notice-item">
-                            <span class="notice-name">游戏入口调整</span>
-                            <span class="notice-link">了解详情 &#xf105;</span>
-                        </div>
-                        <div class="notice-item">
-                            <span class="notice-link">捐赠详情 &#xf105;</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="bottom-section section-exchange">
-                    <div class="section-title">点石成金</div>
-                    <div class="exchange-content">
-                        <div class="exchange-desc">用矿石兑换公益基金</div>
-                        <div class="exchange-btn">去兑换</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- My Tasks Section -->
-            <div class="tasks-section">
-                <div class="tasks-header">
-                    <span class="tasks-title">我的任务</span>
-                    <span class="tasks-question-icon" title="任务说明">?</span>
-                </div>
-                <div class="tasks-list">
-                    <div
-                        v-for="task in dashboard.tasks"
-                        :key="task.id"
-                        class="task-item"
-                    >
-                        <div class="task-info">
-                            <div class="task-name">{{ task.name }}</div>
-                            <div class="task-desc">{{ task.description }}</div>
-                        </div>
-                        <div class="task-reward">
-                            +{{ task.reward }} 矿石
-                        </div>
-                        <div
-                            class="task-status"
-                            :class="{ completed: task.status === 'completed' }"
+                        <div class="action-desc">连续签到领取矿石奖励</div>
+                        <button
+                            class="checkin-btn"
+                            :class="{ 'checked': dashboard.checkinStats.todaySigned }"
+                            @click="handleCheckinBtnClick"
                         >
-                            {{ task.status === 'completed' ? '已完成' : '去完成' }}
+                            <span class="btn-ore-icon">&#xf06d;</span>
+                            {{ dashboard.checkinStats.todaySigned ? '今日已签到' : '立即签到' }}
+                        </button>
+                    </div>
+                    <div class="action-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ dashboard.checkinStats.continuousDays || 0 }}</div>
+                            <div class="stat-label">连续签到</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ dashboard.checkinStats.totalDays || 0 }}</div>
+                            <div class="stat-label">累计签到</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value ore">{{ dashboard.checkinStats.oreBalance || 0 }}</div>
+                            <div class="stat-label">矿石余额</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ dashboard.patchCardCount || 0 }}</div>
+                            <div class="stat-label">补签卡</div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Footer -->
-            <div class="checkin-footer">
-                用户协议 · 法律声明 &copy;{{ new Date().getFullYear() }} 稀土掘金
+                <!-- 日历区域 -->
+                <div class="calendar-section">
+                    <div class="calendar-header">
+                        <span class="calendar-title">签到日历</span>
+                        <span class="today-btn" @click="goToday">今天</span>
+                    </div>
+                    <!-- 上一月 -->
+                    <div class="calendar-month-block">
+                        <div class="month-label">{{ prevYear }}年{{ prevMonth }}月</div>
+                        <div class="calendar-grid">
+                            <div class="calendar-header-row">
+                                <div
+                                    v-for="day in weekDays"
+                                    :key="'prev-h-' + day"
+                                    class="calendar-header-cell"
+                                >{{ day }}</div>
+                            </div>
+                            <div class="calendar-body">
+                                <div
+                                    v-for="(cell, index) in prevMonthCells"
+                                    :key="'prev-' + index"
+                                    class="calendar-cell"
+                                    :class="cellClass(cell)"
+                                    @click="handleCellClick(cell)"
+                                >
+                                    <template v-if="!cell.isEmpty">
+                                        <span class="cell-date">{{ cell.day }}</span>
+                                        <span v-if="cell.reward" class="cell-reward">
+                                            +{{ cell.reward }}
+                                        </span>
+                                        <span v-if="cell.status === 'repaired'" class="cell-patched-label">补</span>
+                                        <span v-if="cell.isSpecialDay" class="cell-special-label">奖</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 当前月 -->
+                    <div class="calendar-month-block">
+                        <div class="month-label">{{ currentYear }}年{{ currentMonth }}月</div>
+                        <div class="calendar-grid">
+                            <div class="calendar-header-row">
+                                <div
+                                    v-for="day in weekDays"
+                                    :key="'curr-h-' + day"
+                                    class="calendar-header-cell"
+                                >{{ day }}</div>
+                            </div>
+                            <div class="calendar-body">
+                                <div
+                                    v-for="(cell, index) in calendarCells"
+                                    :key="'curr-' + index"
+                                    class="calendar-cell"
+                                    :class="cellClass(cell)"
+                                    @click="handleCellClick(cell)"
+                                >
+                                    <template v-if="!cell.isEmpty">
+                                        <span class="cell-date">{{ cell.day }}</span>
+                                        <span v-if="cell.reward" class="cell-reward">
+                                            +{{ cell.reward }}
+                                        </span>
+                                        <span v-if="cell.status === 'repaired'" class="cell-patched-label">补</span>
+                                        <span v-if="cell.isSpecialDay" class="cell-special-label">奖</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Sections -->
+                <div class="bottom-sections">
+                    <div class="bottom-section section-notice">
+                        <div class="section-title">掘金公告</div>
+                        <div class="notice-list">
+                            <div class="notice-item">
+                                <span class="notice-name">公益计划</span>
+                                <span class="notice-link">了解详情 &#xf105;</span>
+                            </div>
+                            <div class="notice-item">
+                                <span class="notice-name">游戏入口调整</span>
+                                <span class="notice-link">了解详情 &#xf105;</span>
+                            </div>
+                            <div class="notice-item">
+                                <span class="notice-link">捐赠详情 &#xf105;</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bottom-section section-exchange">
+                        <div class="section-title">点石成金</div>
+                        <div class="exchange-content">
+                            <div class="exchange-desc">用矿石兑换公益基金</div>
+                            <div class="exchange-btn">去兑换</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Tasks Section -->
+                <div class="tasks-section">
+                    <div class="tasks-header">
+                        <span class="tasks-title">我的任务</span>
+                        <span class="tasks-question-icon" title="任务说明">?</span>
+                    </div>
+                    <div class="tasks-list">
+                        <div
+                            v-for="task in dashboard.tasks"
+                            :key="task.id"
+                            class="task-item"
+                        >
+                            <div class="task-info">
+                                <div class="task-name">{{ task.name }}</div>
+                                <div class="task-desc">{{ task.description }}</div>
+                            </div>
+                            <div class="task-reward">
+                                +{{ task.reward }} 矿石
+                            </div>
+                            <div
+                                class="task-status"
+                                :class="{ completed: task.status === 'completed' }"
+                            >
+                                {{ task.status === 'completed' ? '已完成' : '去完成' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="checkin-footer">
+                    用户协议 · 法律声明 &copy;{{ new Date().getFullYear() }} 稀土掘金
+                </div>
             </div>
         </div>
     </div>
@@ -197,30 +223,22 @@
 <script>
 import HomeBar from '@/components/bars/home_bar'
 import CheckinProgressModal from '@/components/checkin/CheckinProgressModal.vue'
+import UserCenterSidebar from '@/components/user/UserCenterSidebar.vue'
 import Utils from '@/utils/env'
 import { getDashboard, doCheckIn, doRetroactive } from '@/apis/checkin'
 import { toast } from '@/utils/toast'
 
 export default {
     name: 'UserCheckin',
-    components: { HomeBar, CheckinProgressModal },
+    components: { HomeBar, CheckinProgressModal, UserCenterSidebar },
     data() {
         return {
-            activeTab: 'checkin',
-            subTabs: [
-                { key: 'checkin', label: '每日签到' },
-                { key: 'growth', label: '成长等级' },
-                { key: 'lottery', label: '幸运抽奖' },
-                { key: 'exchange', label: '福利兑换' },
-                { key: 'harvest', label: '我的收获' }
-            ],
             weekDays: ['日', '一', '二', '三', '四', '五', '六'],
             currentYear: new Date().getFullYear(),
             currentMonth: new Date().getMonth() + 1,
             todayYear: new Date().getFullYear(),
             todayMonth: new Date().getMonth() + 1,
             today: new Date().getDate(),
-            // 签到弹框相关
             showCheckinModal: false,
             checkinModalMode: 'entry',
             checkinResult: {
@@ -230,10 +248,10 @@ export default {
             },
             dashboard: {
                 userInfo: { nickname: '', level: '', userId: 0 },
-                checkinStats: { 
-                    continuousDays: 0, 
-                    totalDays: 0, 
-                    oreBalance: 0, 
+                checkinStats: {
+                    continuousDays: 0,
+                    totalDays: 0,
+                    oreBalance: 0,
                     todaySigned: false,
                     pendingReward: 0
                 },
@@ -250,37 +268,23 @@ export default {
         isDesktop() {
             return Utils.isDesktop()
         },
+        prevYear() {
+            if (this.currentMonth === 1) {
+                return this.currentYear - 1
+            }
+            return this.currentYear
+        },
+        prevMonth() {
+            if (this.currentMonth === 1) {
+                return 12
+            }
+            return this.currentMonth - 1
+        },
         calendarCells() {
-            const cells = []
-            const firstDay = new Date(this.currentYear, this.currentMonth - 1, 1).getDay()
-            const totalDays = new Date(this.currentYear, this.currentMonth, 0).getDate()
-
-            for (let i = 0; i < firstDay; i++) {
-                cells.push({ isEmpty: true })
-            }
-
-            for (let d = 1; d <= totalDays; d++) {
-                const dateStr = this.formatDateStr(d)
-                const match = this.dashboard.calendar.find(
-                    item => item.date === dateStr
-                )
-
-                // 判断是否为特殊奖励日
-                const periodDay = match ? match.periodDay : null
-                const specialDays = [3, 7, 14, 21, 30]
-                const isSpecialDay = specialDays.includes(periodDay)
-
-                cells.push({
-                    isEmpty: false,
-                    day: d,
-                    date: dateStr,
-                    status: match ? match.status : this.getDefaultStatus(d),
-                    reward: match ? match.oreReward : null,
-                    isSpecialDay: isSpecialDay
-                })
-            }
-
-            return cells
+            return this.buildMonthCells(this.currentYear, this.currentMonth, true)
+        },
+        prevMonthCells() {
+            return this.buildMonthCells(this.prevYear, this.prevMonth, false)
         }
     },
     mounted() {
@@ -290,27 +294,52 @@ export default {
         goBack() {
             this.$router.back()
         },
-        switchTab(tab) {
-            if (tab.key === 'checkin') {
-                this.activeTab = tab.key
-                return
-            }
-            if (tab.key === 'growth') {
-                this.$router.push('/user/growth')
-                return
-            }
-            if (tab.key === 'lottery') {
-                this.$router.push('/user/lottery')
-                return
-            }
-            if (tab.key === 'exchange') {
-                this.$router.push('/user/welfare')
-                return
-            }
-            if (tab.key === 'harvest') {
+        handleSidebarMenuClick(key) {
+            if (key === 'harvest') {
                 toast('我的收获功能开发中', 2)
                 return
             }
+            const routeMap = {
+                checkin: '/user/center/checkin',
+                growth: '/user/center/growth',
+                lottery: '/user/center/lottery',
+                welfare: '/user/center/welfare'
+            }
+            const path = routeMap[key]
+            if (path && this.$route.path !== path) {
+                this.$router.push(path)
+            }
+        },
+        buildMonthCells(year, month, isCurrentMonth) {
+            const cells = []
+            const firstDay = new Date(year, month - 1, 1).getDay()
+            const totalDays = new Date(year, month, 0).getDate()
+
+            for (let i = 0; i < firstDay; i++) {
+                cells.push({ isEmpty: true })
+            }
+
+            for (let d = 1; d <= totalDays; d++) {
+                const dateStr = this.formatDateStrWithYearMonth(year, month, d)
+                const match = this.dashboard.calendar.find(
+                    item => item.date === dateStr
+                )
+
+                const periodDay = match ? match.periodDay : null
+                const specialDays = [3, 7, 14, 21, 30]
+                const isSpecialDay = specialDays.includes(periodDay)
+
+                cells.push({
+                    isEmpty: false,
+                    day: d,
+                    date: dateStr,
+                    status: match ? match.status : (isCurrentMonth ? this.getDefaultStatus(d) : 'miss'),
+                    reward: match ? match.oreReward : null,
+                    isSpecialDay: isSpecialDay
+                })
+            }
+
+            return cells
         },
         getDefaultStatus(d) {
             const isCurrentMonth =
@@ -343,15 +372,14 @@ export default {
                 if (res && res.code === 200 && res.data) {
                     const data = res.data
                     this.dashboard.userInfo = data.userInfo || { nickname: '用户', level: 'ZR.1' }
-                    this.dashboard.checkinStats = data.checkinStats || { 
-                        continuousDays: 0, totalDays: 0, oreBalance: 0, todaySigned: false 
+                    this.dashboard.checkinStats = data.checkinStats || {
+                        continuousDays: 0, totalDays: 0, oreBalance: 0, todaySigned: false
                     }
                     this.dashboard.patchCardCount = data.patchCardCount || 0
                     this.dashboard.currentPeriodDay = data.currentPeriodDay || 0
                     this.dashboard.nextSpecialReward = data.nextSpecialReward || null
                     this.dashboard.milestoneProgress = data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] }
-                    
-                    // 标准化日历数据
+
                     if (data.calendar) {
                         this.dashboard.calendar = data.calendar.map(item => {
                             const statusMap = {
@@ -377,9 +405,6 @@ export default {
             } catch (error) {
                 toast('加载数据失败，请稍后重试', 2)
             }
-        },
-        async loadRecords() {
-            await this.loadDashboard()
         },
         async handleCellClick(cell) {
             if (cell.isEmpty) return
@@ -432,7 +457,7 @@ export default {
         },
         async handleCheckinBtnClick() {
             if (this.dashboard.checkinStats.todaySigned) {
-                // 已签到，不做操作
+                this.openCheckinModal()
                 return
             }
             try {
@@ -446,32 +471,13 @@ export default {
                 toast('签到失败，请稍后重试', 2)
             }
         },
-        prevMonth() {
-            if (this.currentMonth === 1) {
-                this.currentYear -= 1
-                this.currentMonth = 12
-            } else {
-                this.currentMonth -= 1
-            }
-            this.loadRecords()
-        },
-        nextMonth() {
-            if (this.currentMonth === 12) {
-                this.currentYear += 1
-                this.currentMonth = 1
-            } else {
-                this.currentMonth += 1
-            }
-            this.loadRecords()
-        },
         goToday() {
             this.currentYear = this.todayYear
             this.currentMonth = this.todayMonth
-            this.loadRecords()
         },
-        formatDateStr(day) {
-            const y = this.currentYear
-            const m = String(this.currentMonth).padStart(2, '0')
+        formatDateStrWithYearMonth(year, month, day) {
+            const y = year
+            const m = String(month).padStart(2, '0')
             const d = String(day).padStart(2, '0')
             return y + '-' + m + '-' + d
         }
@@ -488,9 +494,16 @@ export default {
 }
 
 .checkin-content {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 0 24px 24px;
+    display: flex;
+    gap: 16px;
+}
+
+.main-area {
+    flex: 1;
+    min-width: 0;
 }
 
 // User Info Bar
@@ -565,92 +578,64 @@ export default {
     }
 }
 
-// Sub Tabs
-.sub-tabs {
-    display: flex;
+// Action Section
+.action-section {
     background: #fff;
-    border-radius: 12px;
-    padding: 0 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     margin-bottom: 16px;
-}
-
-.tab-item {
-    padding: 16px 20px;
-    font-size: 15px;
-    color: #666;
-    cursor: pointer;
-    position: relative;
-    transition: color 0.2s;
-
-    &:hover {
-        color: #1e80ff;
-    }
-
-    &.active {
-        color: #1e80ff;
-        font-weight: 600;
-
-        &::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 28px;
-            height: 3px;
-            background: #1e80ff;
-            border-radius: 2px;
-        }
-    }
-}
-
-// Calendar Section
-.calendar-section {
     display: flex;
-    gap: 16px;
-    background: #fff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    margin-bottom: 16px;
+    gap: 48px;
+    align-items: center;
 }
 
-.calendar-left {
-    width: 140px;
-    flex-shrink: 0;
+.action-left {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
+    gap: 12px;
 }
 
-.encourage-text {
-    background: linear-gradient(135deg, #1e80ff, #69b1ff);
-    border-radius: 12px;
-    padding: 20px 16px;
-    text-align: center;
-    width: 100%;
+.action-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+
+    .ore-icon {
+        font-family: fontawesome;
+        font-size: 20px;
+        color: #fa8c16;
+    }
 }
 
-.encourage-line {
-    font-size: 15px;
-    color: #fff;
-    font-weight: 500;
-    line-height: 1.8;
+.action-text {
+    color: #1a1a1a;
 }
 
-.checkin-action-btn {
-    width: 100%;
-    padding: 12px 20px;
+.action-desc {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.checkin-btn {
+    width: 180px;
+    height: 52px;
     background: linear-gradient(135deg, #fa8c16, #ffc069);
     color: #fff;
     border: none;
-    border-radius: 24px;
-    font-size: 15px;
+    border-radius: 26px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     transition: all 0.2s;
 
     &:hover {
@@ -658,15 +643,99 @@ export default {
         transform: translateY(-1px);
     }
 
-    &.signed-btn {
-        background: #52c41a;
-        cursor: not-allowed;
+    &.checked {
+        background: linear-gradient(135deg, #52c41a, #73d13d);
+        cursor: default;
+
+        &:hover {
+            transform: none;
+        }
+    }
+
+    .btn-ore-icon {
+        font-family: fontawesome;
+        font-size: 18px;
     }
 }
 
-.calendar-center {
+.action-stats {
+    display: flex;
+    gap: 32px;
     flex: 1;
-    min-width: 0;
+    justify-content: center;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fa8c16;
+}
+
+.stat-value.ore {
+    color: #fa8c16;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #999;
+    margin-top: 4px;
+}
+
+// Calendar Section
+.calendar-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    margin-bottom: 16px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.calendar-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.today-btn {
+    padding: 6px 16px;
+    border: 1px solid #1e80ff;
+    border-radius: 16px;
+    color: #1e80ff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #e6f4ff;
+    }
+}
+
+.calendar-month-block {
+    margin-bottom: 20px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.month-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 12px;
 }
 
 .calendar-grid {
@@ -674,58 +743,98 @@ export default {
 }
 
 .calendar-header-row {
-    display: flex;
-    border-bottom: 1px solid #f0f2f5;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
     padding-bottom: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #f0f2f5;
 }
 
 .calendar-header-cell {
-    flex: 1;
     text-align: center;
     font-size: 13px;
     color: #999;
-    height: 32px;
-    line-height: 32px;
+    height: 28px;
+    line-height: 28px;
 }
 
 .calendar-body {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
 }
 
 .calendar-cell {
-    width: calc(100% / 7);
     aspect-ratio: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
+    font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
     position: relative;
-
-    &.is-empty {
-        cursor: default;
-    }
+    background: #f5f7fa;
 
     &.is-signed {
-        background: #f6ffed;
+        background: linear-gradient(135deg, #52c41a, #73d13d);
+        color: #fff;
 
         .cell-date {
-            color: #52c41a;
+            color: #fff;
             font-weight: 600;
         }
 
         .cell-reward {
-            color: #52c41a;
+            color: rgba(255, 255, 255, 0.9);
+        }
+    }
+
+    &.is-today {
+        background: #1e80ff;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(30, 128, 255, 0.3);
+
+        .cell-date {
+            color: #fff;
+            font-weight: 600;
+        }
+    }
+
+    &.is-missed {
+        background: #f5f5f5;
+        color: #bbb;
+
+        .cell-date {
+            color: #bbb;
+        }
+
+        &:hover {
+            background: #fff7e6;
+            color: #fa8c16;
+
+            .cell-date {
+                color: #fa8c16;
+            }
+        }
+    }
+
+    &.is-future {
+        background: #fafafa;
+        color: #d9d9d9;
+        cursor: not-allowed;
+
+        .cell-date {
+            color: #d9d9d9;
         }
     }
 
     &.is-repaired {
         background: #fff7e6;
         border: 1px dashed #fa8c16;
+        color: #fa8c16;
 
         .cell-date {
             color: #fa8c16;
@@ -748,45 +857,12 @@ export default {
         }
     }
 
-    &.is-missed {
-        background: #f5f5f5;
-
-        .cell-date {
-            color: #999;
-        }
-
-        &:hover {
-            background: #e6f7ff;
-            cursor: pointer;
-
-            .cell-date {
-                color: #1e80ff;
-            }
-        }
-    }
-
-    &.is-today {
-        background: #1e80ff;
-
-        .cell-date {
-            color: #fff;
-            font-weight: 600;
-        }
-
-        &:hover {
-            background: #4096ff;
-        }
-    }
-
-    &.is-future {
+    &.is-empty {
+        background: transparent;
         cursor: default;
-
-        .cell-date {
-            color: #ccc;
-        }
     }
 
-    &:hover:not(.is-empty):not(.is-future) {
+    &:hover:not(.is-empty):not(.is-future):not(.is-signed):not(.is-today) {
         opacity: 0.85;
     }
 
@@ -814,138 +890,6 @@ export default {
     color: #52c41a;
     margin-top: 2px;
     font-weight: 500;
-}
-
-.calendar-right {
-    width: 160px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding-top: 8px;
-}
-
-.month-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.month-arrow {
-    font-family: fontawesome;
-    font-size: 18px;
-    color: #666;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-
-    &:hover {
-        background: #f0f2f5;
-        color: #1e80ff;
-    }
-}
-
-.month-label {
-    font-size: 14px;
-    color: #1a1a1a;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.today-btn {
-    padding: 6px 20px;
-    border: 1px solid #1e80ff;
-    border-radius: 16px;
-    color: #1e80ff;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background: #1e80ff;
-        color: #fff;
-    }
-}
-
-.patch-card-info {
-    text-align: center;
-}
-
-.patch-label {
-    display: block;
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 4px;
-}
-
-.patch-count {
-    font-size: 14px;
-    color: #1e80ff;
-    font-weight: 500;
-}
-
-.next-reward {
-    width: 100%;
-    background: linear-gradient(135deg, #fff7e6, #ffe7ba);
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-}
-
-.next-reward-title {
-    font-size: 11px;
-    color: #999;
-    margin-bottom: 4px;
-}
-
-.next-reward-item {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-
-.next-day {
-    font-size: 13px;
-    color: #fa8c16;
-    font-weight: 500;
-}
-
-.next-ore {
-    font-size: 13px;
-    color: #fa8c16;
-    font-weight: 600;
-}
-
-.next-days-left {
-    font-size: 11px;
-    color: #999;
-}
-
-.qr-code-area {
-    text-align: center;
-    padding: 8px;
-    border: 1px dashed #e8e8e8;
-    border-radius: 8px;
-    width: 100%;
-}
-
-.qr-placeholder {
-    font-family: fontawesome;
-    font-size: 40px;
-    color: #ccc;
-    margin-bottom: 6px;
-}
-
-.qr-text {
-    font-size: 11px;
-    color: #999;
-    line-height: 1.5;
 }
 
 // Bottom Sections
@@ -1139,6 +1083,7 @@ export default {
 @media screen and (max-width: 768px) {
     .checkin-content {
         padding: 0 12px 12px;
+        flex-direction: column;
     }
 
     .user-info-bar {
@@ -1158,43 +1103,19 @@ export default {
         font-size: 12px;
     }
 
-    .sub-tabs {
-        padding: 0 12px;
-        overflow-x: auto;
-    }
-
-    .tab-item {
-        padding: 14px 12px;
-        font-size: 13px;
-        white-space: nowrap;
-    }
-
-    .calendar-section {
+    .action-section {
         flex-direction: column;
-        padding: 16px;
+        gap: 24px;
+        padding: 24px 16px;
     }
 
-    .calendar-left {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-around;
-    }
-
-    .encourage-text {
-        display: flex;
-        gap: 12px;
-        padding: 12px 16px;
-    }
-
-    .encourage-line {
-        font-size: 14px;
-    }
-
-    .calendar-right {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-between;
+    .action-stats {
+        gap: 16px;
         flex-wrap: wrap;
+    }
+
+    .stat-value {
+        font-size: 20px;
     }
 
     .calendar-cell {
@@ -1205,8 +1126,7 @@ export default {
         font-size: 13px;
     }
 
-    .cell-reward,
-    .cell-missed-label {
+    .cell-reward {
         font-size: 10px;
     }
 

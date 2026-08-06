@@ -1,18 +1,29 @@
 <template>
     <div class="jscore-page">
-        <!-- 顶部导航 -->
-        <div class="header-nav">
-            <div class="nav-back" @click="goBack">
-                <span class="back-arrow">&lt;</span>
-                <span class="back-text">返回</span>
-            </div>
-            <div class="nav-title">我的掘友分</div>
-            <div class="nav-right" @click="showRulesModal = true">
-                <span class="rules-link">等级规则</span>
-            </div>
-        </div>
+        <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
+        <div class="jscore-content-wrapper">
+            <!-- 左侧侧边栏 -->
+            <UserCenterSidebar
+                active-menu="growth"
+                @menu-click="handleSidebarMenuClick"
+            />
 
-        <div class="jscore-content">
+            <!-- 右侧主内容区 -->
+            <div class="main-area">
+                <!-- 顶部导航 -->
+                <div class="header-nav">
+                    <div class="nav-back" @click="goBack">
+                        <span class="back-arrow">&lt;</span>
+                        <span class="back-text">返回</span>
+                    </div>
+                    <div class="nav-title">我的掘友分</div>
+                    <div class="nav-right" @click="showRulesModal = true">
+                        <span class="rules-link">等级规则</span>
+                    </div>
+                </div>
+
+                <!-- 现有内容 -->
+                <div class="jscore-content">
             <!-- 统计周期 -->
             <div class="stat-period">
                 <span class="period-label">统计周期：</span>
@@ -104,8 +115,10 @@
                 <div class="loading-spinner" v-if="loading">
                     <span>加载中...</span>
                 </div>
+                </div>
             </div>
-        </div>
+            </div>
+            </div>
 
         <!-- 等级规则 Modal -->
         <div class="modal-overlay" v-if="showRulesModal" @click.self="showRulesModal = false">
@@ -144,7 +157,10 @@
 
 <script>
 import { getJScoreOverview, getJScoreDetail } from '@/apis/jscore'
+import HomeBar from '@/components/bars/home_bar'
+import UserCenterSidebar from '@/components/user/UserCenterSidebar'
 import Utils from '@/utils/env'
+import { toast } from '@/utils/toast'
 
 const CATEGORY_MAP = {
     overview: { name: '总览', apiKey: '' },
@@ -157,6 +173,7 @@ const CATEGORY_MAP = {
 
 export default {
     name: 'JScore',
+    components: { HomeBar, UserCenterSidebar },
     data() {
         return {
             statDate: '',
@@ -197,7 +214,23 @@ export default {
     },
     methods: {
         goBack() {
-            this.$router.push('/user/growth')
+            this.$router.push('/user/center/growth')
+        },
+        handleSidebarMenuClick(key) {
+            if (key === 'harvest') {
+                toast('我的收获功能开发中', 2)
+                return
+            }
+            const routeMap = {
+                checkin: '/user/center/checkin',
+                growth: '/user/center/growth',
+                lottery: '/user/center/lottery',
+                welfare: '/user/center/welfare'
+            }
+            const path = routeMap[key]
+            if (path && this.$route.path !== path) {
+                this.$router.push(path)
+            }
         },
         formatTime(timeStr) {
             if (!timeStr) return ''
@@ -481,20 +514,34 @@ export default {
 .jscore-page {
     min-height: 100vh;
     background: #F5F7FA;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-// ===== 顶部导航 =====
+.jscore-content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.main-area {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+// 顶部导航
 .header-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
-    background: #FFFFFF;
+    padding-bottom: 16px;
     border-bottom: 1px solid #F0F2F5;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    margin-bottom: 20px;
 }
 
 .nav-back {
@@ -518,7 +565,7 @@ export default {
 }
 
 .nav-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     color: #1A1A1A;
 }
@@ -529,173 +576,135 @@ export default {
 }
 
 .rules-link {
-    font-size: 13px;
+    font-size: 14px;
     color: #1A73E8;
-    &:hover {
-        color: #1557B0;
-    }
+    &:hover { color: #1557B0; }
 }
 
-// ===== 内容区 =====
+// 内容区
 .jscore-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px;
+    // 由 main-area 控制布局
 }
 
-// ===== 统计周期 =====
+// 统计周期
 .stat-period {
     padding: 0 4px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     font-size: 13px;
     color: #8C8C8C;
 }
 
-.period-label {
-    color: #999;
-}
-
-.period-date {
-    color: #666;
-}
-
-// ===== 维度卡片 =====
+// 维度卡片
 .dimension-cards-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     padding-bottom: 4px;
-
-    &::-webkit-scrollbar {
-        height: 0;
-    }
+    &::-webkit-scrollbar { height: 0; }
 }
 
 .dimension-cards {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     padding: 2px 0;
     min-width: min-content;
 }
 
 .dimension-card {
     flex-shrink: 0;
-    width: 110px;
-    padding: 14px 12px;
-    background: #FFFFFF;
+    width: 120px;
+    padding: 16px;
+    background: #F8F9FA;
     border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid transparent;
-
     &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         transform: translateY(-2px);
     }
-
     &.active {
-        border-color: #1A73E8;
-        background: #F0F5FF;
+        border-color: #7C3AED;
+        background: #F3E8FF;
     }
 }
 
 .dim-name {
-    font-size: 12px;
-    color: #8C8C8C;
-    margin-bottom: 6px;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
     white-space: nowrap;
 }
 
 .dim-today {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 700;
     color: #1A1A1A;
     margin-bottom: 4px;
-
-    &.positive {
-        color: #52C41A;
-    }
-
-    &.negative {
-        color: #F53F3F;
-    }
+    &.positive { color: #52C41A; }
+    &.negative { color: #F53F3F; }
 }
 
 .dim-total {
-    font-size: 11px;
-    color: #B0B0B0;
+    font-size: 12px;
+    color: #999;
 }
 
 .dim-total-val {
     font-weight: 500;
-    color: #8C8C8C;
+    color: #666;
 }
 
-// ===== 分类 Tabs =====
+// 分类 Tabs（pill 形状）
 .category-tabs {
     display: flex;
-    gap: 0;
-    margin-bottom: 16px;
-    background: #FFFFFF;
-    border-radius: 12px;
-    padding: 4px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-
-    &::-webkit-scrollbar {
-        height: 0;
-    }
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 .tab-item {
-    flex-shrink: 0;
-    padding: 8px 16px;
+    padding: 6px 16px;
     font-size: 13px;
-    color: #666666;
+    color: #666;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 16px;
     transition: all 0.2s ease;
     white-space: nowrap;
     user-select: none;
-
+    background: #F5F5F5;
     &:hover {
-        color: #1A73E8;
-        background: #F0F5FF;
+        color: #7C3AED;
+        background: #F3E8FF;
     }
-
     &.active {
-        color: #1A73E8;
-        font-weight: 600;
-        background: #E8F0FE;
+        color: #fff;
+        font-weight: 500;
+        background: #7C3AED;
     }
 }
 
-// ===== 雷达图 =====
+// 雷达图
 .radar-chart-section {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .section-card {
-    background: #FFFFFF;
+    background: #1A1A1A;
     border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    padding: 20px;
 }
 
 .radar-canvas {
     display: block;
     width: 100%;
-    height: 280px;
+    height: 300px;
 }
 
-// ===== 时间线 =====
+// 时间线（表格样式）
 .timeline-section {
-    background: #FFFFFF;
+    background: #fff;
     border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     min-height: 200px;
 }
 
@@ -705,49 +714,31 @@ export default {
 
 .timeline-item {
     display: flex;
-    position: relative;
+    align-items: center;
     padding: 12px 0;
-
-    &:last-child {
-        .timeline-line {
-            display: none;
-        }
-    }
+    border-bottom: 1px solid #F0F2F5;
+    &:last-child { border-bottom: none; }
 }
 
 .timeline-left {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    width: 60px;
+    width: 140px;
     flex-shrink: 0;
-    position: relative;
-    z-index: 1;
 }
 
 .timeline-time {
-    font-size: 11px;
-    color: #B0B0B0;
+    font-size: 13px;
+    color: #999;
     white-space: nowrap;
-    margin-bottom: 6px;
 }
 
 .timeline-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #1A73E8;
-    flex-shrink: 0;
+    display: none;
 }
 
 .timeline-line {
-    position: absolute;
-    left: 30px;
-    top: 26px;
-    bottom: 0;
-    width: 1px;
-    background: #E8E8E8;
-    z-index: 0;
+    display: none;
 }
 
 .timeline-content {
@@ -756,13 +747,6 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding-left: 16px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #F5F5F5;
-    min-height: 36px;
-}
-
-.timeline-item:last-child .timeline-content {
-    border-bottom: none;
 }
 
 .timeline-desc {
@@ -770,7 +754,6 @@ export default {
     color: #1A1A1A;
     flex: 1;
     margin-right: 12px;
-    line-height: 1.4;
 }
 
 .timeline-score {
@@ -778,17 +761,11 @@ export default {
     font-weight: 600;
     flex-shrink: 0;
     white-space: nowrap;
-
-    &.positive {
-        color: #52C41A;
-    }
-
-    &.negative {
-        color: #F53F3F;
-    }
+    &.positive { color: #52C41A; }
+    &.negative { color: #F53F3F; }
 }
 
-// ===== 加载更多 =====
+// 加载更多
 .load-more {
     text-align: center;
     padding: 16px 0 8px;
@@ -796,21 +773,16 @@ export default {
 
 .load-more-text {
     font-size: 13px;
-    color: #1A73E8;
+    color: #7C3AED;
     cursor: pointer;
-    user-select: none;
-
-    &:hover {
-        color: #1557B0;
-    }
-
+    &:hover { color: #6D28D9; }
     &.no-more {
         color: #C0C0C0;
         cursor: default;
     }
 }
 
-// ===== 空状态 =====
+// 空状态
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -829,7 +801,7 @@ export default {
     color: #C0C0C0;
 }
 
-// ===== 加载中 =====
+// 加载中
 .loading-spinner {
     text-align: center;
     padding: 24px 0;
@@ -837,14 +809,11 @@ export default {
     color: #999;
 }
 
-// ===== Modal =====
+// Modal
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -853,13 +822,12 @@ export default {
 }
 
 .modal-content {
-    background: #FFFFFF;
+    background: #fff;
     border-radius: 16px;
     width: 100%;
     max-width: 400px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
 }
 
 .modal-header {
@@ -880,12 +848,7 @@ export default {
     font-size: 24px;
     color: #999;
     cursor: pointer;
-    line-height: 1;
-    padding: 0 4px;
-
-    &:hover {
-        color: #1A1A1A;
-    }
+    &:hover { color: #1A1A1A; }
 }
 
 .modal-body {
@@ -894,10 +857,7 @@ export default {
 
 .rules-section {
     margin-bottom: 16px;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
+    &:last-child { margin-bottom: 0; }
 }
 
 .rules-title {
@@ -914,70 +874,40 @@ export default {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-}
-
-.rules-list li {
-    font-size: 13px;
-    color: #666;
-    padding: 6px 12px;
-    background: #F5F7FA;
-    border-radius: 8px;
-}
-
-// ===== 响应式 =====
-@media screen and (max-width: 1199px) {
-    .jscore-content {
-        padding: 12px;
+    li {
+        font-size: 13px;
+        color: #666;
+        padding: 6px 12px;
+        background: #F5F7FA;
+        border-radius: 8px;
     }
 }
 
+// 响应式
 @media screen and (max-width: 768px) {
-    .jscore-content {
-        padding: 10px;
+    .jscore-content-wrapper {
+        padding: 12px;
+        flex-direction: column;
     }
-
-    .header-nav {
-        padding: 12px 12px;
+    .main-area {
+        padding: 16px;
     }
-
     .dimension-card {
         width: 100px;
-        padding: 12px 10px;
+        padding: 12px;
     }
-
     .dim-today {
-        font-size: 18px;
+        font-size: 20px;
     }
-
     .tab-item {
-        padding: 6px 12px;
+        padding: 4px 12px;
         font-size: 12px;
     }
-
     .timeline-left {
-        width: 50px;
+        width: 100px;
     }
-
     .timeline-time {
-        font-size: 10px;
-    }
-
-    .timeline-desc {
-        font-size: 13px;
-    }
-
-    .timeline-score {
-        font-size: 14px;
-    }
-
-    .timeline-line {
-        left: 25px;
-    }
-
-    .modal-content {
-        max-width: 100%;
-        margin: 0 8px;
-        border-radius: 12px;
+        font-size: 11px;
     }
 }
 </style>

@@ -38,6 +38,9 @@ public class LevelServiceImpl implements LevelService {
     @Autowired
     private LevelPermissionService permissionService;
 
+    @Autowired
+    private LevelPrivilegeService levelPrivilegeService;
+
     // ==================== 等级查询 ====================
 
     @Override
@@ -58,6 +61,16 @@ public class LevelServiceImpl implements LevelService {
     @Override
     public List<ApLevelConfig> getLevelConfigs(Integer levelType) {
         return levelQueryService.getLevelConfigs(levelType);
+    }
+
+    @Override
+    public Map<String, Object> getLevelPrivileges(Long userId) {
+        return levelPrivilegeService.getLevelPrivileges(userId);
+    }
+
+    @Override
+    public Map<String, Object> getUserInfoPack(Long userId) {
+        return levelPrivilegeService.getUserInfoPack(userId);
     }
 
     // ==================== 行为记录 ====================

@@ -1,217 +1,267 @@
 <template>
     <div class="growth-page">
         <div class="art-top" v-if="!isDesktop"><HomeBar/></div>
-
         <div class="growth-content">
-            <!-- 用户名称 -->
-            <div class="user-name-row">
-                <span class="user-name">{{ userName }}</span>
-                <span class="user-level-tag">{{ levelInfo.dailyTitle || '新星掘友' }}</span>
-            </div>
+            <!-- 左侧侧边栏 -->
+            <UserCenterSidebar active-menu="growth" @menu-click="handleSidebarMenuClick" />
+            
+            <!-- 右侧主内容区 -->
+            <div class="main-area">
+                <!-- 页面标题栏 -->
+                <div class="page-header">
+                    <div class="page-title">成长等级</div>
+                    <div class="page-links">
+                        <span class="link-item" @click="goToJScore">
+                            <span class="link-icon">📊</span> 掘友分明细
+                        </span>
+                        <span class="link-item" @click="showRulesModal = true">
+                            <span class="link-icon">📋</span> 等级规则
+                        </span>
+                    </div>
+                </div>
 
-            <!-- 成长摘要卡片 -->
-            <div class="summary-card">
-                <div class="summary-left">
-                    <div class="level-score-display">
-                        <span class="score-number">{{ levelInfo.dailyScore }}</span>
-                        <span class="score-unit">掘友分</span>
-                    </div>
-                    <div class="level-progress">
-                        <div class="progress-bar">
-                            <div
-                                class="progress-fill"
-                                :style="{ width: dailyProgressPercent + '%' }"
-                            ></div>
-                        </div>
-                        <div class="progress-text">
-                            {{ dailyProgressText }}
-                        </div>
-                    </div>
-                    <!-- 等级里程碑节点 ZR1-ZR5 -->
-                    <div class="milestone-track" v-if="dailyLevelConfigs.length > 0">
-                        <div
-                            v-for="(node, idx) in dailyLevelConfigs"
-                            :key="node.levelValue"
-                            class="milestone-item"
-                        >
-                            <div
-                                class="milestone-dot"
-                                :class="{ active: node.levelValue <= levelInfo.dailyLevel }"
-                            ></div>
-                            <div class="milestone-label">JY{{ node.levelValue }}</div>
-                            <div class="milestone-score">{{ node.minScore }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="summary-right">
-                    <div class="function-grid">
-                        <div class="func-item" @click="goCheckIn">
-                            <span class="func-icon">📅</span>
-                            <span class="func-text">每日签到</span>
-                        </div>
-                        <div class="func-item" @click="showDevTip('幸运抽奖')">
-                            <span class="func-icon">🎁</span>
-                            <span class="func-text">幸运抽奖</span>
-                        </div>
-                        <div class="func-item" @click="showDevTip('福利兑换')">
-                            <span class="func-icon">🎁</span>
-                            <span class="func-text">福利兑换</span>
-                        </div>
-                        <div class="func-item" @click="showDevTip('我的收获')">
-                            <span class="func-icon">📦</span>
-                            <span class="func-text">我的收获</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 逐力值卡片 -->
-            <div class="level-card power-level">
-                <div class="level-header">
-                    <div class="level-icon">💪</div>
-                    <div class="level-title">逐力值</div>
-                </div>
-                <div class="level-main">
-                    <div class="level-value">Lv.{{ levelInfo.powerLevel }}</div>
-                    <div class="level-score">{{ levelInfo.powerValue }} 逐力值</div>
-                </div>
-                <div class="level-progress">
-                    <div class="progress-bar">
-                        <div
-                            class="progress-fill"
-                            :style="{ width: powerProgress + '%' }"
-                        ></div>
-                    </div>
-                    <div class="progress-text">
-                        距离下一级还需 {{ powerNextLevelScore }} 分
-                    </div>
-                </div>
-                <div class="level-title-name">{{ levelInfo.powerTitle }}</div>
-            </div>
-
-            <!-- 签到区域 -->
-            <div class="check-in-section">
-                <div class="check-in-card" @click="handleCheckIn">
-                    <div class="check-in-left">
-                        <div class="check-in-icon">📅</div>
-                        <div class="check-in-info">
-                            <div class="check-in-title">每日签到</div>
-                            <div class="check-in-desc">签到获得 2 逐日分</div>
-                        </div>
-                    </div>
-                    <button
-                        class="check-in-btn"
-                        :class="{ checked: hasCheckedIn }"
-                    >
-                        {{ hasCheckedIn ? '今日已签到' : '去签到' }}
-                    </button>
-                </div>
-            </div>
-
-            <!-- 权限区域 -->
-            <div class="permissions-section" v-if="permissions.length > 0">
-                <div class="section-header">
-                    <div class="section-title">已解锁权限</div>
-                    <div class="section-count">共 {{ permissions.length }} 项</div>
-                </div>
-                <div class="permissions-grid">
-                    <div
-                        v-for="perm in permissions"
-                        :key="perm.code"
-                        class="permission-item"
-                    >
-                        <span class="permission-icon">{{ perm.icon }}</span>
-                        <span class="permission-name">{{ perm.name }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 升级任务列表 -->
-            <div class="tasks-section">
-                <div class="tasks-section-header">
-                    <div class="tasks-title">升级行为</div>
-                    <div class="tasks-today-score">
-                        今日掘友分 +{{ levelInfo.dailyScoreToday || 0 }}
-                    </div>
-                    <div class="jscore-link" @click="goToJScore">掘友分明细 ›</div>
-                </div>
-                <div
-                    v-for="group in taskGroups"
-                    :key="group.name"
-                    class="task-group"
-                >
-                    <div class="group-title">
-                        <span class="group-icon">{{ group.icon }}</span>
-                        <span>{{ group.name }}</span>
-                    </div>
-                    <div class="group-tasks">
-                        <div
-                            v-for="task in group.tasks"
-                            :key="task.actionType"
-                            class="task-item"
-                        >
-                            <div class="task-icon-wrap">
-                                <span class="task-icon">{{ task.icon }}</span>
-                            </div>
-                            <div class="task-info">
-                                <div class="task-name">{{ task.name }}</div>
-                            </div>
-                            <div class="task-meta">
-                                <div class="task-score">+{{ task.score }}</div>
-                                <div class="task-progress">
-                                    {{ task.completed ? '已完成' : task.current + '/' + task.max }}
+                <!-- 等级信息 + 分值柱状图 -->
+                <div class="level-overview">
+                    <!-- 左侧：紫色渐变等级卡片 -->
+                    <div class="level-card-purple">
+                        <div class="level-card-content">
+                            <div class="level-info">
+                                <div class="level-badge">{{ levelInfo.dailyScore > 0 ? '当前等级' : '暂未获得' }}</div>
+                                <div class="level-name">{{ currentLevelConfig.title || '新星掘友' }}</div>
+                                <div class="level-score-section" v-if="levelInfo.dailyScore > 0">
+                                    <div class="score-label">掘友分</div>
+                                    <div class="score-value">{{ levelInfo.dailyScore || 0 }}</div>
+                                </div>
+                                <div class="level-score-section" v-else>
+                                    <div class="score-label">掘友分需达到</div>
+                                    <div class="score-value">{{ currentLevelConfig.minScore }}</div>
                                 </div>
                             </div>
-                            <button
-                                class="task-btn"
-                                :class="{ completed: task.completed }"
-                                :disabled="task.completed"
-                                @click="handleTaskAction(task)"
-                            >
-                                {{ task.completed ? '已完成' : task.buttonText }}
-                            </button>
+                            <div class="level-crystal">
+                                <div class="crystal-shape"></div>
+                            </div>
+                        </div>
+                        <div class="level-progress" v-if="levelInfo.dailyScore > 0">
+                            <div class="level-progress-bar">
+                                <div class="progress-fill" :style="{ width: dailyProgressPercent + '%' }"></div>
+                            </div>
+                            <div class="level-progress-text">{{ dailyProgressText }}</div>
+                        </div>
+                        <div class="level-progress" v-else>
+                            <div class="level-progress-text">还需{{ currentLevelConfig.minScore }}分可升至{{ currentLevelConfig.title }}</div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：深色等级分值阶梯图 -->
+                    <div class="level-chart-dark">
+                        <div class="chart-title">等级分值</div>
+                        <!-- 阶梯行 -->
+                        <div class="chart-stairs-row">
+                            <div v-for="(config, index) in levelChartConfigs" :key="'cell-'+config.level" 
+                                 class="chart-stair-cell"
+                                 :class="{ 
+                                    locked: config.level > levelInfo.dailyLevel,
+                                    unlocked: config.level <= levelInfo.dailyLevel,
+                                    active: config.level === levelInfo.dailyLevel,
+                                    selected: config.level === selectedLevel && config.level !== levelInfo.dailyLevel,
+                                    'has-indicator': config.level === levelInfo.dailyLevel
+                                 }"
+                                 @click="selectLevel(config.level)">
+                                <!-- ▼ 指示器（背景外顶部） -->
+                                <div class="stair-indicator" v-if="config.level === levelInfo.dailyLevel">
+                                    <span class="indicator-icon">▼</span>
+                                </div>
+                                <!-- 圆角矩形背景：包裹数值+柱体+标签 -->
+                                <div class="stair-wrapper"
+                                     :class="{ 
+                                        active: config.level === levelInfo.dailyLevel,
+                                        selected: config.level === selectedLevel && config.level !== levelInfo.dailyLevel
+                                     }">
+                                    <!-- 经验值（在柱体正上方） -->
+                                    <div class="stair-value" 
+                                         :class="{ active: config.level === levelInfo.dailyLevel }">
+                                        <span class="value-num">{{ config.minScore }}</span>
+                                    </div>
+                                    <!-- 柱体 -->
+                                    <div class="bar-stick" 
+                                         :class="{ 
+                                            active: config.level === levelInfo.dailyLevel,
+                                            unlocked: config.level <= levelInfo.dailyLevel
+                                         }"
+                                         :style="{ height: getBarHeight(index) + 'px' }">
+                                    </div>
+                                    <!-- 等级标签 -->
+                                    <div class="stair-label" :class="{ active: config.level === levelInfo.dailyLevel }">
+                                        JY{{ config.level }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 等级规则 -->
-            <div class="level-rules">
-                <div class="section-header">
-                    <div class="section-title">等级规则</div>
-                </div>
-                <div class="rules-content">
-                    <div class="rule-section">
-                        <div class="rule-title">☀️ 逐日等级获取方式</div>
-                        <ul class="rule-list">
-                            <li>每日登录 +10分</li>
-                            <li>阅读文章 +2分</li>
-                            <li>发表评论 +5分</li>
-                            <li>点赞 +1分</li>
-                            <li>分享 +3分</li>
-                            <li>关注 +2分</li>
-                        </ul>
+                <!-- 等级权益区 -->
+                <div class="benefits-section">
+                    <div class="benefits-header">
+                        <div class="benefits-title">
+                            等级权益
+                            <span class="benefits-level-tag">查看 JY{{ selectedLevel }} 权益</span>
+                        </div>
+                        <div class="benefits-nav" v-if="benefitsTotalPages > 1">
+                            <button class="nav-btn" @click="prevBenefitsPage">◀</button>
+                            <span class="page-indicator">{{ benefitsPage }} / {{ benefitsTotalPages }}</span>
+                            <button class="nav-btn" @click="nextBenefitsPage">▶</button>
+                        </div>
                     </div>
-                    <div class="rule-section">
-                        <div class="rule-title">💪 逐力值获取方式</div>
-                        <ul class="rule-list">
-                            <li>发布文章 +10分</li>
-                            <li>文章被点赞 +2分</li>
-                            <li>文章被评论 +3分</li>
-                            <li>文章被收藏 +5分</li>
-                            <li>文章被阅读 +1分</li>
-                        </ul>
+                    <div class="benefits-list">
+                        <div v-for="perm in currentBenefitsPage" :key="perm.code" class="benefit-item" :class="{ locked: perm.locked }" @click="openBenefitModal(perm)">
+                            <div class="benefit-icon-wrap">
+                                <img v-if="perm.icon" :src="perm.icon" class="benefit-img" />
+                                <span v-else class="benefit-icon">{{ perm.icon }}</span>
+                                <span class="benefit-lock" v-if="perm.locked">🔒</span>
+                            </div>
+                            <div class="benefit-name">{{ perm.name }}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 底部信息 -->
-            <div class="growth-footer">
-                <span>用户协议</span>
-                <span class="footer-sep">·</span>
-                <span>法律声明</span>
-                <span class="footer-sep">·</span>
-                <span>&copy;2026 稀土掘金</span>
+                <!-- 升级行为任务列表 -->
+                <div class="tasks-section">
+                    <div class="tasks-header">
+                        <div class="tasks-title">升级行为</div>
+                        <div class="tasks-today-score">今日掘友分 +{{ todayJscore || levelInfo.dailyScoreToday || 0 }}</div>
+                    </div>
+                    <div v-for="group in taskGroups" :key="group.name" class="task-group">
+                        <div class="group-title">{{ group.icon }} {{ group.name }}</div>
+                        <div class="group-tasks">
+                            <div v-for="task in group.tasks" :key="task.task_id || task.actionType" class="task-item">
+                                <div class="task-icon-wrap">
+                                    <img v-if="task.icon && (task.icon.startsWith('http') || task.icon.startsWith('/static/'))" :src="task.icon" class="task-img" />
+                                    <span v-else class="task-icon">{{ task.icon }}</span>
+                                </div>
+                                <div class="task-info">
+                                    <div class="task-name">{{ task.name }}</div>
+                                    <div class="task-progress-text">
+                                        掘友分 +{{ task.score }}
+                                        <template v-if="task.limit > 0">，已完成 {{ task.done || 0 }}/{{ task.limit }}</template>
+                                        <template v-else-if="task.limit === -1">，已完成 {{ task.done || 0 }} 次</template>
+                                        <template v-else>，已完成 {{ task.done || 0 }}</template>
+                                    </div>
+                                </div>
+                                <button class="task-btn" 
+                                        :class="{ completed: task.completed }"
+                                        :disabled="task.completed"
+                                        @click="handleTaskAction(task)">
+                                    {{ task.completed ? '已完成' : task.buttonText }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部信息 -->
+                <div class="growth-footer">
+                    <span>用户协议</span> · <span>法律声明</span> · <span>&copy;2026 稀土掘金</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 等级规则 Modal -->
+        <div class="modal-overlay" v-if="showRulesModal" @click.self="showRulesModal = false">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">等级规则</div>
+                    <div class="modal-close" @click="showRulesModal = false">&times;</div>
+                </div>
+                <div class="modal-body">
+                    <div class="rules-section">
+                        <div class="rules-title">📈 等级与权益</div>
+                        <div class="rules-desc">掘友分到达指定区间，即可升级至对应掘友等级，自动解锁对应权益。</div>
+                    </div>
+                    <div class="rules-section">
+                        <div class="rules-title">☀️ 社区活跃（每日有上限）</div>
+                        <ul class="rules-list">
+                            <li>发布文章 +8分</li>
+                            <li>发布沸点 +2分</li>
+                            <li>评论文章 +2分</li>
+                            <li>评论沸点 +2分</li>
+                            <li>点赞文章 +1分</li>
+                            <li>点赞沸点 +1分</li>
+                            <li>收藏文章 +1分</li>
+                            <li>关注掘友 +4分</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <div class="rules-title">📚 社区学习（每日有上限）</div>
+                        <ul class="rules-list">
+                            <li>浏览文章/课程 +0.5分</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <div class="rules-title">⭐ 社区影响力（无上限）</div>
+                        <ul class="rules-list">
+                            <li>沸点被点赞 +0.1分</li>
+                            <li>文章被点赞 +0.1分</li>
+                            <li>被掘友关注 +0.1分</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <div class="rules-title">🏠 社区基础（一次性）</div>
+                        <ul class="rules-list">
+                            <li>上传头像 +1分</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <div class="rules-title">⚠️ 减分规则</div>
+                        <ul class="rules-list">
+                            <li>发布违规内容 -10分</li>
+                            <li>评论违规 -5分</li>
+                            <li>被举报核实 -20分</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 权益说明 Modal -->
+        <div class="modal-overlay" v-if="showBenefitModal" @click.self="closeBenefitModal">
+            <div class="benefit-modal">
+                <div class="benefit-modal-header">
+                    <span class="benefit-modal-title">权益说明</span>
+                    <span class="modal-close" @click="closeBenefitModal">&times;</span>
+                </div>
+                <div class="benefit-modal-body">
+                    <div class="benefit-sidebar">
+                        <div v-for="group in privilegeGroups" :key="group.name" class="benefit-group">
+                            <div class="benefit-group-title" @click="toggleGroup(group.name)">
+                                <span class="group-arrow" :class="{expanded: group.expanded}">▶</span>
+                                {{ group.name }}
+                            </div>
+                            <div class="benefit-group-list" v-show="group.expanded">
+                                <div v-for="priv in group.items" :key="priv.priv_id"
+                                     class="benefit-nav-item"
+                                     :class="{active: priv.priv_id === selectedBenefitId, locked: priv.priv_status !== 1}"
+                                     @click="selectBenefit(priv)">
+                                    {{ priv.title }}
+                                    <span v-if="priv.priv_status !== 1" class="lock-tag">暂未解锁</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="benefit-detail" v-if="currentBenefit">
+                        <div class="benefit-detail-icon">
+                            <img :src="currentBenefit.icon" :alt="currentBenefit.title" v-if="currentBenefit.icon" />
+                            <span v-else class="icon-fallback">✨</span>
+                        </div>
+                        <div class="benefit-detail-title">{{ currentBenefit.title }}</div>
+                        <div class="benefit-detail-desc" v-for="(d, i) in currentBenefit.desc" :key="i">
+                            <div class="desc-title">{{ d.desc_title }}</div>
+                            <div class="desc-content" :class="{unlocked: d.desc_title === '解锁等级'}">{{ d.desc_content }}</div>
+                        </div>
+                        <div class="benefit-detail-status" v-if="currentBenefit.priv_status !== 1">暂未解锁</div>
+                        <a class="benefit-jump" v-if="currentBenefit.web_jump_url" :href="currentBenefit.web_jump_url">立即前往 →</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -219,14 +269,41 @@
 
 <script>
 import HomeBar from '@/components/bars/home_bar'
+import UserCenterSidebar from '@/components/user/UserCenterSidebar'
 import Utils from '@/utils/env'
 import { toast } from '@/utils/toast'
+import request from '@/common/article_request'
 
-// 任务分组配置
+// 等级完整配置（与掘友等级参考文档一致）
+const LEVEL_FULL_CONFIG = [
+    { level: 1, minScore: 0, title: '新星掘友', permissions: ['can_send_private_message'] },
+    { level: 2, minScore: 15, title: '进阶掘友', permissions: ['can_create_poll'] },
+    { level: 3, minScore: 30, title: '先锋掘友', permissions: ['can_set_comment_permission'] },
+    { level: 4, minScore: 150, title: '杰出掘友', permissions: ['can_mark'] },
+    { level: 5, minScore: 500, title: '资深掘友', permissions: ['can_use_ore'] },
+    { level: 6, minScore: 2000, title: '专家掘友', permissions: ['can_customize'] },
+    { level: 7, minScore: 7000, title: '大师掘友', permissions: ['can_upgrade_ore'] },
+    { level: 8, minScore: 25000, title: '传奇掘友', permissions: ['can_judge', 'can_create_course'] }
+]
+
+// 权益图标映射
+const PERMISSION_ICON_MAP = {
+    'can_send_private_message': { name: '主动发起私信', icon: '💬' },
+    'can_create_poll': { name: '发起投票', icon: '📊' },
+    'can_set_comment_permission': { name: '评论区权限设置', icon: '🔒' },
+    'can_mark': { name: '评论区Mark设置', icon: '✏️' },
+    'can_use_ore': { name: '使用掘金特色表情', icon: '😊' },
+    'can_customize': { name: '个性装扮', icon: '🎨' },
+    'can_upgrade_ore': { name: '升级矿石奖励', icon: '💎' },
+    'can_judge': { name: '参选掘金神评审', icon: '🏆' },
+    'can_create_course': { name: '参选小册评审团', icon: '📚' }
+}
+
+// 任务分组配置（与掘友等级参考文档一致）
 const TASK_GROUP_CONFIG = {
     '社区基础': {
         icon: '🏠',
-        actionTypes: ['upload_avatar', 'check_in', 'daily_login']
+        actionTypes: ['upload_avatar']
     },
     '社区活跃': {
         icon: '🔥',
@@ -239,7 +316,7 @@ const TASK_GROUP_CONFIG = {
     },
     '社区学习': {
         icon: '📚',
-        actionTypes: ['browse_article', 'browse_course']
+        actionTypes: ['browse_article']
     },
     '社区影响力': {
         icon: '⭐',
@@ -250,8 +327,6 @@ const TASK_GROUP_CONFIG = {
 // 任务图标映射
 const TASK_ICON_MAP = {
     'upload_avatar': '📷',
-    'check_in': '📅',
-    'daily_login': '📱',
     'publish_article': '✍️',
     'publish_pin': '💬',
     'comment_article': '💬',
@@ -261,7 +336,6 @@ const TASK_ICON_MAP = {
     'collect_article': '⭐',
     'follow_user': '👤',
     'browse_article': '📖',
-    'browse_course': '🎓',
     'be_followed': '👥',
     'pin_liked': '❤️',
     'article_liked': '❤️'
@@ -270,8 +344,6 @@ const TASK_ICON_MAP = {
 // 任务按钮文案映射
 const TASK_BUTTON_MAP = {
     'upload_avatar': '去上传',
-    'check_in': '去完成',
-    'daily_login': '去完成',
     'publish_article': '去发布',
     'publish_pin': '去发布',
     'comment_article': '去评论',
@@ -281,34 +353,58 @@ const TASK_BUTTON_MAP = {
     'collect_article': '去收藏',
     'follow_user': '去关注',
     'browse_article': '去学习',
-    'browse_course': '去学习',
     'be_followed': '去分享',
-    'pin_liked': '去发布',
+    'pin_liked': '去发布沸点',
     'article_liked': '去创作'
 }
 
+// 默认任务数据（与掘友等级参考文档分值一致）
+const DEFAULT_TASKS = [
+    // 社区基础
+    { actionType: 'upload_avatar', task_type: '社区基础', name: '上传头像', score: 1, current: 0, max: 1 },
+    // 社区活跃
+    { actionType: 'publish_article', task_type: '社区活跃', name: '发布一篇文章', score: 8, current: 0, max: 2 },
+    { actionType: 'publish_pin', task_type: '社区活跃', name: '发布一条沸点', score: 2, current: 0, max: 2 },
+    { actionType: 'comment_article', task_type: '社区活跃', name: '评论一篇文章', score: 2, current: 0, max: 5 },
+    { actionType: 'comment_pin', task_type: '社区活跃', name: '评论一条沸点', score: 2, current: 0, max: 5 },
+    { actionType: 'like_article', task_type: '社区活跃', name: '点赞一篇文章', score: 1, current: 0, max: 5 },
+    { actionType: 'like_pin', task_type: '社区活跃', name: '点赞一条沸点', score: 1, current: 0, max: 5 },
+    { actionType: 'collect_article', task_type: '社区活跃', name: '收藏一篇文章', score: 1, current: 0, max: 3 },
+    { actionType: 'follow_user', task_type: '社区活跃', name: '关注一位掘友', score: 4, current: 0, max: 5 },
+    // 社区学习
+    { actionType: 'browse_article', task_type: '社区学习', name: '浏览1篇文章/课程', score: 0.5, current: 0, max: 10 },
+    // 社区影响力
+    { actionType: 'be_followed', task_type: '社区影响力', name: '被一位掘友关注', score: 0.1, current: 0, max: 0 },
+    { actionType: 'pin_liked', task_type: '社区影响力', name: '沸点获得一个点赞', score: 0.1, current: 0, max: 0 },
+    { actionType: 'article_liked', task_type: '社区影响力', name: '文章获得一个点赞', score: 0.1, current: 0, max: 0 }
+]
+
 export default {
     name: 'GrowthLevel',
-    components: { HomeBar },
+    components: { HomeBar, UserCenterSidebar },
     data() {
         return {
-            userId: 1,
+            userId: null,
             levelInfo: {
                 dailyScore: 0,
                 dailyLevel: 1,
                 dailyTitle: '',
-                dailyScoreToday: 0,
-                powerValue: 0,
-                powerLevel: 1,
-                powerTitle: '',
-                powerDescription: ''
+                dailyScoreToday: 0
             },
             dailyLevelConfigs: [],
             permissions: [],
             tasks: [],
             hasCheckedIn: false,
             dailyNextLevelScore: 0,
-            powerNextLevelScore: 0
+            showRulesModal: false,
+            showBenefitModal: false,
+            selectedBenefitId: null,
+            privilegeGroups: [],
+            privileges: [],
+            todayJscore: 0,
+            benefitsPage: 1,
+            benefitsPageSize: 6,
+            selectedLevel: 1
         }
     },
     computed: {
@@ -319,178 +415,365 @@ export default {
             const userInfo = this.$store.state.user.userInfo
             return userInfo ? (userInfo.nickName || '用户') : '用户'
         },
+        // 当前等级配置
+        currentLevelConfig() {
+            const level = this.levelInfo.dailyLevel || 1
+            return LEVEL_FULL_CONFIG.find(c => c.level === level) || LEVEL_FULL_CONFIG[0]
+        },
+        // 选中等级的配置（用于权益预览）
+        selectedLevelConfig() {
+            return LEVEL_FULL_CONFIG.find(c => c.level === this.selectedLevel) || LEVEL_FULL_CONFIG[0]
+        },
         dailyProgressPercent() {
-            const configs = this.dailyLevelConfigs
+            const configs = this.levelChartConfigs
             if (!configs.length) return 0
-            const currentLevel = this.levelInfo.dailyLevel
-            const currentConfig = configs.find(c => c.levelValue === currentLevel)
-            const nextConfig = configs.find(c => c.levelValue === currentLevel + 1)
+            const currentLevel = this.levelInfo.dailyLevel || 1
+            const currentScore = this.levelInfo.dailyScore || 0
+            const currentConfig = configs.find(c => c.level === currentLevel)
+            const nextConfig = configs.find(c => c.level === currentLevel + 1)
             if (!currentConfig) return 0
             if (!nextConfig) {
                 this.dailyNextLevelScore = 0
                 return 100
             }
-            const current = this.levelInfo.dailyScore
             const min = currentConfig.minScore
             const max = nextConfig.minScore
-            this.dailyNextLevelScore = Math.max(max - current, 0)
-            return Math.min(Math.max(((current - min) / (max - min)) * 100, 0), 100)
+            this.dailyNextLevelScore = Math.max(Math.ceil(max - currentScore), 0)
+            return Math.min(Math.max(((currentScore - min) / (max - min)) * 100, 0), 100)
         },
         dailyProgressText() {
             if (this.dailyNextLevelScore <= 0) return '已达最高等级'
-            const configs = this.dailyLevelConfigs
-            const nextConfig = configs.find(c => c.levelValue === this.levelInfo.dailyLevel + 1)
+            const nextConfig = LEVEL_FULL_CONFIG.find(c => c.level === (this.levelInfo.dailyLevel || 1) + 1)
             const nextTitle = nextConfig ? nextConfig.title : ''
-            return '还需 ' + this.dailyNextLevelScore + ' 分可升至 ' + (nextTitle || ('逐日 ' + (this.levelInfo.dailyLevel + 1) + ' 级'))
-        },
-        powerProgress() {
-            const levelConfig = this.getPowerLevelConfig()
-            if (!levelConfig) return 0
-            const min = levelConfig.minScore
-            const max = levelConfig.maxScore
-            const current = this.levelInfo.powerValue
-            this.powerNextLevelScore = Math.max(max - current + 1, 0)
-            return Math.min(((current - min) / (max - min)) * 100, 100)
+            return '还需 ' + this.dailyNextLevelScore + ' 分可升至 ' + (nextTitle || ('JY' + ((this.levelInfo.dailyLevel || 1) + 1)))
         },
         taskGroups() {
-            const groups = []
-            const taskMap = {}
-            this.tasks.forEach(t => { taskMap[t.actionType] = t })
-
+            const groups = {}
+            const groupIconMap = {}
             for (const [groupName, groupConfig] of Object.entries(TASK_GROUP_CONFIG)) {
-                const groupTasks = []
-                groupConfig.actionTypes.forEach(actionType => {
-                    const task = taskMap[actionType]
-                    if (task) {
-                        groupTasks.push({
-                            ...task,
-                            icon: TASK_ICON_MAP[actionType] || '✨',
-                            buttonText: TASK_BUTTON_MAP[actionType] || '去完成'
-                        })
+                groupIconMap[groupName] = groupConfig.icon
+            }
+
+            for (const task of this.tasks) {
+                const type = task.task_type || '其他'
+                if (!groups[type]) {
+                    groups[type] = {
+                        name: type,
+                        icon: groupIconMap[type] || '📌',
+                        tasks: []
                     }
+                }
+                const completed = task.limit > 0 && (task.done || 0) >= task.limit
+                groups[type].tasks.push({
+                    ...task,
+                    buttonText: task.btn_name || task.buttonText || '去完成',
+                    completed: completed
                 })
-                if (groupTasks.length > 0) {
-                    groups.push({
-                        name: groupName,
-                        icon: groupConfig.icon,
-                        tasks: groupTasks
-                    })
+            }
+            return Object.values(groups)
+        },
+        levelChartConfigs() {
+            if (this.dailyLevelConfigs && this.dailyLevelConfigs.length > 0) {
+                return this.dailyLevelConfigs.map(c => ({
+                    level: c.levelValue || c.level,
+                    minScore: c.minScore,
+                    title: c.title || ''
+                }))
+            }
+            return LEVEL_FULL_CONFIG.map(c => ({ level: c.level, minScore: c.minScore, title: c.title }))
+        },
+        // 根据选中等级计算权益（累积到选中等级）
+        computedPermissions() {
+            const selectedLevel = this.selectedLevel
+            const currentLevel = this.levelInfo.dailyLevel || 1
+
+            if (this.privileges && this.privileges.length > 0) {
+                const result = []
+                const seen = new Set()
+                for (const priv of this.privileges) {
+                    if (priv.need_jscore_level <= selectedLevel) {
+                        if (!seen.has(priv.priv_id)) {
+                            seen.add(priv.priv_id)
+                            result.push({
+                                code: priv.priv_id,
+                                name: priv.title,
+                                icon: priv.icon,
+                                locked: priv.priv_status !== 1
+                            })
+                        }
+                    }
+                }
+                return result
+            }
+
+            const result = []
+            const seen = new Set()
+            for (const config of LEVEL_FULL_CONFIG) {
+                if (config.level <= selectedLevel) {
+                    for (const permCode of config.permissions) {
+                        if (!seen.has(permCode)) {
+                            seen.add(permCode)
+                            const info = PERMISSION_ICON_MAP[permCode] || { name: permCode, icon: '✨' }
+                            result.push({
+                                code: permCode,
+                                name: info.name,
+                                icon: info.icon,
+                                locked: config.level > currentLevel
+                            })
+                        }
+                    }
                 }
             }
-            return groups
+            return result
+        },
+        currentBenefit() {
+            if (this.selectedBenefitId === null) return null
+            for (const group of this.privilegeGroups) {
+                for (const priv of group.items) {
+                    if (priv.priv_id === this.selectedBenefitId) {
+                        return priv
+                    }
+                }
+            }
+            return null
+        },
+        currentBenefitsPage() {
+            const start = (this.benefitsPage - 1) * this.benefitsPageSize
+            return this.computedPermissions.slice(start, start + this.benefitsPageSize)
+        },
+        benefitsTotalPages() {
+            return Math.ceil(this.computedPermissions.length / this.benefitsPageSize) || 1
+        }
+    },
+    watch: {
+        levelInfo: {
+            immediate: true,
+            handler(val) {
+                if (val && val.dailyLevel) {
+                    this.selectedLevel = val.dailyLevel
+                }
+            }
         }
     },
     created() {
-        const userInfo = this.$store.state.user.userInfo
-        if (userInfo && userInfo.userId) {
-            this.userId = userInfo.userId
-        }
+        this.userId = this.$store.state.user.userInfo ? this.$store.state.user.userInfo.userId : null
     },
     mounted() {
         this.loadData()
     },
     methods: {
-        goBack() {
-            this.$router.back()
+        selectLevel(level) {
+            this.selectedLevel = level
+            this.benefitsPage = 1
+        },
+        getBarHeight(index) {
+            const heights = [14, 26, 40, 56, 72, 88, 102, 118]
+            return heights[index] || 14
+        },
+        handleSidebarMenuClick(key) {
+            if (key === 'harvest') {
+                toast('我的收获功能开发中', 2)
+                return
+            }
+            const routeMap = {
+                checkin: '/user/center/checkin',
+                growth: '/user/center/growth',
+                lottery: '/user/center/lottery',
+                welfare: '/user/center/welfare'
+            }
+            const path = routeMap[key]
+            if (path && this.$route.path !== path) {
+                this.$router.push(path)
+            }
         },
         goToJScore() {
-            this.$router.push('/user/growth/jscore')
+            this.$router.push('/user/center/growth/jscore')
+        },
+        prevBenefitsPage() {
+            if (this.benefitsPage > 1) {
+                this.benefitsPage--
+            }
+        },
+        nextBenefitsPage() {
+            if (this.benefitsPage < this.benefitsTotalPages) {
+                this.benefitsPage++
+            }
         },
         async loadData() {
             await Promise.all([
                 this.loadLevelInfo(),
                 this.loadLevelConfigs(),
-                this.loadPermissions(),
-                this.loadTasks()
+                this.loadTasks(),
+                this.loadPrivileges()
             ])
         },
         async loadLevelInfo() {
+            // 主数据源：info-pack（未登录也能返回基础信息）
             try {
-                const response = await this.$http.get('/api/v1/level/user/' + this.userId + '/info')
-                if (response.data) {
-                    this.levelInfo = {
-                        ...this.levelInfo,
-                        ...response.data
+                const response = await request.get('/api/v1/user/info-pack')
+                const data = response.data
+                if (data && typeof data === 'object') {
+                    const growth = data.user_growth_info || {}
+                    if (growth && typeof growth === 'object' && Object.keys(growth).length > 0) {
+                        this.levelInfo = {
+                            ...this.levelInfo,
+                            dailyScore: growth.jscore !== undefined ? growth.jscore : this.levelInfo.dailyScore,
+                            dailyLevel: growth.jscore_level !== undefined ? growth.jscore_level : this.levelInfo.dailyLevel,
+                            dailyTitle: growth.jscore_title || this.levelInfo.dailyTitle
+                        }
+                        if (growth.jscore_next_level_score !== undefined) {
+                            this.dailyNextLevelScore = growth.jscore_next_level_score
+                        }
+                        if (growth.jscore_level) {
+                            this.selectedLevel = growth.jscore_level
+                        }
                     }
                 }
             } catch (error) {
-                // Keep default values when API fails
+                console.warn('loadLevelInfo(info-pack) API failed:', error)
+            }
+            // 兜底：旧接口 level/user/{userId}/info（仅登录用户）
+            if (!this.userId) return
+            try {
+                const response = await request.get('/api/v1/level/user/' + this.userId + '/info')
+                const data = response.data
+                if (data && typeof data === 'object') {
+                    this.levelInfo = {
+                        ...this.levelInfo,
+                        ...data
+                    }
+                    if (data.dailyLevel) {
+                        this.selectedLevel = data.dailyLevel
+                    }
+                }
+            } catch (error) {
+                console.warn('loadLevelInfo fallback API failed:', error)
             }
         },
         async loadLevelConfigs() {
+            // 等级阶梯主数据源为 privileges 接口的 level_spec（见 loadPrivileges）
+            // 本方法仅作兜底：仅在 dailyLevelConfigs 仍为空时用旧配置接口填充
             try {
-                const response = await this.$http.get('/api/v1/level/configs?levelType=1')
+                const response = await request.get('/api/v1/level/configs?levelType=1')
                 const data = response.data
+                let list = null
                 if (Array.isArray(data)) {
-                    this.dailyLevelConfigs = data
+                    list = data
                 } else if (data && Array.isArray(data.list)) {
-                    this.dailyLevelConfigs = data.list
+                    list = data.list
                 } else if (data && Array.isArray(data.records)) {
-                    this.dailyLevelConfigs = data.records
+                    list = data.records
+                } else if (data && Array.isArray(data.data)) {
+                    list = data.data
+                }
+                if (list && list.length > 0 && (!this.dailyLevelConfigs || this.dailyLevelConfigs.length === 0)) {
+                    this.dailyLevelConfigs = list
                 }
             } catch (error) {
-                // Keep empty configs when API fails
-            }
-        },
-        async loadPermissions() {
-            try {
-                const response = await this.$http.get('/api/v1/level/user/' + this.userId + '/permissions')
-                if (response.data) {
-                    this.permissions = this.mapPermissions(response.data)
-                }
-            } catch (error) {
-                // Keep empty permissions when API fails
+                console.warn('loadLevelConfigs API failed:', error)
             }
         },
         async loadTasks() {
+            if (!this.userId) {
+                this.tasks = this.getDefaultTasks()
+                return
+            }
             try {
-                const response = await this.$http.get('/api/v1/level/user/' + this.userId + '/tasks')
+                const response = await request.get('/api/v1/level/user/' + this.userId + '/tasks')
                 const data = response.data
                 let taskList = []
-                if (Array.isArray(data)) {
+
+                if (data && data.growth_tasks && typeof data.growth_tasks === 'object') {
+                    this.todayJscore = data.today_jscore || 0
+                    const growthTasks = data.growth_tasks
+                    for (const key of Object.keys(growthTasks)) {
+                        const groupTasks = growthTasks[key]
+                        if (Array.isArray(groupTasks)) {
+                            taskList = taskList.concat(groupTasks.map(t => ({
+                                task_id: t.task_id,
+                                task_type: t.task_type,
+                                icon: t.icon,
+                                btn_name: t.btn_name,
+                                name: t.title,
+                                title: t.title,
+                                score: t.score,
+                                limit: t.limit,
+                                done: t.done || 0,
+                                web_jump_url: t.web_jump_url,
+                                actionType: t.action_code || t.task_id
+                            })))
+                        }
+                    }
+                } else if (Array.isArray(data)) {
                     taskList = data
                 } else if (data && Array.isArray(data.tasks)) {
                     taskList = data.tasks
                 } else if (data && Array.isArray(data.list)) {
                     taskList = data.list
+                } else if (data && Array.isArray(data.records)) {
+                    taskList = data.records
+                } else if (data && Array.isArray(data.data)) {
+                    taskList = data.data
                 }
-                this.tasks = taskList.map(task => ({
-                    ...task,
-                    completed: task.completed || (task.current >= task.max)
-                }))
-            } catch (error) {
-                // Keep empty tasks when API fails
-            }
-        },
-        async handleCheckIn() {
-            if (this.hasCheckedIn) {
-                toast('今日已签到', 2)
-                return
-            }
-            try {
-                const response = await this.$http.post('/api/v1/level/check-in')
-                if (response.code === 200) {
-                    this.hasCheckedIn = true
-                    toast('签到成功，获得10逐日分', 2)
-                    this.loadLevelInfo()
+
+                if (taskList.length > 0) {
+                    // 统一归一化：actionType 优先 action_code；icon 名称转本地路径、空值回退 emoji
+                    this.tasks = taskList.map(t => {
+                        const actionType = t.actionType || t.action_code || t.task_id
+                        return {
+                            ...t,
+                            actionType: actionType,
+                            icon: this.resolveTaskIcon(t.icon, actionType)
+                        }
+                    })
                 } else {
-                    toast(response.message || '签到失败', 2)
+                    this.tasks = this.getDefaultTasks()
                 }
             } catch (error) {
-                toast('签到失败，请稍后重试', 2)
+                console.warn('loadTasks API failed:', error)
+                this.tasks = this.getDefaultTasks()
             }
         },
-        goCheckIn() {
-            this.$router.push('/user/checkin')
+        getDefaultTasks() {
+            return DEFAULT_TASKS.map(t => ({
+                task_id: t.actionType,
+                task_type: t.task_type || '其他',
+                icon: TASK_ICON_MAP[t.actionType] || '✨',
+                btn_name: TASK_BUTTON_MAP[t.actionType] || '去完成',
+                name: t.name,
+                title: t.name,
+                score: t.score,
+                limit: t.max || -1,
+                done: 0,
+                web_jump_url: '',
+                actionType: t.actionType
+            }))
         },
-        showDevTip(name) {
-            toast(name + '开发中', 2)
+        // 任务图标：后端返回图标名称（如 upload_avatar）转本地图片路径；空值回退 emoji
+        resolveTaskIcon(icon, actionType) {
+            if (icon) {
+                if (icon.indexOf('/') === 0 || icon.indexOf('http') === 0) {
+                    return icon
+                }
+                return '/static/images/level/' + icon + '.png'
+            }
+            return TASK_ICON_MAP[actionType] || '✨'
+        },
+        // 权益图标：后端返回图标名称（如 priv_send_private_message）转本地图片路径
+        resolvePrivIcon(icon) {
+            if (!icon) return ''
+            if (icon.indexOf('/') === 0 || icon.indexOf('http') === 0) {
+                return icon
+            }
+            return '/static/images/level/' + icon + '.png'
         },
         handleTaskAction(task) {
             if (task.completed) {
                 toast('该任务已完成', 2)
                 return
             }
+            // 优先按 action_code 路由
+            let routed = true
             switch (task.actionType) {
                 case 'publish_article':
                     this.$router.push('/creator/publish')
@@ -499,22 +782,16 @@ export default {
                     this.$router.push('/pins')
                     break
                 case 'browse_article':
-                case 'browse_course':
                 case 'comment_article':
                 case 'comment_pin':
                 case 'like_article':
                 case 'like_pin':
                 case 'follow_user':
+                case 'collect_article':
                     this.$router.push('/')
                     break
                 case 'upload_avatar':
                     this.$router.push('/user/settings')
-                    break
-                case 'check_in':
-                    this.handleCheckIn()
-                    break
-                case 'collect_article':
-                    this.$router.push('/')
                     break
                 case 'be_followed':
                 case 'pin_liked':
@@ -522,44 +799,134 @@ export default {
                     toast('快去创作优质内容吸引关注吧', 2)
                     break
                 default:
-                    toast('任务功能开发中', 2)
+                    routed = false
+            }
+            // switch 未命中时回退 web_jump_url（站外 http 链接新开/整页跳转，站内路径走路由）
+            if (!routed && task.web_jump_url) {
+                if (/^https?:\/\//.test(task.web_jump_url)) {
+                    window.location.href = task.web_jump_url
+                } else {
+                    this.$router.push(task.web_jump_url)
+                }
+                return
+            }
+            if (!routed) {
+                toast('任务功能开发中', 2)
             }
         },
-        mapPermissions(permissionCodes) {
-            const permissionMap = {
-                'can_send_private_message': { name: '私信权限', icon: '💬' },
-                'can_set_comment_permission': { name: '评论区权限设置', icon: '🔒' },
-                'can_create_poll': { name: '发起投票', icon: '📊' },
-                'can_become_contributor': { name: '成为共建者', icon: '⭐' },
-                'can_be_recommended': { name: '文章自动推荐', icon: '🔥' },
-                'can_add_video': { name: '添加视频', icon: '🎬' },
-                'can_add_2_tags': { name: '2个标签', icon: '🏷️' },
-                'can_schedule_publish': { name: '定时发布', icon: '⏰' },
-                'can_add_3_tags': { name: '3个标签', icon: '🏷️🏷️' },
-                'can_add_4_tags': { name: '4个标签', icon: '🏷️🏷️🏷️' },
-                'can_create_course': { name: '创作小册', icon: '📚' }
+        async loadPrivileges() {
+            try {
+                const response = await request.get('/api/v1/level/privileges')
+                const data = response.data
+                if (data && data.level_privilege && Array.isArray(data.level_privilege)) {
+                    const allPrivileges = []
+                    for (const levelArray of data.level_privilege) {
+                        if (Array.isArray(levelArray)) {
+                            for (const priv of levelArray) {
+                                allPrivileges.push({
+                                    ...priv,
+                                    priv_id: priv.priv_id,
+                                    title: priv.title,
+                                    icon: priv.icon ? this.resolvePrivIcon(priv.icon) : '',
+                                    priv_status: priv.priv_status,
+                                    desc: priv.desc || [],
+                                    need_jscore_level: priv.need_jscore_level,
+                                    web_jump_url: priv.web_jump_url || ''
+                                })
+                            }
+                        }
+                    }
+                    this.privileges = allPrivileges
+                    this.buildPrivilegeGroups(allPrivileges)
+                } else {
+                    this.privileges = this.getDefaultPrivileges()
+                    this.buildPrivilegeGroups(this.privileges)
+                }
+
+                // 等级阶梯数据：level_spec
+                if (data && data.level_spec && Array.isArray(data.level_spec) && data.level_spec.length > 0) {
+                    this.dailyLevelConfigs = data.level_spec.map(s => ({
+                        level: s.level,
+                        minScore: s.min_score,
+                        maxScore: s.max_score,
+                        title: s.level_title
+                    }))
+                }
+
+                // current_level/current_score 兜底更新等级信息（仅当 info-pack 未提供有效值时）
+                if (data && data.current_level && (!this.levelInfo.dailyLevel || this.levelInfo.dailyLevel === 1)) {
+                    this.levelInfo.dailyLevel = data.current_level
+                    if (!this.selectedLevel || this.selectedLevel === 1) {
+                        this.selectedLevel = data.current_level
+                    }
+                }
+                if (data && data.current_score && !this.levelInfo.dailyScore) {
+                    this.levelInfo.dailyScore = data.current_score
+                }
+            } catch (error) {
+                console.warn('loadPrivileges API failed:', error)
+                this.privileges = this.getDefaultPrivileges()
+                this.buildPrivilegeGroups(this.privileges)
             }
-            const codes = Array.isArray(permissionCodes) ? permissionCodes : []
-            return codes.map(code => ({
-                code,
-                ...permissionMap[code] || { name: code, icon: '✨' }
-            }))
         },
-        getPowerLevelConfig() {
-            const level = this.levelInfo.powerLevel
-            const configs = [
-                { level: 1, minScore: 0, maxScore: 99 },
-                { level: 2, minScore: 100, maxScore: 499 },
-                { level: 3, minScore: 500, maxScore: 1499 },
-                { level: 4, minScore: 1500, maxScore: 2999 },
-                { level: 5, minScore: 3000, maxScore: 4999 },
-                { level: 6, minScore: 5000, maxScore: 7999 },
-                { level: 7, minScore: 8000, maxScore: 11999 },
-                { level: 8, minScore: 12000, maxScore: 19999 },
-                { level: 9, minScore: 20000, maxScore: 29999 },
-                { level: 10, minScore: 30000, maxScore: 999999 }
+        buildPrivilegeGroups(privileges) {
+            const groupDefs = [
+                { name: '功能权益', minLevel: 1, maxLevel: 4 },
+                { name: '社区福利', minLevel: 5, maxLevel: 5 },
+                { name: '身份权益', minLevel: 6, maxLevel: 8 }
             ]
-            return configs.find(c => c.level === level)
+            const groups = groupDefs.map(def => ({
+                name: def.name,
+                expanded: true,
+                items: privileges.filter(p =>
+                    p.need_jscore_level >= def.minLevel && p.need_jscore_level <= def.maxLevel
+                )
+            }))
+            this.privilegeGroups = groups
+            if (groups.length > 0 && groups[0].items.length > 0) {
+                this.selectedBenefitId = groups[0].items[0].priv_id
+            }
+        },
+        getDefaultPrivileges() {
+            return [
+                { priv_id: 0, title: '主动发起私信', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY1级'},{desc_title:'权益说明',desc_content:'可以主动向其他掘友发起私信沟通'}], need_jscore_level: 1, web_jump_url: '' },
+                { priv_id: 1, title: '发起投票', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY2级'},{desc_title:'权益说明',desc_content:'可以在发布内容时发起投票'}], need_jscore_level: 2, web_jump_url: '' },
+                { priv_id: 2, title: '评论区权限设置', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY3级'},{desc_title:'权益说明',desc_content:'可以设置评论区的查看和评论权限'}], need_jscore_level: 3, web_jump_url: '' },
+                { priv_id: 3, title: '评论区Mark设置', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY4级'},{desc_title:'权益说明',desc_content:'可以在评论区使用Markdown语法'}], need_jscore_level: 4, web_jump_url: '' },
+                { priv_id: 4, title: '使用掘金特色表情', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY5级'},{desc_title:'权益说明',desc_content:'可以使用掘金专属特色表情'}], need_jscore_level: 5, web_jump_url: '' },
+                { priv_id: 5, title: '个性装扮', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY6级'},{desc_title:'权益说明',desc_content:'可以自定义个人主页装扮'}], need_jscore_level: 6, web_jump_url: '' },
+                { priv_id: 6, title: '升级矿石奖励', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY7级'},{desc_title:'权益说明',desc_content:'矿石奖励比例提升'}], need_jscore_level: 7, web_jump_url: '' },
+                { priv_id: 7, title: '参选掘金神评审', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY8级'},{desc_title:'权益说明',desc_content:'可以参选掘金神评审团'}], need_jscore_level: 8, web_jump_url: '' },
+                { priv_id: 8, title: '参选小册评审团', icon: '', priv_status: 1, desc: [{desc_title:'解锁等级',desc_content:'JY8级'},{desc_title:'权益说明',desc_content:'可以参选小册评审团'}], need_jscore_level: 8, web_jump_url: '' }
+            ]
+        },
+        openBenefitModal(perm) {
+            if (perm && perm.code !== undefined) {
+                const privId = typeof perm.code === 'number' ? perm.code : null
+                if (privId !== null) {
+                    this.selectedBenefitId = privId
+                }
+            }
+            if (!this.privilegeGroups || this.privilegeGroups.length === 0) {
+                this.loadPrivileges()
+            }
+            this.showBenefitModal = true
+        },
+        closeBenefitModal() {
+            this.showBenefitModal = false
+        },
+        selectBenefit(priv) {
+            if (priv.priv_status !== 1) {
+                toast('该权益暂未解锁', 2)
+                return
+            }
+            this.selectedBenefitId = priv.priv_id
+        },
+        toggleGroup(name) {
+            const group = this.privilegeGroups.find(g => g.name === name)
+            if (group) {
+                group.expanded = !group.expanded
+            }
         }
     }
 }
@@ -577,384 +944,425 @@ export default {
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px;
-}
-
-// ===== 用户名称行 =====
-.user-name-row {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 16px;
+    align-items: flex-start;
 }
 
-.user-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1A1A1A;
-}
-
-.user-level-tag {
-    font-size: 13px;
-    color: #1A73E8;
-    background: #E8F0FE;
-    padding: 2px 12px;
-    border-radius: 12px;
-}
-
-// ===== 成长摘要卡片 =====
-.summary-card {
-    display: flex;
-    background: #FFFFFF;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    margin-bottom: 16px;
-    gap: 32px;
-}
-
-.summary-left {
+.main-area {
     flex: 1;
     min-width: 0;
 }
 
-.summary-right {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-}
-
-.level-score-display {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.score-number {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1A1A1A;
-}
-
-.score-unit {
-    font-size: 14px;
-    color: #8C8C8C;
-}
-
-.level-progress {
-    margin-bottom: 16px;
-}
-
-.progress-bar {
-    height: 6px;
-    background: #E8E8E8;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 6px;
-}
-
-.summary-left .progress-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: #1A73E8;
-    transition: width 0.8s ease;
-}
-
-.progress-text {
-    font-size: 13px;
-    color: #666666;
-}
-
-// ===== 等级里程碑节点 =====
-.milestone-track {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 8px 0 0;
-    position: relative;
-    margin-top: 4px;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 28px;
-        left: 10px;
-        right: 10px;
-        height: 2px;
-        background: #D9D9D9;
-        z-index: 0;
-    }
-}
-
-.milestone-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    z-index: 1;
-    flex: 1;
-}
-
-.milestone-dot {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 3px solid #D9D9D9;
-    background: #FFFFFF;
-    position: relative;
-    z-index: 1;
-    transition: all 0.3s ease;
-
-    &.active {
-        border-color: #1A73E8;
-        background: #1A73E8;
-    }
-}
-
-.milestone-label {
-    font-size: 12px;
-    color: #999999;
-    margin-top: 6px;
-    white-space: nowrap;
-}
-
-.milestone-score {
-    font-size: 11px;
-    color: #B0B0B0;
-    margin-top: 2px;
-    white-space: nowrap;
-}
-
-// ===== 功能入口网格 =====
-.function-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.func-item {
-    width: 72px;
-    height: 72px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #F8FAFC;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transform: translateY(-2px);
-    }
-}
-
-.func-icon {
-    font-size: 24px;
-    line-height: 1;
-    margin-bottom: 4px;
-}
-
-.func-text {
-    font-size: 12px;
-    color: #666666;
-    white-space: nowrap;
-}
-
-// ===== 等级卡片（逐力值） =====
-.level-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    margin-bottom: 16px;
-}
-
-.level-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.level-icon {
-    font-size: 20px;
-}
-
-.level-title {
-    font-size: 14px;
-    color: #666;
-}
-
-.level-main {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.level-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1a1a1a;
-}
-
-.power-level .level-value {
-    color: #6C5CE7;
-}
-
-.level-score {
-    font-size: 14px;
-    color: #999;
-}
-
-.power-level .progress-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: linear-gradient(90deg, #6C5CE7, #A29BFE);
-    transition: width 0.3s ease;
-}
-
-.level-title-name {
-    font-size: 13px;
-    color: #666;
-    font-weight: 500;
-}
-
-// ===== 签到区域 =====
-.check-in-section {
-    margin-bottom: 16px;
-}
-
-.check-in-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(135deg, #FF6B35 0%, #FF8E53 100%);
-    border-radius: 16px;
-    padding: 20px;
-    cursor: pointer;
-    transition: transform 0.2s;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-
-    &:active {
-        transform: scale(0.98);
-    }
-}
-
-.check-in-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.check-in-icon {
-    font-size: 32px;
-}
-
-.check-in-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.check-in-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #fff;
-}
-
-.check-in-desc {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.check-in-btn {
-    padding: 10px 24px;
-    border: 2px solid #fff;
-    border-radius: 20px;
-    background: transparent;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.2);
-    }
-
-    &.checked {
-        background: #fff;
-        color: #FF6B35;
-        cursor: default;
-    }
-}
-
-// ===== 权限区域 =====
-.permissions-section {
-    background: #fff;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
-}
-
-.section-count {
-    font-size: 13px;
-    color: #999;
-}
-
-.permissions-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.permission-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: #f8f9fa;
-    border-radius: 20px;
-    font-size: 13px;
-    color: #666;
-}
-
-.permission-icon {
-    font-size: 14px;
-}
-
-// ===== 升级任务列表 =====
-.tasks-section {
-    background: #fff;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.tasks-section-header {
+// 页面标题栏
+.page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
-    padding-bottom: 12px;
+}
+
+.page-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1A1A1A;
+}
+
+.page-links {
+    display: flex;
+    gap: 24px;
+}
+
+.link-item {
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+    &:hover { color: #7C3AED; }
+}
+
+.link-icon {
+    font-size: 16px;
+}
+
+// 等级信息 + 阶梯图两栏
+.level-overview {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+// 紫色渐变等级卡片
+.level-card-purple {
+    flex: 1;
+    background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 60%, #C4B5FD 100%);
+    border-radius: 16px;
+    padding: 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+}
+
+.level-card-content {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 16px;
+}
+
+.level-info {
+    flex: 1;
+}
+
+.level-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    padding: 2px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.level-name {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+}
+
+.level-score-section {
+    margin-bottom: 4px;
+}
+
+.score-label {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-bottom: 4px;
+}
+
+.score-value {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.level-crystal {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.crystal-shape {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    filter: drop-shadow(0 4px 12px rgba(255,255,255,0.4));
+}
+
+.level-progress {
+    margin-top: 12px;
+}
+
+.level-progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.level-card-purple .progress-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 2px;
+    transition: width 0.8s ease;
+}
+
+.level-progress-text {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+// 深色等级分值阶梯图
+.level-chart-dark {
+    width: 380px;
+    flex-shrink: 0;
+    background: #1A1A1A;
+    border-radius: 16px;
+    padding: 20px 16px 16px;
+    color: #fff;
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #fff;
+}
+
+// 阶梯行
+.chart-stairs-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 180px;
+    overflow: visible;
+    padding-bottom: 4px;
+}
+
+// 每列
+.chart-stair-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    cursor: pointer;
+    position: relative;
+}
+
+// ▼ 指示器（背景外顶部）
+.stair-indicator {
+    width: 20px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2px;
+
+    .indicator-icon {
+        color: #A78BFA;
+        font-size: 10px;
+        line-height: 10px;
+    }
+}
+
+// 圆角矩形背景（包裹数值+柱体+标签）
+.stair-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px 6px;
+    border-radius: 8px;
+    transition: background 0.2s;
+
+    &.active {
+        background: rgba(124, 58, 237, 0.25);
+        box-shadow: 0 0 12px rgba(124, 58, 237, 0.3);
+    }
+
+    &.selected {
+        background: rgba(124, 58, 237, 0.12);
+    }
+}
+
+// 经验值
+.stair-value {
+    margin-bottom: 6px;
+
+    .value-num {
+        font-size: 11px;
+        color: #888;
+        white-space: nowrap;
+        display: block;
+    }
+
+    &.active .value-num {
+        color: #A78BFA;
+        font-weight: 700;
+        font-size: 14px;
+    }
+}
+
+// 柱体
+.bar-stick {
+    width: 16px;
+    background: #333;
+    border-radius: 3px 3px 0 0;
+    transition: all 0.3s;
+
+    &.unlocked {
+        background: linear-gradient(180deg, #7C3AED 0%, #5B21B6 100%);
+    }
+
+    &.active {
+        background: linear-gradient(180deg, #A78BFA 0%, #7C3AED 100%);
+        box-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+    }
+
+    &.locked {
+        background: #333;
+    }
+}
+
+// 等级标签
+.stair-label {
+    font-size: 11px;
+    color: #666;
+    margin-top: 6px;
+    white-space: nowrap;
+    line-height: 1;
+
+    &.active {
+        color: #A78BFA;
+        font-weight: 700;
+    }
+}
+
+// 等级权益区
+.benefits-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.benefits-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.benefits-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A1A;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.benefits-level-tag {
+    font-size: 12px;
+    font-weight: 400;
+    color: #7C3AED;
+    background: #F3E8FF;
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+.benefits-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid #E8E8E8;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    &:hover { background: #F5F5F5; }
+}
+
+.page-indicator {
+    font-size: 13px;
+    color: #999;
+}
+
+.benefits-list {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+}
+
+.benefit-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 80px;
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+}
+
+.benefit-item.locked .benefit-icon-wrap {
+    filter: grayscale(0.8);
+    opacity: 0.5;
+}
+
+.benefit-item.locked .benefit-name {
+    color: #BBB;
+}
+
+.benefit-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #FFF7E6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.benefit-item:not(.locked) .benefit-icon-wrap {
+    background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
+}
+
+.benefit-icon {
+    font-size: 24px;
+}
+
+.benefit-img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.benefit-lock {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 14px;
+    filter: none;
+}
+
+.benefit-name {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.3;
+}
+
+// 升级行为任务区
+.tasks-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.tasks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #F0F2F5;
 }
 
@@ -966,175 +1374,188 @@ export default {
 
 .tasks-today-score {
     font-size: 14px;
-    color: #52C41A;
+    color: #7C3AED;
 }
 
-.jscore-link {
-    font-size: 13px;
-    color: #1A73E8;
-    cursor: pointer;
-    margin-left: 12px;
-    &:hover {
-        color: #1557B0;
-    }
-}
-
-// 任务分组
 .task-group {
-    margin-bottom: 24px;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
+    margin-bottom: 18px;
+    &:last-child { margin-bottom: 0; }
 }
 
 .group-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     color: #1A1A1A;
-    margin-bottom: 8px;
-}
-
-.group-icon {
-    font-size: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #7C3AED;
+    display: inline-block;
 }
 
 .group-tasks {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
 }
 
 .task-item {
     display: flex;
     align-items: center;
-    padding: 14px 0;
-    border-bottom: 1px solid #F0F2F5;
+    padding: 14px;
+    background: #FAFAFA;
+    border-radius: 10px;
+    border: 1px solid #F0F2F5;
+    transition: all 0.2s;
 
-    &:last-child {
-        border-bottom: none;
+    &:hover {
+        background: #F3E8FF;
+        border-color: #E9D5FF;
     }
 }
 
 .task-icon-wrap {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: #F0F5FF;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-right: 12px;
+    margin-right: 10px;
 }
 
 .task-icon {
-    font-size: 16px;
-    line-height: 1;
+    font-size: 18px;
+}
+
+.task-img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
 }
 
 .task-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .task-name {
-    font-size: 14px;
-    color: #1A1A1A;
-}
-
-.task-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-right: 16px;
-    flex-shrink: 0;
-}
-
-.task-meta .task-score {
     font-size: 13px;
-    color: #52C41A;
-    font-weight: 500;
+    color: #1A1A1A;
+    line-height: 1.3;
 }
 
-.task-meta .task-progress {
+.task-progress-text {
     font-size: 12px;
-    color: #999999;
+    color: #999;
+    line-height: 1.3;
 }
 
 .task-btn {
-    padding: 4px 16px;
-    border: 1px solid #1A73E8;
+    padding: 5px 16px;
+    border: 1px solid #7C3AED;
     border-radius: 14px;
     background: transparent;
-    color: #1A73E8;
-    font-size: 13px;
+    color: #7C3AED;
+    font-size: 12px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
     transition: all 0.2s;
-
-    &:hover:not(:disabled) {
-        background: #E8F0FE;
-    }
-
-    &.completed,
-    &:disabled {
+    &:hover:not(:disabled) { background: #F3E8FF; }
+    &.completed, &:disabled {
         border-color: #D9D9D9;
-        color: #999999;
+        color: #999;
         cursor: default;
         background: transparent;
     }
 }
 
-// ===== 等级规则 =====
-.level-rules {
+// Modal 样式
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.modal-content {
     background: #fff;
     border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
-.rules-content {
+.modal-header {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 12px;
+    border-bottom: 1px solid #F0F2F5;
 }
 
-.rule-section {
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 8px;
+.modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A1A;
 }
 
-.rule-title {
+.modal-close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    &:hover { color: #1A1A1A; }
+}
+
+.modal-body {
+    padding: 16px 20px 20px;
+}
+
+.rules-section {
+    margin-bottom: 16px;
+    &:last-child { margin-bottom: 0; }
+}
+
+.rules-title {
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: 8px;
     color: #333;
+    margin-bottom: 10px;
 }
 
-.rule-list {
+.rules-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.rules-list {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
+    li {
+        font-size: 13px;
+        color: #666;
+        padding: 6px 12px;
+        background: #F5F7FA;
+        border-radius: 8px;
+    }
 }
 
-.rule-list li {
-    font-size: 13px;
-    color: #666;
-    padding: 4px 10px;
-    background: #fff;
-    border-radius: 12px;
-}
-
-// ===== 底部信息 =====
+// 底部
 .growth-footer {
     text-align: center;
     padding: 24px 0;
@@ -1142,79 +1563,238 @@ export default {
     color: #B0B0B0;
 }
 
-.footer-sep {
-    margin: 0 8px;
-    color: #D9D9D9;
+// 权益说明 Modal
+.benefit-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 720px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-// ===== 响应式 =====
-@media screen and (max-width: 1199px) {
-    .growth-content {
-        padding: 16px;
+.benefit-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #F0F2F5;
+}
+
+.benefit-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1A1A1A;
+}
+
+.benefit-modal-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 400px;
+}
+
+.benefit-sidebar {
+    width: 220px;
+    border-right: 1px solid #F0F2F5;
+    overflow-y: auto;
+    padding: 12px 0;
+    flex-shrink: 0;
+}
+
+.benefit-group {
+    margin-bottom: 8px;
+}
+
+.benefit-group-title {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+
+    &:hover {
+        background: #F9FAFB;
     }
 }
 
+.group-arrow {
+    font-size: 10px;
+    color: #999;
+    transition: transform 0.2s;
+
+    &.expanded {
+        transform: rotate(90deg);
+    }
+}
+
+.benefit-group-list {
+    padding: 0 8px;
+}
+
+.benefit-nav-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #666;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #F3E8FF;
+        color: #7C3AED;
+    }
+
+    &.active {
+        background: #7C3AED;
+        color: #fff;
+
+        .lock-tag {
+            background: rgba(255,255,255,0.3);
+            color: #fff;
+        }
+    }
+
+    &.locked {
+        color: #BBB;
+    }
+}
+
+.lock-tag {
+    font-size: 11px;
+    color: #999;
+    background: #F0F2F5;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.benefit-detail {
+    flex: 1;
+    padding: 28px 32px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.benefit-detail-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    overflow: hidden;
+
+    img {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+    }
+}
+
+.icon-fallback {
+    font-size: 36px;
+}
+
+.benefit-detail-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-bottom: 20px;
+}
+
+.benefit-detail-desc {
+    margin-bottom: 16px;
+}
+
+.desc-title {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.desc-content {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.6;
+
+    &.unlocked {
+        color: #7C3AED;
+        font-weight: 600;
+    }
+}
+
+.benefit-detail-status {
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #FFF7E6;
+    border-radius: 8px;
+    color: #FA8C16;
+    font-size: 13px;
+    align-self: flex-start;
+}
+
+.benefit-jump {
+    margin-top: 20px;
+    display: inline-block;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 14px;
+    text-decoration: none;
+    align-self: flex-start;
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+// 响应式
 @media screen and (max-width: 768px) {
     .growth-content {
         padding: 12px;
-    }
-
-    .summary-card {
         flex-direction: column;
-        padding: 16px;
+    }
+    .level-overview {
+        flex-direction: column;
+    }
+    .level-chart-dark {
+        width: 100%;
+    }
+    .benefit-list {
         gap: 16px;
     }
-
-    .summary-right {
-        justify-content: center;
+    .chart-bars {
+        height: 160px;
     }
-
-    .level-card {
-        padding: 16px;
+    .benefit-modal {
+        max-width: 100%;
+        max-height: 90vh;
     }
-
-    .check-in-card {
-        padding: 16px;
+    .benefit-modal-body {
+        flex-direction: column;
     }
-
-    .check-in-btn {
-        padding: 8px 16px;
-        font-size: 13px;
+    .benefit-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #F0F2F5;
+        max-height: 200px;
     }
-
-    .task-item {
-        padding: 12px 0;
-        flex-wrap: wrap;
-    }
-
-    .task-meta {
-        margin-right: 8px;
-    }
-
-    .task-btn {
-        padding: 4px 12px;
-        font-size: 12px;
-    }
-
-    .milestone-label {
-        font-size: 10px;
-    }
-
-    .milestone-score {
-        display: none;
-    }
-
-    .func-item {
-        width: 64px;
-        height: 64px;
-    }
-
-    .func-icon {
-        font-size: 20px;
-    }
-
-    .func-text {
-        font-size: 11px;
+    .benefit-detail {
+        padding: 20px 16px;
     }
 }
 </style>
