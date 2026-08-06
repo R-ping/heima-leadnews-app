@@ -1,8 +1,11 @@
 package com.heima.content.controller.v1.level;
 
 import com.heima.content.service.level.LevelService;
+import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.level.pojos.ApLevelConfig;
 import com.heima.model.level.pojos.ApUserLevel;
+import com.heima.model.user.pojos.ApUser;
+import com.heima.utils.thread.AppThreadLocalUtil;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,9 +43,9 @@ public class LevelController {
     }
 
     @GetMapping("/user/{userId}/tasks")
-    public ResponseEntity<Map<String, Object>> getTodayTaskProgress(@PathVariable Long userId) {
+    public ResponseResult getTodayTaskProgress(@PathVariable Long userId) {
         Map<String, Object> taskProgress = levelService.getTodayTaskProgress(userId);
-        return ResponseEntity.ok(taskProgress);
+        return ResponseResult.okResult(taskProgress);
     }
 
     @GetMapping("/user/{userId}/permissions")
@@ -97,5 +100,12 @@ public class LevelController {
     public ResponseEntity<List<ApLevelConfig>> getLevelConfigs(@RequestParam(defaultValue = "1") Integer levelType) {
         List<ApLevelConfig> configs = levelService.getLevelConfigs(levelType);
         return ResponseEntity.ok(configs);
+    }
+
+    @GetMapping("/privileges")
+    public ResponseResult getLevelPrivileges() {
+        ApUser user = AppThreadLocalUtil.getUser();
+        Long userId = user != null ? user.getId().longValue() : 0L;
+        return ResponseResult.okResult(levelService.getLevelPrivileges(userId));
     }
 }

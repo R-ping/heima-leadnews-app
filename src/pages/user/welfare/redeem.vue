@@ -232,7 +232,7 @@ export default {
                     }
                 } else {
                     toast('商品不存在', 2)
-                    this.$router.replace('/user/welfare')
+                    this.$router.replace('/user/center/welfare')
                 }
             } catch (e) {
                 this.goods = this.getDefaultGoods()
@@ -293,16 +293,16 @@ export default {
             }
         },
         goBack() {
-            this.$router.push('/user/welfare')
+            this.$router.push('/user/center/welfare')
         },
         goCheckin() {
-            this.$router.push('/user/checkin')
+            this.$router.push('/user/center/checkin')
         },
         goGrowth() {
-            this.$router.push('/user/growth')
+            this.$router.push('/user/center/growth')
         },
         goLottery() {
-            this.$router.push('/user/lottery')
+            this.$router.push('/user/center/lottery')
         },
         goHarvest() {
             toast('我的收获功能开发中', 2)

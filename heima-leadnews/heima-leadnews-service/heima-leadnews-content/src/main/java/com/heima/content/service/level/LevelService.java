@@ -31,4 +31,8 @@ public interface LevelService {
     Map<String, Object> getTodayTaskProgress(Long userId);
 
     List<ApLevelConfig> getLevelConfigs(Integer levelType);
+
+    Map<String, Object> getLevelPrivileges(Long userId);
+
+    Map<String, Object> getUserInfoPack(Long userId);
 }

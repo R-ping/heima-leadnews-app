@@ -1,6 +1,8 @@
 package com.heima.content.service.level.impl;
 
 import com.heima.common.redis.CacheService;
+import com.heima.content.mapper.level.ApBehaviorConfigMapper;
+import com.heima.content.mapper.level.ApUserDailyProgressMapper;
 import com.heima.content.mapper.user.UserScoreDetailsMapper;
 import com.heima.content.mapper.user.UserScoreSummaryMapper;
 import com.heima.content.service.level.JScoreService;
@@ -9,12 +11,16 @@ import com.heima.model.level.dtos.JScoreDetailVO.JScoreDetailItem;
 import com.heima.model.level.dtos.JScoreOverviewVO;
 import com.heima.model.level.dtos.JScoreOverviewVO.ChartData;
 import com.heima.model.level.dtos.JScoreOverviewVO.TodayTotalVO;
+import com.heima.model.level.pojos.ApBehaviorConfig;
+import com.heima.model.level.pojos.ApUserDailyProgress;
 import com.heima.model.user.pojos.UserScoreDetails;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +37,12 @@ public class JScoreServiceImpl implements JScoreService {
 
     @Autowired
     private UserScoreSummaryMapper userScoreSummaryMapper;
+
+    @Autowired
+    private ApBehaviorConfigMapper behaviorConfigMapper;
+
+    @Autowired
+    private ApUserDailyProgressMapper userDailyProgressMapper;
 
     @Autowired
     private CacheService cacheService;
@@ -95,16 +107,26 @@ public class JScoreServiceImpl implements JScoreService {
             String catName = CATEGORY_NAME_MAP.get(cat);
             String fieldName = CATEGORY_FIELD_MAP.get(cat);
 
-            // 今日数据：优先 Redis，降级查询数据库
-            BigDecimal todayScore;
-            if (redisData != null && !redisData.isEmpty()) {
-                Object val = redisData.get(catName);
-                todayScore = val != null ? new BigDecimal(val.toString()) : BigDecimal.ZERO;
-            } else {
-                String todayStart = today + " 00:00:00";
-                BigDecimal dbToday = userScoreDetailsMapper.sumTodayScoreByCategory(userId, cat, todayStart);
-                todayScore = dbToday != null ? dbToday : BigDecimal.ZERO;
+        // 今日数据：优先 Redis，降级查询数据库，再兜底每日进度表（ap_user_daily_progress）
+        Map<Integer, BigDecimal> dailyProgress = null;
+        BigDecimal todayScore;
+        if (redisData != null && !redisData.isEmpty()) {
+            Object val = redisData.get(catName);
+            todayScore = val != null ? new BigDecimal(val.toString()) : BigDecimal.ZERO;
+        } else {
+            String todayStart = today + " 00:00:00";
+            BigDecimal dbToday = userScoreDetailsMapper.sumTodayScoreByCategory(userId, cat, todayStart);
+            todayScore = dbToday != null ? dbToday : BigDecimal.ZERO;
+        }
+        if (todayScore.compareTo(BigDecimal.ZERO) == 0) {
+            if (dailyProgress == null) {
+                dailyProgress = computeTodayFromDailyProgress(userId);
             }
+            BigDecimal dp = dailyProgress.getOrDefault(cat, BigDecimal.ZERO);
+            if (dp.compareTo(BigDecimal.ZERO) > 0) {
+                todayScore = dp;
+            }
+        }
 
             // 总计数据：从汇总表查询
             BigDecimal total = userScoreSummaryMapper.sumFieldScore(userId, fieldName);
@@ -192,5 +214,71 @@ public class JScoreServiceImpl implements JScoreService {
         vo.setHasMore(hasMore);
 
         return vo;
+    }
+
+    /**
+     * 按每日进度表 ap_user_daily_progress + 行为配置表 ap_behavior_config
+     * 计算用户今日各分类的掘友分（明细页"今日"数据兜底来源）。
+     * 返回 Map<分类编号, 今日得分>，分类编号与 user_score_details.category 一致
+     * （1社区基础 2社区活跃 3社区学习 4社区影响力）。
+     */
+    private Map<Integer, BigDecimal> computeTodayFromDailyProgress(Long userId) {
+        Map<Integer, BigDecimal> result = new HashMap<>();
+        if (userId == null) {
+            return result;
+        }
+        try {
+            String today = LocalDate.now().format(DATE_FMT);
+            List<ApBehaviorConfig> configs = behaviorConfigMapper.selectList(
+                new LambdaQueryWrapper<ApBehaviorConfig>().eq(ApBehaviorConfig::getIsActive, 1));
+            Map<String, ApBehaviorConfig> configMap = new HashMap<>();
+            for (ApBehaviorConfig c : configs) {
+                if (c.getActionCode() != null) {
+                    configMap.put(c.getActionCode(), c);
+                }
+            }
+
+            List<ApUserDailyProgress> todayRows = userDailyProgressMapper.selectList(
+                new LambdaQueryWrapper<ApUserDailyProgress>()
+                    .eq(ApUserDailyProgress::getUserId, userId)
+                    .apply("DATE(stat_date) = {0}", today));
+
+            for (ApUserDailyProgress row : todayRows) {
+                ApBehaviorConfig config = configMap.get(row.getActionCode());
+                if (config == null || config.getScore() == null || row.getCount() == null) {
+                    continue;
+                }
+                Integer category = groupToCategory(config.getGroupType());
+                if (category == null) {
+                    continue;
+                }
+                BigDecimal gained = config.getScore().multiply(BigDecimal.valueOf(row.getCount()));
+                result.merge(category, gained, BigDecimal::add);
+            }
+        } catch (Exception e) {
+            log.warn("从每日进度表计算今日得分失败, userId={}, error={}", userId, e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 行为分组名称 → 明细分类编号
+     */
+    private Integer groupToCategory(String groupType) {
+        if (groupType == null) {
+            return null;
+        }
+        switch (groupType) {
+            case "社区基础":
+                return 1;
+            case "社区活跃":
+                return 2;
+            case "社区学习":
+                return 3;
+            case "社区影响力":
+                return 4;
+            default:
+                return null;
+        }
     }
 }

@@ -138,11 +138,11 @@ export default {
         },
         handleGoLottery() {
             this.$emit('go-lottery')
-            this.$router.push('/user/lottery')
+            this.$router.push('/user/center/lottery')
         },
         handleGoCheckinPage() {
             this.$emit('go-checkin-page')
-            this.$router.push('/user/checkin')
+            this.$router.push('/user/center/checkin')
         }
     }
 }

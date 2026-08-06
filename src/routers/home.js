@@ -55,33 +55,33 @@ let routes = [
                 component:UserSettings
             },
             {
-                path:'/user/growth',
-                name:'user-growth',
+                path:'/user/center/growth',
+                name:'user-center-growth',
                 component:UserGrowth
             },
             {
-                path:'/user/growth/jscore',
-                name:'user-growth-jscore',
+                path:'/user/center/growth/jscore',
+                name:'user-center-growth-jscore',
                 component:UserGrowthJScore
             },
             {
-                path:'/user/checkin',
-                name:'user-checkin',
+                path:'/user/center/checkin',
+                name:'user-center-checkin',
                 component:UserCheckin
             },
             {
-                path:'/user/lottery',
-                name:'user-lottery',
+                path:'/user/center/lottery',
+                name:'user-center-lottery',
                 component:UserLottery
             },
             {
-                path:'/user/welfare',
-                name:'user-welfare',
+                path:'/user/center/welfare',
+                name:'user-center-welfare',
                 component:UserWelfare
             },
             {
-                path:'/user/welfare/redeem/:id',
-                name:'user-welfare-redeem',
+                path:'/user/center/welfare/redeem/:id',
+                name:'user-center-welfare-redeem',
                 component:UserWelfareRedeem
             },
             {

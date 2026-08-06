@@ -64,7 +64,7 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 
    #### 1.2 任务完成后的提交流程
 
-   当一个完整功能点（接口、页面、逻辑闭环）开发完毕后，按以下步骤操作：
+   当一个完整功能点（接口、页面、逻辑闭环）开发完毕后，我叫你提交才提交，要不然我在编辑器里看不到新增或改动点，提交时按以下步骤操作：
 
    1. 执行 `git status` 检查变更文件。
    2. 执行项目规定的**编译/校验/测试命令**（如 `npm run build && npm run lint`），**未通过校验禁止提交**。
@@ -145,7 +145,7 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
      DB_HOST=localhost
      DB_PORT=3306
      DB_USER=root
-     DB_PASSWORD=<从.env读取>
+     DB_PASSWORD=123456（仅限开发环境）
      DB_NAME=yourdb
      ```
 
@@ -157,8 +157,8 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 
    - 编码过程中若发现缺少必要的表、字段或类型不匹配，AI 需：
      1. **生成正确的 DDL 语句**（`CREATE TABLE` / `ALTER TABLE`）。
-     2. **提示用户执行**，待用户确认数据库变更已应用后，再继续。
-     3. 同步修改实体类、Mapper/DAO 和 SQL 映射文件，确保代码与数据库结构一致。
+     2. 同步修改实体类、Mapper/DAO 和 SQL 映射文件，确保代码与数据库结构一致。
+     3. 告诉你了数据库连接信息：*mysql -h localhost -u root -p* 123456，当需要插入表，或发生表结构变更时，由你直接操作完成，相应的.sql文件保留下来。
    - **禁止** 因表结构缺失而使用临时数组或假数据阻塞开发。
 
    ------

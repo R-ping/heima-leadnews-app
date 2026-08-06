@@ -2,34 +2,10 @@
     <div class="welfare-page">
         <div class="welfare-content">
             <!-- Left Panel -->
-            <div class="left-panel">
-                <div class="user-card">
-                    <div class="user-avatar">
-                        <img v-if="userInfo.avatar" :src="userInfo.avatar" alt="avatar"/>
-                        <span v-else class="avatar-default">&#xf007;</span>
-                    </div>
-                    <div class="user-name">{{ userInfo.nickName || '用户' }}</div>
-                    <div class="user-level">{{ userInfo.level || 'JY.1' }}</div>
-                </div>
-                <div class="side-menu">
-                    <div class="menu-item" @click="goCheckin">
-                        <span class="menu-icon">&#xf00c;</span>每日签到
-                    </div>
-                    <div class="menu-item" @click="goGrowth">
-                        <span class="menu-icon">&#xf201;</span>成长等级
-                    </div>
-                    <div class="menu-item" @click="goLottery">
-                        <span class="menu-icon">&#xf1d3;</span>幸运抽奖
-                    </div>
-                    <div class="menu-item active">
-                        <span class="menu-icon">&#xf233;</span>福利兑换
-                    </div>
-                    <div class="menu-item" @click="goHarvest">
-                        <span class="menu-icon">&#xf07c;</span>我的收获
-                    </div>
-                </div>
-                <div class="side-footer">用户协议 · 法律声明 ©{{ currentYear }} 稀土掘金</div>
-            </div>
+            <UserCenterSidebar
+                active-menu="welfare"
+                @menu-click="handleSidebarMenuClick"
+            />
 
             <!-- Main Area -->
             <div class="main-area">
@@ -222,11 +198,13 @@
 
 <script>
 import store from '@/stores/store'
+import UserCenterSidebar from '@/components/user/UserCenterSidebar.vue'
 import { getGoodsList, getCommunityProps, exchangeCommunityProp } from '@/apis/welfare'
 import { toast } from '@/utils/toast'
 
 export default {
     name: 'UserWelfare',
+    components: { UserCenterSidebar },
     data() {
         return {
             currentYear: new Date().getFullYear(),
@@ -372,7 +350,7 @@ export default {
                 }
                 return
             }
-            this.$router.push('/user/welfare/redeem/' + goods.id)
+            this.$router.push('/user/center/welfare/redeem/' + goods.id)
         },
         handlePropExchange(prop) {
             if (this.oreBalance < prop.price) {
@@ -411,17 +389,21 @@ export default {
                 this.exchangingProp = false
             }
         },
-        goCheckin() {
-            this.$router.push('/user/checkin')
-        },
-        goGrowth() {
-            this.$router.push('/user/growth')
-        },
-        goLottery() {
-            this.$router.push('/user/lottery')
-        },
-        goHarvest() {
-            toast('我的收获功能开发中', 2)
+        handleSidebarMenuClick(key) {
+            if (key === 'harvest') {
+                toast('我的收获功能开发中', 2)
+                return
+            }
+            const routeMap = {
+                checkin: '/user/center/checkin',
+                growth: '/user/center/growth',
+                lottery: '/user/center/lottery',
+                welfare: '/user/center/welfare'
+            }
+            const path = routeMap[key]
+            if (path && this.$route.path !== path) {
+                this.$router.push(path)
+            }
         },
         prevPage() {
             if (this.currentPage > 1) {
@@ -457,112 +439,6 @@ export default {
     padding: 0 24px 24px;
     display: flex;
     gap: 16px;
-}
-
-// Left Panel
-.left-panel {
-    width: 180px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.user-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px 16px;
-    text-align: center;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.user-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin: 0 auto 10px;
-    background: linear-gradient(135deg, #1e80ff, #69b1ff);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.user-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.avatar-default {
-    font-family: fontawesome;
-    font-size: 28px;
-    color: #fff;
-}
-
-.user-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 4px;
-}
-
-.user-level {
-    font-size: 12px;
-    color: #fa8c16;
-    background: #fff7e6;
-    padding: 2px 10px;
-    border-radius: 10px;
-    display: inline-block;
-}
-
-.side-menu {
-    background: #fff;
-    border-radius: 12px;
-    padding: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    flex: 1;
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    font-size: 14px;
-    color: #666;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background: #f5f7fa;
-        color: #1e80ff;
-    }
-
-    &.active {
-        background: linear-gradient(135deg, #1e80ff, #69b1ff);
-        color: #fff;
-
-        .menu-icon {
-            color: #fff;
-        }
-    }
-}
-
-.menu-icon {
-    font-family: fontawesome;
-    font-size: 16px;
-    color: #999;
-    width: 20px;
-    text-align: center;
-}
-
-.side-footer {
-    text-align: center;
-    font-size: 11px;
-    color: #ccc;
-    margin-top: 16px;
 }
 
 // Main Area
