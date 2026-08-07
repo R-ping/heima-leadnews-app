@@ -203,7 +203,8 @@
                 <span class="app-open-text">App内打开</span>
             </div>
         </template>
-    </div>
+
+        </div>
 </template>
 
 <script>
@@ -213,10 +214,9 @@
     import { sanitizeHighlight } from '@/utils/sanitize'
     import { getUserStatistics } from '@/apis/user'
     import { getRecommendTopics } from '@/apis/topic'
-    import { getTodayStatus, doCheckIn } from '@/apis/checkin'
+    import { getTodayStatus, doSignCheckin } from '@/apis/checkin'
     import UserDropdown from '@/components/bars/UserDropdown.vue'
     import NotificationBell from '@/components/bars/NotificationBell.vue'
-    import CheckinProgressModal from '@/components/checkin/CheckinProgressModal.vue'
     import conf from '@/common/conf'
     import request from '@/common/request'
 
@@ -272,7 +272,7 @@
 
     export default {
         name: "HeiMaLayoutMain",
-        components: { UserDropdown, NotificationBell, CheckinProgressModal },
+        components: { UserDropdown, NotificationBell },
         data() {
             return {
                 showUserDropdown: false,
@@ -298,14 +298,6 @@
                     isSignedIn: false,
                     consecutiveDays: 0,
                     totalOre: 0
-                },
-                // 签到弹框相关
-                showCheckinModal: false,
-                checkinModalMode: 'entry',
-                checkinResult: {
-                    earnedOre: 0,
-                    milestoneProgress: { current: 0, total: 30, percent: 0, specialDays: [] },
-                    nextSpecial: null
                 },
                 recommendTopics: [],
                 unreadCount: 0,
@@ -358,7 +350,7 @@
                 return this.$route.path === '/hot'
             },
             greetingText() {
-                if (this.isLoggedIn && this.checkinTodayStatus && this.checkinTodayStatus.consecutiveDays > 0) {
+                if (this.isLoggedIn && this.checkinTodayStatus && this.checkinTodayStatus.isSignedIn) {
                     return '连续签到 ' + this.checkinTodayStatus.consecutiveDays + ' 天'
                 }
                 const hour = new Date().getHours()
@@ -399,6 +391,10 @@
         watch: {
             '$route.path': function(newPath) {
                 this.syncCategoryFromRoute()
+                // 回到首页时刷新签到状态，确保"已签到/去签到"按钮与最新签到状态一致
+                if (newPath === '/') {
+                    this.loadCheckinStatus()
+                }
             },
             isLoggedIn: function(newVal) {
                 if (newVal) {
@@ -706,30 +702,6 @@
                     return
                 }
                 this.$router.push('/user/center/checkin')
-            },
-            closeCheckinModal() {
-                this.showCheckinModal = false
-            },
-            async handleCheckinSuccess(data) {
-                this.checkinResult = {
-                    earnedOre: data.earnedOre || 0,
-                    milestoneProgress: data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] },
-                    nextSpecial: data.nextSpecial || null
-                }
-                this.checkinModalMode = 'success'
-                this.loadCheckinStatus()
-            },
-            async doCheckInAction() {
-                try {
-                    const res = await doCheckIn()
-                    if (res && res.code === 200 && res.data) {
-                        this.handleCheckinSuccess(res.data)
-                    } else {
-                        toast(res && res.message || '签到失败')
-                    }
-                } catch (e) {
-                    toast('签到失败，请重试')
-                }
             },
             formatTopicCount(count) {
                 if (!count) return '0'

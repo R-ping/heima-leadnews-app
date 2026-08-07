@@ -82,6 +82,12 @@ export default defineConfig({
         target: 'http://127.0.0.1:51601/',
         changeOrigin: true
       },
+      // 兼容旧的 checkin 路径，重定向到新的 sign 路径
+      '/api/v1/checkin': {
+        target: 'http://127.0.0.1:51601/reward/api/v1/sign',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/v1\/checkin/, '')
+      },
       '/minio-static': {
         target: 'http://127.0.0.1:9005',
         changeOrigin: true,

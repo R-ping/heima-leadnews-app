@@ -1,425 +1,567 @@
 package com.heima.reward.service.impl;
 
-import cn.hutool.core.date.DateUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.heima.apis.article.ILevelClient;
 import com.heima.apis.user.IUserClient;
 import com.heima.model.common.dtos.ResponseResult;
-import com.heima.reward.entity.*;
-import com.heima.reward.mapper.*;
+import com.heima.reward.entity.SignRecord;
+import com.heima.reward.entity.UserAssets;
+import com.heima.reward.entity.UserCheckinState;
+import com.heima.reward.mapper.SignRecordMapper;
+import com.heima.reward.mapper.UserAssetsMapper;
+import com.heima.reward.mapper.UserCheckinStateMapper;
 import com.heima.reward.service.CheckinService;
+import com.heima.reward.util.SignRewardUtil;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class CheckinServiceImpl implements CheckinService {
 
     @Autowired
-    private CheckinRecordMapper checkinRecordMapper;
+    private SignRecordMapper signRecordMapper;
     @Autowired
     private UserCheckinStateMapper userCheckinStateMapper;
     @Autowired
-    private CheckinRewardConfigMapper checkinRewardConfigMapper;
-    @Autowired
     private UserAssetsMapper userAssetsMapper;
-    @Autowired
-    private PatchCardLogMapper patchCardLogMapper;
     @Autowired
     private IUserClient userClient;
     @Autowired
     private ILevelClient levelClient;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
-    // 特殊奖励日
-    private static final int[] SPECIAL_DAYS = {3, 7, 14, 21, 30};
+    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    private static final String LOCK_KEY_PREFIX = "sign:lock:";
+    private static final long LOCK_EXPIRE_SECONDS = 3;
+
+    // ========================================================================
+    // 核心工具方法
+    // ========================================================================
+
+    /**
+     * 从 targetDate 开始向前回溯，计算真实的连续签到天数
+     * 从 targetDate 的前一天开始逐日向前查询，直到断签为止
+     */
+    private int calculateContinuousDays(Long userId, LocalDate targetDate) {
+        int count = 0;
+        LocalDate cursor = targetDate.minusDays(1);
+        int maxScan = 60; // 最多扫描60天，防止无限循环
+        while (maxScan-- > 0) {
+            SignRecord record = signRecordMapper.selectOne(
+                    new LambdaQueryWrapper<SignRecord>()
+                            .eq(SignRecord::getUserId, userId)
+                            .eq(SignRecord::getSignDate, cursor)
+            );
+            if (record == null) break;
+            count++;
+            cursor = cursor.minusDays(1);
+        }
+        return count;
+    }
+
+    /**
+     * 获取服务器当前日期（Asia/Shanghai）
+     */
+    private LocalDate getToday() {
+        return LocalDate.now(ZONE);
+    }
+
+    /**
+     * 尝试获取Redis分布式锁
+     */
+    private boolean tryLock(Long userId) {
+        String key = LOCK_KEY_PREFIX + userId;
+        Boolean locked = redisTemplate.opsForValue().setIfAbsent(key, "1",
+                java.time.Duration.ofSeconds(LOCK_EXPIRE_SECONDS));
+        return Boolean.TRUE.equals(locked);
+    }
+
+    /**
+     * 释放Redis分布式锁
+     */
+    private void unlock(Long userId) {
+        String key = LOCK_KEY_PREFIX + userId;
+        redisTemplate.delete(key);
+    }
+
+    // ========================================================================
+    // 1. 获取签到状态与日历数据
+    // ========================================================================
 
     @Override
-    public ResponseResult getDashboard(Long userId) {
-        UserCheckinState state = userCheckinStateMapper.selectById(userId);
-        if (state == null) {
-            state = new UserCheckinState();
-            state.setUserId(userId);
-            state.setContinuousDays(0);
-            state.setPeriodDay(0);
-            state.setTotalCheckinDays(0);
-            state.setPatchCardCount(0);
-        }
+    public ResponseResult getStatus(Long userId) {
+        LocalDate today = getToday();
+        String todayStr = today.format(DATE_FMT);
 
-        UserAssets assets = userAssetsMapper.selectById(userId);
-        int oreBalance = (assets != null) ? assets.getOreBalance() : 0;
-
-        String todayStr = DateUtil.today();
-        Date todayDate = java.sql.Date.valueOf(todayStr);
-        boolean todaySigned = checkinRecordMapper.selectCount(
-                new LambdaQueryWrapper<CheckinRecord>()
-                        .eq(CheckinRecord::getUserId, userId)
-                        .eq(CheckinRecord::getCheckinDate, todayDate)
+        // 今日是否已签到
+        boolean todaySigned = signRecordMapper.selectCount(
+                new LambdaQueryWrapper<SignRecord>()
+                        .eq(SignRecord::getUserId, userId)
+                        .eq(SignRecord::getSignDate, today)
         ) > 0;
 
-        // 获取签到日历数据（最近2个月）
-        Calendar cal = Calendar.getInstance();
-        Date endDate = cal.getTime();
-        cal.add(Calendar.MONTH, -2);
-        Date startDate = cal.getTime();
+        // 计算截至今日的连续签到天数（不含今日）
+        int continuousDays = calculateContinuousDays(userId, today);
+        // 若今日已签到，连续天数 = 回溯结果 + 1
+        int displayContinuousDays = todaySigned ? continuousDays + 1 : continuousDays;
 
-        List<CheckinRecord> records = checkinRecordMapper.selectList(
-                new LambdaQueryWrapper<CheckinRecord>()
-                        .eq(CheckinRecord::getUserId, userId)
-                        .ge(CheckinRecord::getCheckinDate, startDate)
-                        .le(CheckinRecord::getCheckinDate, endDate)
-                        .orderByAsc(CheckinRecord::getCheckinDate)
-        );
+        // 用户资产
+        UserAssets assets = userAssetsMapper.selectById(userId);
+        int totalOre = (assets != null) ? assets.getOreBalance() : 0;
 
-        // 构建日历
-        List<Map<String, Object>> calendarDays = new ArrayList<>();
-        Set<String> signedDates = records.stream()
-                .map(r -> DateUtil.formatDate(r.getCheckinDate()))
-                .collect(Collectors.toSet());
-        Map<String, Integer> dateOreMap = records.stream()
-                .collect(Collectors.toMap(
-                        r -> DateUtil.formatDate(r.getCheckinDate()),
-                        CheckinRecord::getEarnedOre,
-                        (a, b) -> a));
+        // 签到状态
+        UserCheckinState state = userCheckinStateMapper.selectById(userId);
+        int totalSignDays = (state != null && state.getTotalCheckinDays() != null) ? state.getTotalCheckinDays() : 0;
+        int patchCardCount = (state != null && state.getPatchCardCount() != null) ? state.getPatchCardCount() : 0;
 
-        // 生成最近2个月的日历
-        Calendar startCal = Calendar.getInstance();
-        startCal.add(Calendar.MONTH, -1);
-        startCal.set(Calendar.DAY_OF_MONTH, 1);
-        Calendar endCal = Calendar.getInstance();
-        endCal.set(Calendar.DAY_OF_MONTH, endCal.getActualMaximum(Calendar.DAY_OF_MONTH));
-
-        for (Calendar d = (Calendar) startCal.clone(); !d.after(endCal); d.add(Calendar.DAY_OF_MONTH, 1)) {
-            String dateStr = DateUtil.formatDate(d.getTime());
-            Map<String, Object> day = new HashMap<>();
-            day.put("date", dateStr);
-            day.put("dayOfMonth", d.get(Calendar.DAY_OF_MONTH));
-
-            if (dateStr.equals(todayStr)) {
-                day.put("status", todaySigned ? "signed" : "today");
-            } else if (signedDates.contains(dateStr)) {
-                Optional<CheckinRecord> rec = records.stream()
-                        .filter(r -> DateUtil.formatDate(r.getCheckinDate()).equals(dateStr))
-                        .findFirst();
-                day.put("status", rec.isPresent() && rec.get().getIsPatch() ? "repaired" : "signed");
-            } else if (d.getTime().before(todayDate)) {
-                day.put("status", "miss");
-            } else {
-                day.put("status", "future");
-            }
-
-            if (dateOreMap.containsKey(dateStr)) {
-                day.put("oreReward", dateOreMap.get(dateStr));
-            }
-            day.put("isSpecial", false);
-            calendarDays.add(day);
-        }
-
-        // 计算下一个特殊奖励节点
-        Map<String, Object> nextSpecial = calculateNextSpecial(state.getPeriodDay());
-
-        // 计算今日应得矿石
-        int pendingReward = 0;
-        if (!todaySigned) {
-            int nextDay = (state.getPeriodDay() != null && state.getPeriodDay() > 0)
-                    ? (state.getPeriodDay() % 30) + 1
-                    : 1;
-            CheckinRewardConfig config = checkinRewardConfigMapper.selectById(nextDay);
-            if (config != null) {
-                pendingReward = config.getIsSpecial() ? config.getSpecialOre() : config.getBaseOre();
-            } else {
-                pendingReward = 10;
-            }
-        }
+        // 构建日历数据：当前月 + 上个月
+        List<Map<String, Object>> calendarMonths = new ArrayList<>();
+        calendarMonths.add(buildCalendarMonth(userId, today.minusMonths(1), today, todaySigned, continuousDays));
+        calendarMonths.add(buildCalendarMonth(userId, today, today, todaySigned, continuousDays));
 
         // 用户信息
         Map<String, Object> userInfo = buildUserInfo(userId);
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("continuousDays", state.getContinuousDays() != null ? state.getContinuousDays() : 0);
-        stats.put("totalDays", state.getTotalCheckinDays() != null ? state.getTotalCheckinDays() : 0);
-        stats.put("oreBalance", oreBalance);
-        stats.put("todaySigned", todaySigned);
-        stats.put("pendingReward", pendingReward);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("userInfo", userInfo);
-        data.put("checkinStats", stats);
-        data.put("calendar", calendarDays);
-        data.put("patchCardCount", state.getPatchCardCount() != null ? state.getPatchCardCount() : 0);
-        data.put("currentPeriodDay", state.getPeriodDay() != null ? state.getPeriodDay() : 0);
-        data.put("nextSpecialReward", nextSpecial);
-
         // 构建里程碑进度
-        data.put("milestoneProgress", buildMilestoneProgress(state.getPeriodDay()));
+        Map<String, Object> milestoneProgress = buildMilestoneProgress(displayContinuousDays);
 
-        return ResponseResult.okResult(data);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public ResponseResult doCheckin(Long userId) {
-        // 1. 校验今日是否已签到
-        String todayStr = DateUtil.today();
-        Date todayDate = java.sql.Date.valueOf(todayStr);
-        long count = checkinRecordMapper.selectCount(
-                new LambdaQueryWrapper<CheckinRecord>()
-                        .eq(CheckinRecord::getUserId, userId)
-                        .eq(CheckinRecord::getCheckinDate, todayDate)
-        );
-        if (count > 0) {
-            return ResponseResult.errorResult(400, "今日已签到，请勿重复签到");
-        }
-
-        // 2. 获取或创建签到状态
-        UserCheckinState state = userCheckinStateMapper.selectById(userId);
-        if (state == null) {
-            state = new UserCheckinState();
-            state.setUserId(userId);
-            state.setContinuousDays(0);
-            state.setPeriodDay(0);
-            state.setTotalCheckinDays(0);
-            state.setPatchCardCount(0);
-        }
-
-        // 3. 计算连续天数
-        int newContinuousDays;
-        int newPeriodDay;
-        Date lastDate = state.getLastCheckinDate();
-
-        if (lastDate == null) {
-            newContinuousDays = 1;
-        } else {
-            long diff = DateUtil.betweenDay(lastDate, todayDate, false);
-            if (diff == 1) {
-                newContinuousDays = (state.getContinuousDays() != null ? state.getContinuousDays() : 0) + 1;
-            } else if (diff == 0) {
-                return ResponseResult.errorResult(400, "今日已签到");
-            } else {
-                newContinuousDays = 1; // 断签重置
-            }
-        }
-        // 周期天数：30天一个周期
-        newPeriodDay = (newContinuousDays - 1) % 30 + 1;
-
-        // 4. 计算应得矿石
-        CheckinRewardConfig config = checkinRewardConfigMapper.selectById(newPeriodDay);
-        int earnedOre;
-        boolean isSpecial = false;
-        if (config != null && config.getIsSpecial()) {
-            earnedOre = config.getSpecialOre();
-            isSpecial = true;
-        } else if (config != null) {
-            earnedOre = config.getBaseOre();
-        } else {
-            earnedOre = 10;
-        }
-
-        // 5. 插入签到记录
-        CheckinRecord record = new CheckinRecord();
-        record.setUserId(userId);
-        record.setCheckinDate(todayDate);
-        record.setEarnedOre(earnedOre);
-        record.setPeriodDay(newPeriodDay);
-        record.setIsPatch(false);
-        record.setCreatedAt(new Date());
-        checkinRecordMapper.insert(record);
-
-        // 6. 更新用户签到状态
-        state.setContinuousDays(newContinuousDays);
-        state.setPeriodDay(newPeriodDay);
-        state.setLastCheckinDate(todayDate);
-        state.setTotalCheckinDays((state.getTotalCheckinDays() != null ? state.getTotalCheckinDays() : 0) + 1);
-        if (userCheckinStateMapper.selectById(userId) == null) {
-            userCheckinStateMapper.insert(state);
-        } else {
-            userCheckinStateMapper.updateById(state);
-        }
-
-        // 7. 更新矿石余额
-        UserAssets assets = userAssetsMapper.selectById(userId);
-        if (assets == null) {
-            assets = new UserAssets();
-            assets.setUserId(userId);
-            assets.setOreBalance(earnedOre);
-            assets.setFrozenOre(0);
-            assets.setLuckyValue(0);
-            assets.setCreatedAt(new Date());
-            assets.setUpdatedAt(new Date());
-            userAssetsMapper.insert(assets);
-        } else {
-            assets.setOreBalance(assets.getOreBalance() + earnedOre);
-            assets.setUpdatedAt(new Date());
-            userAssetsMapper.updateById(assets);
-        }
-
-        // 8. 签到成功后，赠送免费抽奖机会
-        grantFreeDraw(userId, todayDate);
-
-        // 9. 构建返回
         Map<String, Object> data = new HashMap<>();
-        data.put("success", true);
-        data.put("earnedOre", earnedOre);
-        data.put("newContinuousDays", newContinuousDays);
-        data.put("isSpecialReward", isSpecial);
-        data.put("periodDay", newPeriodDay);
+        data.put("userId", userId);
+        data.put("continuousDays", displayContinuousDays);
+        data.put("totalSignDays", totalSignDays);
+        data.put("totalOre", totalOre);
+        data.put("extraCards", patchCardCount);
+        data.put("today", todayStr);
+        data.put("todaySigned", todaySigned);
+        data.put("userInfo", userInfo);
+        data.put("calendarMonths", calendarMonths);
+        data.put("milestoneProgress", milestoneProgress);
 
-        // 下一个特殊奖励
-        Map<String, Object> nextSpecial = calculateNextSpecial(newPeriodDay);
-        data.put("nextSpecial", nextSpecial);
-        data.put("totalOreBalance", assets.getOreBalance());
-
-        // 里程碑进度
-        data.put("milestoneProgress", buildMilestoneProgress(newPeriodDay));
+        // 下一个特殊奖励节点
+        data.put("nextSpecial", buildNextSpecial(displayContinuousDays));
 
         return ResponseResult.okResult(data);
     }
 
     /**
-     * 授予免费抽奖次数
+     * 构建单个月的日历数据
      */
-    private void grantFreeDraw(Long userId, Date date) {
-        try {
-            log.info("签到成功，后续可在此处为 userId={} 授予免费抽奖次数", userId);
-        } catch (Exception e) {
-            log.warn("授予免费抽奖次数失败: {}", e.getMessage());
+    private Map<String, Object> buildCalendarMonth(Long userId, LocalDate month,
+                                                    LocalDate today, boolean todaySigned, int continuousDaysBeforeToday) {
+        int year = month.getYear();
+        int monthValue = month.getMonthValue();
+        int totalDays = month.lengthOfMonth();
+        LocalDate monthStart = LocalDate.of(year, monthValue, 1);
+        LocalDate monthEnd = LocalDate.of(year, monthValue, totalDays);
+
+        // 查询该月所有签到记录
+        List<SignRecord> records = signRecordMapper.selectList(
+                new LambdaQueryWrapper<SignRecord>()
+                        .eq(SignRecord::getUserId, userId)
+                        .ge(SignRecord::getSignDate, monthStart)
+                        .le(SignRecord::getSignDate, monthEnd)
+        );
+        Map<LocalDate, SignRecord> recordMap = records.stream()
+                .collect(Collectors.toMap(
+                        r -> new java.sql.Date(r.getSignDate().getTime()).toLocalDate(),
+                        r -> r,
+                        (a, b) -> a
+                ));
+
+        // 计算该月的第一天是星期几（0=周日）
+        int firstDayOfWeek = monthStart.getDayOfWeek().getValue() % 7; // 0=周日
+
+        List<Map<String, Object>> days = new ArrayList<>();
+        for (int d = 1; d <= totalDays; d++) {
+            LocalDate date = LocalDate.of(year, monthValue, d);
+            Map<String, Object> day = new HashMap<>();
+            day.put("date", date.format(DATE_FMT));
+            day.put("dayOfMonth", d);
+            day.put("dayOfWeek", date.getDayOfWeek().getValue() % 7);
+            day.put("isToday", date.equals(today));
+
+            SignRecord record = recordMap.get(date);
+
+            if (record != null) {
+                // 已签到
+                day.put("status", record.getIsExtra() ? "extra_signed" : "signed");
+                day.put("oreAmount", record.getAwardOre());
+                day.put("canExtra", false);
+                day.put("isSpecialDay", SignRewardUtil.isSpecialDay(
+                        // 需要计算这颗签到在连续段中的位置
+                        findPositionInSegment(userId, date, today)
+                ));
+            } else if (date.isAfter(today)) {
+                // 未来日期：显示预期奖励
+                day.put("status", "future");
+                day.put("canExtra", false);
+                // 计算预期连续天数：今日已签到的连续天数 + 未来偏移
+                int baseDays = todaySigned ? continuousDaysBeforeToday + 1 : continuousDaysBeforeToday;
+                int futureOffset = (int) ChronoUnit.DAYS.between(today, date);
+                int expectedContinuousDay = baseDays + futureOffset;
+                day.put("oreAmount", SignRewardUtil.getRewardByContinuousDays(expectedContinuousDay));
+                day.put("isSpecialDay", SignRewardUtil.isSpecialDay(expectedContinuousDay));
+            } else if (date.isBefore(today.minusDays(30))) {
+                // 过期不可补签（超过30天）
+                day.put("status", "expired");
+                day.put("oreAmount", 0);
+                day.put("canExtra", false);
+                day.put("isSpecialDay", false);
+            } else if (date.equals(today)) {
+                // 今日未签到
+                day.put("status", "unsigned");
+                day.put("oreAmount", 0);
+                day.put("canExtra", false);
+                day.put("isSpecialDay", false);
+            } else {
+                // 可补签（过去30天内且未签到）
+                day.put("status", "unsigned");
+                day.put("oreAmount", 0);
+                day.put("canExtra", true);
+                day.put("isSpecialDay", false);
+            }
+
+            days.add(day);
         }
+
+        Map<String, Object> calendarMonth = new HashMap<>();
+        calendarMonth.put("year", year);
+        calendarMonth.put("month", monthValue);
+        calendarMonth.put("firstDayOfWeek", firstDayOfWeek);
+        calendarMonth.put("days", days);
+
+        return calendarMonth;
     }
+
+    /**
+     * 查找某签到日期在连续段中的位置（用于判断是否特殊奖励日）
+     */
+    private int findPositionInSegment(Long userId, LocalDate date, LocalDate today) {
+        // 向前找连续段起点
+        LocalDate segStart = date;
+        int maxScan = 60;
+        while (maxScan-- > 0) {
+            LocalDate prev = segStart.minusDays(1);
+            SignRecord r = signRecordMapper.selectOne(
+                    new LambdaQueryWrapper<SignRecord>()
+                            .eq(SignRecord::getUserId, userId)
+                            .eq(SignRecord::getSignDate, prev)
+            );
+            if (r == null) break;
+            segStart = prev;
+        }
+        return (int) ChronoUnit.DAYS.between(segStart, date) + 1;
+    }
+
+    // ========================================================================
+    // 2. 每日签到
+    // ========================================================================
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult patchCheckin(Long userId, String targetDate) {
-        Date target = java.sql.Date.valueOf(targetDate);
-        String todayStr = DateUtil.today();
-        Date todayDate = java.sql.Date.valueOf(todayStr);
+    public ResponseResult doCheckin(Long userId) {
+        // 分布式锁
+        if (!tryLock(userId)) {
+            return ResponseResult.errorResult(429, "操作过于频繁，请稍后再试");
+        }
+        try {
+            LocalDate today = getToday();
 
-        // 1. 校验目标日期
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.MONTH, -2);
-        if (target.before(cal.getTime())) {
-            return ResponseResult.errorResult(400, "只能补签最近2个月内的日期");
-        }
-        if (target.after(todayDate)) {
-            return ResponseResult.errorResult(400, "不能补签未来日期");
-        }
-        if (target.equals(todayDate)) {
-            return ResponseResult.errorResult(400, "今日签到请使用签到功能");
-        }
-
-        // 2. 校验该日是否已签到
-        long count = checkinRecordMapper.selectCount(
-                new LambdaQueryWrapper<CheckinRecord>()
-                        .eq(CheckinRecord::getUserId, userId)
-                        .eq(CheckinRecord::getCheckinDate, target)
-        );
-        if (count > 0) {
-            return ResponseResult.errorResult(400, "该日已签到，无需补签");
-        }
-
-        // 3. 获取签到状态
-        UserCheckinState state = userCheckinStateMapper.selectById(userId);
-        if (state == null || state.getPatchCardCount() == null || state.getPatchCardCount() <= 0) {
-            return ResponseResult.errorResult(400, "补签卡不足");
-        }
-
-        // 4. 计算补签后连续天数
-        Date lastDate = state.getLastCheckinDate();
-        int newContinuousDays;
-        if (lastDate == null) {
-            newContinuousDays = 1;
-        } else {
-            long diff = DateUtil.betweenDay(lastDate, target, false);
-            if (diff == 1) {
-                newContinuousDays = (state.getContinuousDays() != null ? state.getContinuousDays() : 0) + 1;
-            } else {
-                newContinuousDays = 1;
+            // 校验今日是否已签到
+            long count = signRecordMapper.selectCount(
+                    new LambdaQueryWrapper<SignRecord>()
+                            .eq(SignRecord::getUserId, userId)
+                            .eq(SignRecord::getSignDate, today)
+            );
+            if (count > 0) {
+                return ResponseResult.errorResult(400, "今日已签到，请勿重复签到");
             }
+
+            // 计算截至昨天的连续天数
+            int continuousDaysBefore = calculateContinuousDays(userId, today);
+            int newContinuousDays = continuousDaysBefore + 1;
+
+            // 计算奖励
+            int award = SignRewardUtil.getRewardByContinuousDays(newContinuousDays);
+
+            // 插入签到记录
+            SignRecord record = new SignRecord();
+            record.setUserId(userId);
+            record.setSignDate(java.sql.Date.valueOf(today));
+            record.setAwardOre(award);
+            record.setIsExtra(false);
+            try {
+                signRecordMapper.insert(record);
+            } catch (DuplicateKeyException e) {
+                return ResponseResult.errorResult(400, "今日已签到");
+            }
+
+            // 更新用户签到状态
+            UserCheckinState state = userCheckinStateMapper.selectById(userId);
+            if (state == null) {
+                state = new UserCheckinState();
+                state.setUserId(userId);
+                state.setContinuousDays(newContinuousDays);
+                state.setPeriodDay((newContinuousDays - 1) % 30 + 1);
+                state.setLastCheckinDate(java.sql.Date.valueOf(today));
+                state.setTotalCheckinDays(1);
+                state.setPatchCardCount(0);
+                userCheckinStateMapper.insert(state);
+            } else {
+                state.setContinuousDays(newContinuousDays);
+                state.setPeriodDay((newContinuousDays - 1) % 30 + 1);
+                state.setLastCheckinDate(java.sql.Date.valueOf(today));
+                state.setTotalCheckinDays(state.getTotalCheckinDays() != null ? state.getTotalCheckinDays() + 1 : 1);
+                userCheckinStateMapper.updateById(state);
+            }
+
+            // 更新矿石余额
+            UserAssets assets = userAssetsMapper.selectById(userId);
+            if (assets == null) {
+                assets = new UserAssets();
+                assets.setUserId(userId);
+                assets.setOreBalance(award);
+                assets.setFrozenOre(0);
+                assets.setLuckyValue(0);
+                userAssetsMapper.insert(assets);
+            } else {
+                assets.setOreBalance(assets.getOreBalance() + award);
+                userAssetsMapper.updateById(assets);
+            }
+
+            // 赠送免费抽奖次数（暂为日志）
+            log.info("签到成功，userId={}，连续天数={}，获得矿石={}", userId, newContinuousDays, award);
+
+            // 构建返回
+            Map<String, Object> data = new HashMap<>();
+            data.put("awardOre", award);
+            data.put("continuousDays", newContinuousDays);
+            data.put("totalSignDays", state.getTotalCheckinDays());
+            data.put("totalOre", assets.getOreBalance());
+            data.put("milestoneProgress", buildMilestoneProgress(newContinuousDays));
+
+            // 计算下一个特殊奖励节点
+            Map<String, Object> nextSpecial = buildNextSpecial(newContinuousDays);
+            data.put("nextSpecial", nextSpecial);
+
+            return ResponseResult.okResult(data);
+        } finally {
+            unlock(userId);
         }
-        int newPeriodDay = (newContinuousDays - 1) % 30 + 1;
-
-        // 5. 计算应得矿石
-        CheckinRewardConfig config = checkinRewardConfigMapper.selectById(newPeriodDay);
-        int earnedOre;
-        boolean isSpecial = false;
-        if (config != null && config.getIsSpecial()) {
-            earnedOre = config.getSpecialOre();
-            isSpecial = true;
-        } else if (config != null) {
-            earnedOre = config.getBaseOre();
-        } else {
-            earnedOre = 10;
-        }
-
-        // 6. 扣除补签卡
-        state.setPatchCardCount(state.getPatchCardCount() - 1);
-        userCheckinStateMapper.updateById(state);
-
-        // 7. 插入补签记录
-        CheckinRecord record = new CheckinRecord();
-        record.setUserId(userId);
-        record.setCheckinDate(target);
-        record.setEarnedOre(earnedOre);
-        record.setPeriodDay(newPeriodDay);
-        record.setIsPatch(true);
-        record.setCreatedAt(new Date());
-        checkinRecordMapper.insert(record);
-
-        // 8. 更新签到状态
-        state.setContinuousDays(newContinuousDays);
-        state.setPeriodDay(newPeriodDay);
-        if (target.after(state.getLastCheckinDate())) {
-            state.setLastCheckinDate(target);
-        }
-        userCheckinStateMapper.updateById(state);
-
-        // 9. 记录补签卡消耗日志
-        PatchCardLog patchLog = new PatchCardLog();
-        patchLog.setUserId(userId);
-        patchLog.setChangeAmount(-1);
-        patchLog.setSource("补签");
-        patchLog.setCreatedAt(new Date());
-        patchCardLogMapper.insert(patchLog);
-
-        // 10. 更新矿石
-        UserAssets assets = userAssetsMapper.selectById(userId);
-        if (assets != null) {
-            assets.setOreBalance(assets.getOreBalance() + earnedOre);
-            assets.setUpdatedAt(new Date());
-            userAssetsMapper.updateById(assets);
-        }
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("success", true);
-        data.put("earnedOre", earnedOre);
-        data.put("isSpecialReward", isSpecial);
-        data.put("isPatch", true);
-        data.put("newContinuousDays", newContinuousDays);
-        data.put("periodDay", newPeriodDay);
-        data.put("nextSpecial", calculateNextSpecial(newPeriodDay));
-
-        return ResponseResult.okResult(data);
     }
+
+    // ========================================================================
+    // 3. 补签操作（最复杂核心）
+    // ========================================================================
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult doExtra(Long userId, String targetDateStr) {
+        // 分布式锁
+        if (!tryLock(userId)) {
+            return ResponseResult.errorResult(429, "操作过于频繁，请稍后再试");
+        }
+        try {
+            LocalDate today = getToday();
+            LocalDate targetDate = LocalDate.parse(targetDateStr, DATE_FMT);
+
+            // 校验日期范围
+            if (targetDate.isAfter(today.minusDays(1))) {
+                return ResponseResult.errorResult(400, "不能补签今天或未来的日期");
+            }
+            if (targetDate.isBefore(today.minusDays(30))) {
+                return ResponseResult.errorResult(400, "只能补签最近30天内的日期");
+            }
+
+            // 校验该日是否已签到
+            SignRecord existing = signRecordMapper.selectOne(
+                    new LambdaQueryWrapper<SignRecord>()
+                            .eq(SignRecord::getUserId, userId)
+                            .eq(SignRecord::getSignDate, targetDate)
+            );
+            if (existing != null) {
+                return ResponseResult.errorResult(400, "该日已签到，无需补签");
+            }
+
+            // 校验补签卡
+            UserCheckinState state = userCheckinStateMapper.selectById(userId);
+            if (state == null || state.getPatchCardCount() == null || state.getPatchCardCount() <= 0) {
+                return ResponseResult.errorResult(400, "补签卡不足");
+            }
+
+            // 扣减补签卡
+            state.setPatchCardCount(state.getPatchCardCount() - 1);
+            userCheckinStateMapper.updateById(state);
+
+            // 1. 获取受影响时间窗口（45天窗口）
+            LocalDate windowStart = targetDate.minusDays(45);
+            LocalDate windowEnd = today.plusDays(1);
+            List<SignRecord> windowRecords = signRecordMapper.selectList(
+                    new LambdaQueryWrapper<SignRecord>()
+                            .eq(SignRecord::getUserId, userId)
+                            .ge(SignRecord::getSignDate, windowStart)
+                            .le(SignRecord::getSignDate, windowEnd)
+                            .orderByAsc(SignRecord::getSignDate)
+            );
+            Map<LocalDate, SignRecord> recordMap = windowRecords.stream()
+                    .collect(Collectors.toMap(
+                            r -> new java.sql.Date(r.getSignDate().getTime()).toLocalDate(),
+                            r -> r,
+                            (a, b) -> a
+                    ));
+
+            // 2. 模拟补签插入映射
+            SignRecord extraRecord = new SignRecord();
+            extraRecord.setUserId(userId);
+            extraRecord.setSignDate(java.sql.Date.valueOf(targetDate));
+            extraRecord.setAwardOre(0);
+            extraRecord.setIsExtra(true);
+            recordMap.put(targetDate, extraRecord);
+
+            // 3. 寻找连续段 [segStart, segEnd]
+            LocalDate segStart = targetDate;
+            while (recordMap.containsKey(segStart.minusDays(1))) {
+                segStart = segStart.minusDays(1);
+            }
+            LocalDate segEnd = targetDate;
+            while (recordMap.containsKey(segEnd.plusDays(1))) {
+                segEnd = segEnd.plusDays(1);
+            }
+            if (segEnd.isAfter(today)) segEnd = today;
+
+            log.info("补签重算段: {} ~ {}", segStart, segEnd);
+
+            // 4. 重算该段内每一天的奖励
+            int extraOreSum = 0;
+            List<Map<String, Object>> updatedDays = new ArrayList<>();
+
+            for (LocalDate date = segStart; !date.isAfter(segEnd); date = date.plusDays(1)) {
+                SignRecord rec = recordMap.get(date);
+                if (rec == null) continue;
+
+                int pos = (int) ChronoUnit.DAYS.between(segStart, date) + 1;
+                int newOre = SignRewardUtil.getRewardByContinuousDays(pos);
+                int oldOre = rec.getAwardOre() != null ? rec.getAwardOre() : 0;
+
+                if (newOre != oldOre || rec.getId() == null) {
+                    int diff = newOre - oldOre;
+                    extraOreSum += diff;
+
+                    Map<String, Object> updatedDay = new HashMap<>();
+                    updatedDay.put("date", date.format(DATE_FMT));
+                    updatedDay.put("newOre", newOre);
+                    updatedDay.put("oldOre", rec.getId() == null ? null : oldOre);
+                    updatedDays.add(updatedDay);
+
+                    if (rec.getId() != null) {
+                        // 已存在记录，更新 award_ore
+                        rec.setAwardOre(newOre);
+                        signRecordMapper.updateById(rec);
+                    } else {
+                        // 补签新记录
+                        rec.setAwardOre(newOre);
+                        rec.setUserId(userId);
+                        rec.setSignDate(java.sql.Date.valueOf(date));
+                        rec.setIsExtra(true);
+                        try {
+                            signRecordMapper.insert(rec);
+                        } catch (DuplicateKeyException e) {
+                            log.warn("补签时发现重复记录: userId={}, date={}", userId, date);
+                        }
+                    }
+                }
+            }
+
+            // 5. 更新用户状态
+            int newContinuousDays = calculateContinuousDays(userId, today);
+            // 如果今天已签到，则连续天数+1
+            boolean todaySigned = signRecordMapper.selectCount(
+                    new LambdaQueryWrapper<SignRecord>()
+                            .eq(SignRecord::getUserId, userId)
+                            .eq(SignRecord::getSignDate, today)
+            ) > 0;
+            int displayContinuousDays = todaySigned ? newContinuousDays + 1 : newContinuousDays;
+
+            state.setContinuousDays(displayContinuousDays);
+            if (displayContinuousDays > 0) {
+                state.setPeriodDay((displayContinuousDays - 1) % 30 + 1);
+            }
+            // 如果补签日期晚于 lastCheckinDate，则更新
+            LocalDate lastDate = state.getLastCheckinDate() != null
+                    ? new java.sql.Date(state.getLastCheckinDate().getTime()).toLocalDate()
+                    : null;
+            if (lastDate == null || targetDate.isAfter(lastDate)) {
+                state.setLastCheckinDate(java.sql.Date.valueOf(targetDate));
+            }
+            state.setTotalCheckinDays(state.getTotalCheckinDays() != null ? state.getTotalCheckinDays() + 1 : 1);
+            userCheckinStateMapper.updateById(state);
+
+            // 6. 更新矿石余额
+            if (extraOreSum != 0) {
+                UserAssets assets = userAssetsMapper.selectById(userId);
+                if (assets != null) {
+                    assets.setOreBalance(assets.getOreBalance() + extraOreSum);
+                    userAssetsMapper.updateById(assets);
+                }
+            }
+
+            // 7. 构建返回结果
+            Map<String, Object> data = new HashMap<>();
+            data.put("extraOre", extraOreSum);
+            data.put("newContinuousDays", displayContinuousDays);
+            data.put("updatedDays", updatedDays);
+
+            // 计算补签后的总矿石
+            UserAssets finalAssets = userAssetsMapper.selectById(userId);
+            data.put("totalOre", finalAssets != null ? finalAssets.getOreBalance() : 0);
+            data.put("extraCards", state.getPatchCardCount());
+
+            return ResponseResult.okResult(data);
+        } finally {
+            unlock(userId);
+        }
+    }
+
+    // ========================================================================
+    // 4. 获取今日签到状态（侧边栏用）
+    // ========================================================================
 
     @Override
     public ResponseResult getTodayStatus(Long userId) {
-        String todayStr = DateUtil.today();
-        Date todayDate = java.sql.Date.valueOf(todayStr);
-        boolean todaySigned = checkinRecordMapper.selectCount(
-                new LambdaQueryWrapper<CheckinRecord>()
-                        .eq(CheckinRecord::getUserId, userId)
-                        .eq(CheckinRecord::getCheckinDate, todayDate)
+        LocalDate today = getToday();
+        boolean todaySigned = signRecordMapper.selectCount(
+                new LambdaQueryWrapper<SignRecord>()
+                        .eq(SignRecord::getUserId, userId)
+                        .eq(SignRecord::getSignDate, today)
         ) > 0;
 
-        UserCheckinState state = userCheckinStateMapper.selectById(userId);
-        int continuousDays = (state != null && state.getContinuousDays() != null) ? state.getContinuousDays() : 0;
+        int continuousDays = calculateContinuousDays(userId, today);
+        if (todaySigned) {
+            continuousDays = continuousDays + 1;
+        }
 
         UserAssets assets = userAssetsMapper.selectById(userId);
         int totalOre = (assets != null) ? assets.getOreBalance() : 0;
 
+        UserCheckinState state = userCheckinStateMapper.selectById(userId);
         int patchCardCount = (state != null && state.getPatchCardCount() != null) ? state.getPatchCardCount() : 0;
 
         Map<String, Object> data = new HashMap<>();
@@ -431,32 +573,66 @@ public class CheckinServiceImpl implements CheckinService {
         return ResponseResult.okResult(data);
     }
 
-    @Override
-    public ResponseResult getMilestone(Long userId) {
-        UserCheckinState state = userCheckinStateMapper.selectById(userId);
-        int periodDay = (state != null && state.getPeriodDay() != null) ? state.getPeriodDay() : 0;
+    // ========================================================================
+    // 辅助方法
+    // ========================================================================
 
-        List<Map<String, Object>> milestones = new ArrayList<>();
-        for (int sd : SPECIAL_DAYS) {
-            CheckinRewardConfig config = checkinRewardConfigMapper.selectById(sd);
+    /**
+     * 构建里程碑进度数据
+     */
+    private Map<String, Object> buildMilestoneProgress(int continuousDays) {
+        int[] specialDays = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
+        int[] specialOres = {100, 150, 512, 250, 300, 350, 1024, 450, 500, 550, 600, 650, 700, 2048, 700, 700, 700, 700, 700, 700, 4096, 700, 700, 700, 700, 700, 700, 700, 700, 5120};
+
+        List<Map<String, Object>> specialDayList = new ArrayList<>();
+        for (int i = 0; i < specialDays.length; i++) {
+            int sd = specialDays[i];
+            int ore = specialOres[i];
             Map<String, Object> m = new HashMap<>();
             m.put("day", sd);
-            m.put("ore", config != null ? config.getSpecialOre() : 0);
-            m.put("achieved", periodDay >= sd);
-            if (periodDay < sd) {
-                m.put("daysLeft", sd - periodDay);
-            }
-            milestones.add(m);
+            m.put("ore", ore);
+            m.put("achieved", continuousDays >= sd);
+            m.put("isCurrent", continuousDays == sd);
+            m.put("isSpecial", ore > 700);
+            specialDayList.add(m);
         }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("periodDay", periodDay);
-        data.put("totalDays", 30);
-        data.put("specialMilestones", milestones);
-        data.put("canClaimSpecial", Arrays.asList(SPECIAL_DAYS).contains(periodDay));
-        data.put("milestoneProgress", buildMilestoneProgress(periodDay));
+        int percent = Math.min((int) (((continuousDays % 30) * 100.0) / 30), 100);
 
-        return ResponseResult.okResult(data);
+        Map<String, Object> progress = new HashMap<>();
+        progress.put("current", continuousDays % 30 == 0 ? 30 : continuousDays % 30);
+        progress.put("total", 30);
+        progress.put("percent", percent);
+        progress.put("specialDays", specialDayList);
+
+        return progress;
+    }
+
+    /**
+     * 构建下一个特殊奖励节点信息
+     */
+    private Map<String, Object> buildNextSpecial(int currentContinuousDays) {
+        int[] specialDays = {3, 7, 14, 21, 30};
+        int[] specialOres = {512, 1024, 2048, 4096, 5120};
+        int periodDay = currentContinuousDays % 30 == 0 ? 30 : currentContinuousDays % 30;
+
+        for (int i = 0; i < specialDays.length; i++) {
+            if (periodDay < specialDays[i]) {
+                int daysLeft = specialDays[i] - periodDay;
+                Map<String, Object> result = new HashMap<>();
+                result.put("day", specialDays[i]);
+                result.put("ore", specialOres[i]);
+                result.put("daysLeft", daysLeft);
+                return result;
+            }
+        }
+        // 当前周期已过所有特殊节点，返回下一个周期的第一个特殊节点
+        int daysLeft = (30 - periodDay) + 3;
+        Map<String, Object> result = new HashMap<>();
+        result.put("day", 3);
+        result.put("ore", 512);
+        result.put("daysLeft", daysLeft);
+        return result;
     }
 
     /**
@@ -499,57 +675,5 @@ public class CheckinServiceImpl implements CheckinService {
         }
 
         return userInfo;
-    }
-
-    /**
-     * 计算下一个特殊奖励
-     */
-    private Map<String, Object> calculateNextSpecial(Integer periodDay) {
-        if (periodDay == null || periodDay <= 0) {
-            periodDay = 0;
-        }
-        for (int sd : SPECIAL_DAYS) {
-            if (sd > periodDay) {
-                CheckinRewardConfig config = checkinRewardConfigMapper.selectById(sd);
-                if (config != null) {
-                    Map<String, Object> nextSpecial = new HashMap<>();
-                    nextSpecial.put("day", sd);
-                    nextSpecial.put("ore", config.getSpecialOre());
-                    nextSpecial.put("daysLeft", sd - periodDay);
-                    return nextSpecial;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 构建里程碑进度
-     */
-    private Map<String, Object> buildMilestoneProgress(Integer periodDay) {
-        if (periodDay == null || periodDay < 0) {
-            periodDay = 0;
-        }
-        Map<String, Object> progress = new HashMap<>();
-        progress.put("current", periodDay);
-        progress.put("total", 30);
-
-        List<Map<String, Object>> specialDays = new ArrayList<>();
-        for (int sd : SPECIAL_DAYS) {
-            CheckinRewardConfig config = checkinRewardConfigMapper.selectById(sd);
-            Map<String, Object> m = new HashMap<>();
-            m.put("day", sd);
-            m.put("ore", config != null ? config.getSpecialOre() : 0);
-            m.put("achieved", periodDay >= sd);
-            m.put("isCurrent", periodDay == sd);
-            specialDays.add(m);
-        }
-        progress.put("specialDays", specialDays);
-
-        // 当前进度百分比
-        int percent = (int) ((periodDay * 100.0) / 30);
-        progress.put("percent", percent);
-
-        return progress;
     }
 }

@@ -18,10 +18,11 @@
                     :mode="checkinModalMode"
                     :earnedOre="checkinResult.earnedOre"
                     :milestoneProgress="checkinResult.milestoneProgress"
-                    :nextSpecial="checkinResult.nextSpecial"
+                    :nextSpecial="checkinResult.nextSpecial || dashboard.nextSpecialReward"
                     :isSigned="dashboard.checkinStats.todaySigned"
                     @close="closeCheckinModal"
                     @checkin-success="handleCheckinSuccess"
+                    @go-lottery="handleGoLotteryFromModal"
                 />
 
                 <!-- 用户信息栏 -->
@@ -89,23 +90,27 @@
                 <div class="calendar-section">
                     <div class="calendar-header">
                         <span class="calendar-title">签到日历</span>
+                        <div class="calendar-nav">
+                            <span class="nav-arrow" :class="{ disabled: isPrevDisabled }" @click="prevMonthCalendar">&#xf104;</span>
+                            <span class="nav-arrow" :class="{ disabled: isNextDisabled }" @click="nextMonthCalendar">&#xf105;</span>
+                        </div>
                         <span class="today-btn" @click="goToday">今天</span>
                     </div>
-                    <!-- 上一月 -->
+                    <!-- 当前展示月份 -->
                     <div class="calendar-month-block">
-                        <div class="month-label">{{ prevYear }}年{{ prevMonth }}月</div>
+                        <div class="month-label">{{ displayYear }}年{{ displayMonth }}月</div>
                         <div class="calendar-grid">
                             <div class="calendar-header-row">
                                 <div
                                     v-for="day in weekDays"
-                                    :key="'prev-h-' + day"
+                                    :key="'cal-h-' + day"
                                     class="calendar-header-cell"
                                 >{{ day }}</div>
                             </div>
                             <div class="calendar-body">
                                 <div
-                                    v-for="(cell, index) in prevMonthCells"
-                                    :key="'prev-' + index"
+                                    v-for="(cell, index) in displayCells"
+                                    :key="'cal-' + index"
                                     class="calendar-cell"
                                     :class="cellClass(cell)"
                                     @click="handleCellClick(cell)"
@@ -117,37 +122,7 @@
                                         </span>
                                         <span v-if="cell.status === 'repaired'" class="cell-patched-label">补</span>
                                         <span v-if="cell.isSpecialDay" class="cell-special-label">奖</span>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- 当前月 -->
-                    <div class="calendar-month-block">
-                        <div class="month-label">{{ currentYear }}年{{ currentMonth }}月</div>
-                        <div class="calendar-grid">
-                            <div class="calendar-header-row">
-                                <div
-                                    v-for="day in weekDays"
-                                    :key="'curr-h-' + day"
-                                    class="calendar-header-cell"
-                                >{{ day }}</div>
-                            </div>
-                            <div class="calendar-body">
-                                <div
-                                    v-for="(cell, index) in calendarCells"
-                                    :key="'curr-' + index"
-                                    class="calendar-cell"
-                                    :class="cellClass(cell)"
-                                    @click="handleCellClick(cell)"
-                                >
-                                    <template v-if="!cell.isEmpty">
-                                        <span class="cell-date">{{ cell.day }}</span>
-                                        <span v-if="cell.reward" class="cell-reward">
-                                            +{{ cell.reward }}
-                                        </span>
-                                        <span v-if="cell.status === 'repaired'" class="cell-patched-label">补</span>
-                                        <span v-if="cell.isSpecialDay" class="cell-special-label">奖</span>
+                                        <span v-if="cell.status === 'unsigned' && cell.canExtra" class="cell-unsigned-label">待补签</span>
                                     </template>
                                 </div>
                             </div>
@@ -225,7 +200,7 @@ import HomeBar from '@/components/bars/home_bar'
 import CheckinProgressModal from '@/components/checkin/CheckinProgressModal.vue'
 import UserCenterSidebar from '@/components/user/UserCenterSidebar.vue'
 import Utils from '@/utils/env'
-import { getDashboard, doCheckIn, doRetroactive } from '@/apis/checkin'
+import { getSignStatus, doSignCheckin, doSignExtra } from '@/apis/checkin'
 import { toast } from '@/utils/toast'
 
 export default {
@@ -234,8 +209,8 @@ export default {
     data() {
         return {
             weekDays: ['日', '一', '二', '三', '四', '五', '六'],
-            currentYear: new Date().getFullYear(),
-            currentMonth: new Date().getMonth() + 1,
+            displayYear: new Date().getFullYear(),
+            displayMonth: new Date().getMonth() + 1,
             todayYear: new Date().getFullYear(),
             todayMonth: new Date().getMonth() + 1,
             today: new Date().getDate(),
@@ -259,7 +234,7 @@ export default {
                 currentPeriodDay: 0,
                 nextSpecialReward: null,
                 milestoneProgress: { current: 0, total: 30, percent: 0, specialDays: [] },
-                calendar: [],
+                calendarMonths: [],
                 tasks: []
             }
         }
@@ -268,27 +243,25 @@ export default {
         isDesktop() {
             return Utils.isDesktop()
         },
-        prevYear() {
-            if (this.currentMonth === 1) {
-                return this.currentYear - 1
-            }
-            return this.currentYear
+        displayCells() {
+            return this.buildMonthCells(this.displayYear, this.displayMonth)
         },
-        prevMonth() {
-            if (this.currentMonth === 1) {
-                return 12
-            }
-            return this.currentMonth - 1
+        isPrevDisabled() {
+            // 只能显示当前月和前一个月，不能更早
+            const prevMonth = this.displayMonth === 1 ? 12 : this.displayMonth - 1
+            const prevYear = this.displayMonth === 1 ? this.displayYear - 1 : this.displayYear
+            const todayPrevMonth = this.todayMonth === 1 ? 12 : this.todayMonth - 1
+            const todayPrevYear = this.todayMonth === 1 ? this.todayYear - 1 : this.todayYear
+            return prevYear < todayPrevYear || (prevYear === todayPrevYear && prevMonth < todayPrevMonth)
+                || (prevYear === todayPrevYear && prevMonth === todayPrevMonth)
         },
-        calendarCells() {
-            return this.buildMonthCells(this.currentYear, this.currentMonth, true)
-        },
-        prevMonthCells() {
-            return this.buildMonthCells(this.prevYear, this.prevMonth, false)
+        isNextDisabled() {
+            // 不能超过当前月
+            return this.displayYear >= this.todayYear && this.displayMonth >= this.todayMonth
         }
     },
     mounted() {
-        this.loadDashboard()
+        this.loadSignStatus()
     },
     methods: {
         goBack() {
@@ -310,7 +283,7 @@ export default {
                 this.$router.push(path)
             }
         },
-        buildMonthCells(year, month, isCurrentMonth) {
+        buildMonthCells(year, month) {
             const cells = []
             const firstDay = new Date(year, month - 1, 1).getDay()
             const totalDays = new Date(year, month, 0).getDate()
@@ -319,86 +292,90 @@ export default {
                 cells.push({ isEmpty: true })
             }
 
+            // 从 calendarMonths 中查找对应月份的数据
+            const monthData = (this.dashboard.calendarMonths || []).find(
+                m => m.year === year && m.month === month
+            )
+            const daysData = monthData ? monthData.days : []
+
             for (let d = 1; d <= totalDays; d++) {
                 const dateStr = this.formatDateStrWithYearMonth(year, month, d)
-                const match = this.dashboard.calendar.find(
-                    item => item.date === dateStr
-                )
+                const dayInfo = daysData.find(item => item.date === dateStr)
 
-                const periodDay = match ? match.periodDay : null
-                const specialDays = [3, 7, 14, 21, 30]
-                const isSpecialDay = specialDays.includes(periodDay)
+                let status = 'miss'
+                let reward = null
+                let isSpecialDay = false
+                let canExtra = false
+
+                if (dayInfo) {
+                    // 状态映射：后端返回的6种状态
+                    const statusMap = {
+                        'signed': 'signed',
+                        'extra_signed': 'repaired',
+                        'unsigned': 'unsigned',
+                        'expired': 'expired',
+                        'future': 'future'
+                    }
+                    status = statusMap[dayInfo.status] || 'miss'
+                    reward = dayInfo.oreAmount || null
+                    isSpecialDay = dayInfo.isSpecialDay || false
+                    canExtra = dayInfo.canExtra || false
+                }
+
+                // 今日特殊处理
+                if (dateStr === this.formatDateStrWithYearMonth(this.todayYear, this.todayMonth, this.today)) {
+                    if (status === 'unsigned') {
+                        status = 'today'
+                    }
+                }
 
                 cells.push({
                     isEmpty: false,
                     day: d,
                     date: dateStr,
-                    status: match ? match.status : (isCurrentMonth ? this.getDefaultStatus(d) : 'miss'),
-                    reward: match ? match.oreReward : null,
-                    isSpecialDay: isSpecialDay
+                    status: status,
+                    reward: reward,
+                    isSpecialDay: isSpecialDay,
+                    canExtra: canExtra
                 })
             }
 
             return cells
-        },
-        getDefaultStatus(d) {
-            const isCurrentMonth =
-                this.currentYear === this.todayYear &&
-                this.currentMonth === this.todayMonth
-            if (isCurrentMonth && d === this.today) {
-                return 'today'
-            }
-            const cellDate = new Date(this.currentYear, this.currentMonth - 1, d)
-            const todayDate = new Date(this.todayYear, this.todayMonth - 1, this.today)
-            if (cellDate > todayDate) {
-                return 'future'
-            }
-            return 'miss'
         },
         cellClass(cell) {
             if (cell.isEmpty) return 'is-empty'
             const map = {
                 signed: 'is-signed',
                 repaired: 'is-repaired',
-                miss: 'is-missed',
+                unsigned: 'is-unsigned',
+                expired: 'is-expired',
                 today: 'is-today',
                 future: 'is-future'
             }
             return map[cell.status] || ''
         },
-        async loadDashboard() {
+        async loadSignStatus() {
             try {
-                const res = await getDashboard()
+                const res = await getSignStatus()
                 if (res && res.code === 200 && res.data) {
                     const data = res.data
                     this.dashboard.userInfo = data.userInfo || { nickname: '用户', level: 'ZR.1' }
-                    this.dashboard.checkinStats = data.checkinStats || {
-                        continuousDays: 0, totalDays: 0, oreBalance: 0, todaySigned: false
+                    this.dashboard.checkinStats = {
+                        continuousDays: data.continuousDays || 0,
+                        totalDays: data.totalSignDays || 0,
+                        oreBalance: data.totalOre || 0,
+                        todaySigned: data.todaySigned || false
                     }
-                    this.dashboard.patchCardCount = data.patchCardCount || 0
-                    this.dashboard.currentPeriodDay = data.currentPeriodDay || 0
-                    this.dashboard.nextSpecialReward = data.nextSpecialReward || null
+                    this.dashboard.patchCardCount = data.extraCards || 0
+                    this.dashboard.currentPeriodDay = data.continuousDays ? (data.continuousDays - 1) % 30 + 1 : 0
                     this.dashboard.milestoneProgress = data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] }
+                    this.dashboard.nextSpecialReward = data.nextSpecial || null
 
-                    if (data.calendar) {
-                        this.dashboard.calendar = data.calendar.map(item => {
-                            const statusMap = {
-                                'signed': 'signed',
-                                'repaired': 'repaired',
-                                'miss': 'miss',
-                                'today': 'today',
-                                'future': 'future'
-                            }
-                            return {
-                                date: item.date,
-                                status: statusMap[item.status] || 'future',
-                                oreReward: item.oreReward || null,
-                                periodDay: item.periodDay || null,
-                                isSpecial: item.isSpecial || false
-                            }
-                        })
+                    // 处理日历数据（新格式：calendarMonths数组）
+                    if (data.calendarMonths) {
+                        this.dashboard.calendarMonths = data.calendarMonths
                     } else {
-                        this.dashboard.calendar = []
+                        this.dashboard.calendarMonths = []
                     }
                     this.dashboard.tasks = data.tasks || []
                 }
@@ -408,24 +385,40 @@ export default {
         },
         async handleCellClick(cell) {
             if (cell.isEmpty) return
-            if (cell.status === 'future') return
+            if (cell.status === 'future' || cell.status === 'expired') return
 
             if (cell.status === 'signed' || cell.status === 'repaired') {
                 toast('该日期已签到', 2)
                 return
             }
 
-            if (cell.status === 'miss') {
+            if (cell.status === 'unsigned') {
+                // 今日不可补签，弹进度框
+                if (cell.date === this.formatDateStrWithYearMonth(this.todayYear, this.todayMonth, this.today)) {
+                    this.openCheckinModal()
+                    return
+                }
+                if (!cell.canExtra) {
+                    toast('该日期不可补签', 2)
+                    return
+                }
                 if (this.dashboard.patchCardCount <= 0) {
-                    toast('没有补签卡了', 2)
+                    toast('补签卡不足', 2)
                     return
                 }
                 try {
-                    const res = await doRetroactive(cell.date)
+                    const res = await doSignExtra(cell.date)
                     if (res && res.code === 200) {
                         const data = res.data || {}
-                        toast('补签成功！+' + (data.earnedOre || 0) + ' 矿石', 2)
-                        await this.loadDashboard()
+                        const extraOre = data.extraOre || 0
+                        let msg = '补签成功'
+                        if (extraOre > 0) {
+                            msg += '，经计算补发放共 ' + extraOre + ' 矿石'
+                        } else {
+                            msg += '！'
+                        }
+                        toast(msg, 3)
+                        await this.loadSignStatus()
                     } else {
                         toast(res && res.message ? res.message : '补签失败', 2)
                     }
@@ -448,12 +441,26 @@ export default {
         },
         async handleCheckinSuccess(data) {
             this.checkinResult = {
-                earnedOre: data.earnedOre || 0,
+                earnedOre: data.awardOre || 0,
                 milestoneProgress: data.milestoneProgress || { current: 0, total: 30, percent: 0, specialDays: [] },
                 nextSpecial: data.nextSpecial || null
             }
             this.checkinModalMode = 'success'
-            await this.loadDashboard()
+            this.showCheckinModal = true
+            await this.loadSignStatus()
+        },
+        handleGoLotteryFromModal() {
+            this.showCheckinModal = false
+            const routeMap = {
+                checkin: '/user/center/checkin',
+                growth: '/user/center/growth',
+                lottery: '/user/center/lottery',
+                welfare: '/user/center/welfare'
+            }
+            const path = routeMap.lottery
+            if (path && this.$route.path !== path) {
+                this.$router.push(path)
+            }
         },
         async handleCheckinBtnClick() {
             if (this.dashboard.checkinStats.todaySigned) {
@@ -461,7 +468,7 @@ export default {
                 return
             }
             try {
-                const res = await doCheckIn()
+                const res = await doSignCheckin()
                 if (res && res.code === 200 && res.data) {
                     await this.handleCheckinSuccess(res.data)
                 } else {
@@ -472,8 +479,26 @@ export default {
             }
         },
         goToday() {
-            this.currentYear = this.todayYear
-            this.currentMonth = this.todayMonth
+            this.displayYear = this.todayYear
+            this.displayMonth = this.todayMonth
+        },
+        prevMonthCalendar() {
+            if (this.isPrevDisabled) return
+            if (this.displayMonth === 1) {
+                this.displayYear--
+                this.displayMonth = 12
+            } else {
+                this.displayMonth--
+            }
+        },
+        nextMonthCalendar() {
+            if (this.isNextDisabled) return
+            if (this.displayMonth === 12) {
+                this.displayYear++
+                this.displayMonth = 1
+            } else {
+                this.displayMonth++
+            }
         },
         formatDateStrWithYearMonth(year, month, day) {
             const y = year
@@ -709,6 +734,32 @@ export default {
     color: #1a1a1a;
 }
 
+.calendar-nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.nav-arrow {
+    font-family: fontawesome;
+    font-size: 18px;
+    color: #666;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover:not(.disabled) {
+        background: #f0f2f5;
+        color: #1a1a1a;
+    }
+
+    &.disabled {
+        color: #d9d9d9;
+        cursor: not-allowed;
+    }
+}
+
 .today-btn {
     padding: 6px 16px;
     border: 1px solid #1e80ff;
@@ -779,7 +830,7 @@ export default {
     background: #f5f7fa;
 
     &.is-signed {
-        background: linear-gradient(135deg, #52c41a, #73d13d);
+        background: linear-gradient(135deg, #fa8c16, #ffc069);
         color: #fff;
 
         .cell-date {
@@ -793,13 +844,22 @@ export default {
     }
 
     &.is-today {
-        background: #1e80ff;
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(30, 128, 255, 0.3);
+        background: #fff;
+        border: 2px solid #f5222d;
+        color: #f5222d;
 
         .cell-date {
-            color: #fff;
-            font-weight: 600;
+            color: #f5222d;
+            font-weight: 700;
+        }
+
+        &::after {
+            content: '今日';
+            position: absolute;
+            bottom: 2px;
+            font-size: 9px;
+            color: #f5222d;
+            font-weight: 500;
         }
     }
 
@@ -821,6 +881,35 @@ export default {
         }
     }
 
+    &.is-unsigned {
+        background: #fafafa;
+        color: #999;
+        cursor: pointer;
+
+        .cell-date {
+            color: #999;
+        }
+
+        &:hover {
+            background: #fff7e6;
+            color: #fa8c16;
+
+            .cell-date {
+                color: #fa8c16;
+            }
+        }
+    }
+
+    &.is-expired {
+        background: #f0f0f0;
+        color: #ccc;
+        cursor: not-allowed;
+
+        .cell-date {
+            color: #ccc;
+        }
+    }
+
     &.is-future {
         background: #fafafa;
         color: #d9d9d9;
@@ -832,17 +921,17 @@ export default {
     }
 
     &.is-repaired {
-        background: #fff7e6;
-        border: 1px dashed #fa8c16;
-        color: #fa8c16;
+        background: #e6fffb;
+        border: 1px dashed #52c41a;
+        color: #52c41a;
 
         .cell-date {
-            color: #fa8c16;
+            color: #52c41a;
             font-weight: 600;
         }
 
         .cell-reward {
-            color: #fa8c16;
+            color: #52c41a;
         }
 
         .cell-patched-label {
@@ -850,10 +939,11 @@ export default {
             top: 2px;
             right: 2px;
             font-size: 10px;
-            color: #fa8c16;
+            color: #52c41a;
             background: #fff;
             padding: 0 3px;
             border-radius: 2px;
+            font-weight: 600;
         }
     }
 
@@ -876,6 +966,12 @@ export default {
         padding: 0 3px;
         border-radius: 2px;
         font-weight: 600;
+    }
+
+    .cell-unsigned-label {
+        font-size: 10px;
+        color: #999;
+        margin-top: 2px;
     }
 }
 

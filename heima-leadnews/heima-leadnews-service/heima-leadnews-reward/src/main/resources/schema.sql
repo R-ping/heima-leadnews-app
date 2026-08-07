@@ -40,6 +40,19 @@ CREATE TABLE IF NOT EXISTS `checkin_records` (
   KEY `idx_user_date_desc` (`user_id`, `checkin_date` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='签到记录表';
 
+-- 新签到记录表（替代 checkin_records）
+CREATE TABLE IF NOT EXISTS `sign_records` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL,
+  `sign_date` date NOT NULL COMMENT '签到日期（yyyy-MM-dd）',
+  `award_ore` int(11) NOT NULL COMMENT '本次签到获得的矿石数（补签重算后更新）',
+  `is_extra` tinyint(1) DEFAULT '0' COMMENT '是否为补签（0-正常签到 1-补签）',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_date` (`user_id`, `sign_date`),
+  KEY `idx_user_date_desc` (`user_id`, `sign_date` DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='签到记录表（新）';
+
 -- 用户签到状态表
 CREATE TABLE IF NOT EXISTS `user_checkin_state` (
   `user_id` bigint(20) NOT NULL PRIMARY KEY,

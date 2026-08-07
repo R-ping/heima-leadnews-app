@@ -3,14 +3,15 @@ package com.heima.reward.service;
 import com.heima.model.common.dtos.ResponseResult;
 
 public interface CheckinService {
-    /** 获取签到首页数据 */
-    ResponseResult getDashboard(Long userId);
-    /** 执行签到 */
+    /** 获取签到状态与日历数据（新接口） */
+    ResponseResult getStatus(Long userId);
+
+    /** 执行每日签到 */
     ResponseResult doCheckin(Long userId);
-    /** 使用补签卡 */
-    ResponseResult patchCheckin(Long userId, String targetDate);
-    /** 获取签到进度 */
-    ResponseResult getMilestone(Long userId);
-    /** 获取今日签到状态（用于侧边栏） */
+
+    /** 执行补签操作 */
+    ResponseResult doExtra(Long userId, String targetDate);
+
+    /** 获取今日签到状态（侧边栏用） */
     ResponseResult getTodayStatus(Long userId);
 }
