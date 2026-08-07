@@ -1,29 +1,21 @@
 import request from '@/common/reward_request'
 
-export const getDashboard = () => {
-  return request.get('/api/v1/checkin/dashboard')
+/** 获取签到状态与日历数据（新接口） */
+export const getSignStatus = () => {
+  return request.get('/api/v1/sign/status')
 }
 
-export const doCheckIn = () => {
-  return request.post('/api/v1/checkin/do')
+/** 执行每日签到 */
+export const doSignCheckin = () => {
+  return request.post('/api/v1/sign/checkin')
 }
 
-export const doRetroactive = (missedDate) => {
-  return request.post('/api/v1/checkin/patch', { targetDate: missedDate })
+/** 执行补签操作 */
+export const doSignExtra = (date) => {
+  return request.post('/api/v1/sign/extra', { date })
 }
 
-export const getCheckInRecords = (params) => {
-  return request.get('/api/v1/checkin/milestone', { params })
-}
-
-export const getCheckInStats = () => {
-  return request.get('/api/v1/checkin/stats')
-}
-
+/** 获取今日签到状态（侧边栏用） */
 export const getTodayStatus = () => {
-  return request.get('/api/v1/checkin/today')
-}
-
-export const getCheckInTasks = () => {
-  return request.get('/api/v1/checkin/tasks')
+  return request.get('/api/v1/sign/today')
 }
