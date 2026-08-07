@@ -66,18 +66,22 @@
                         <span v-if="!isLoggedIn" class="header-btn write-btn" @click="showLogin">
                             <span class="btn-icon">&#xf040;</span>写文章
                         </span>
-                        <span v-if="isLoggedIn" class="header-btn creator-btn"
+                        <div v-if="isLoggedIn" class="header-btn creator-btn"
                         @mouseenter="showCreatorDropdown"
-                        @mouseleave="hideCreatorDropdown"
-                        @click="openCreatorCenter">
-                            <span class="btn-icon">&#xf040;</span>创作者中心
-                            <span class="creator-arrow">&#xf107;</span>
+                        @mouseleave="hideCreatorDropdown">
+                            <span class="creator-main" @click="openCreatorCenter">
+                                <span class="btn-icon">&#xf040;</span>创作者中心
+                            </span>
+                            <span class="creator-divider"></span>
+                            <span class="creator-arrow" :class="{ 'is-reverse': showCreatorDropdown }">
+                                <span class="arrow-icon">&#xf107;</span>
+                            </span>
                             <CreatorDropdown
                                 v-if="showCreatorDropdown"
                                 @close="hideCreatorDropdown"
                                 @navigate="handleCreatorNavigate"
                             />
-                        </span>
+                        </div>
                         <span v-if="!isLoggedIn" class="header-btn login-btn" @click="showLogin">登录</span>
                         <NotificationBell v-if="isLoggedIn" :unreadCount="unreadCount" @go-to-notification="goToNotification" />
                         <div v-if="isLoggedIn" class="header-user" @click="toggleUserDropdown">
@@ -856,12 +860,14 @@
             left: 0;
             right: 0;
             z-index: 100;
+            overflow: visible;
         }
 
         .header-inner {
             max-width: 1440PX;
             margin: 0 auto;
             height: 60PX;
+            overflow: visible;
             display: flex;
             align-items: center;
             padding: 0 24PX;
@@ -1158,14 +1164,50 @@
             color: #ffffff;
             background-color: @mian-color;
             position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 0;
+            border-radius: 4px;
+            overflow: visible;
+            transition: background-color 0.2s;
         }
         .creator-btn:hover {
             background-color: #1a7de8;
         }
+        .creator-main {
+            padding: 0 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .creator-divider {
+            width: 1px;
+            height: 16px;
+            background-color: rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
         .creator-arrow {
+            padding: 0 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            border-radius: 0 4px 4px 0;
+        }
+        .creator-arrow:hover,
+        .creator-arrow.is-reverse {
+            background-color: rgba(0, 0, 0, 0.15);
+        }
+        .arrow-icon {
             font-family: fontawesome;
-            font-size: 10PX;
-            margin-left: 4PX;
+            font-size: 10px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        .creator-arrow.is-reverse .arrow-icon {
+            transform: rotate(180deg);
         }
         .btn-icon {
             font-family: fontawesome;
