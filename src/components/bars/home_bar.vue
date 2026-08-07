@@ -140,6 +140,7 @@
                 this.showUserDropdown = false
                 this.$store.dispatch('logout')
                 toast('已退出登录', 2)
+                this.$router.push('/home')
             },
             goToProfile() {
                 this.showUserDropdown = false

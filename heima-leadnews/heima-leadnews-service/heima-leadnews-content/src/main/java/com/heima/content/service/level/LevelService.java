@@ -35,4 +35,14 @@ public interface LevelService {
     Map<String, Object> getLevelPrivileges(Long userId);
 
     Map<String, Object> getUserInfoPack(Long userId);
+
+    void assignBasicPermissions(Long userId);
+
+    Map<String, Object> getCreatorLevelPrivileges();
+
+    Map<String, Object> getGrowthTasks();
+
+    Map<String, Object> getPowerDetail(Long userId);
+
+    Map<String, Object> getUserBenefits(Long userId);
 }

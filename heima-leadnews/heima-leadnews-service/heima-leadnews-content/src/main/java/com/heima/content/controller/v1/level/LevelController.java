@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/level")
 public class LevelController {
@@ -102,10 +105,36 @@ public class LevelController {
         return ResponseEntity.ok(configs);
     }
 
-    @GetMapping("/privileges")
-    public ResponseResult getLevelPrivileges() {
+    @GetMapping("/daily-privileges")
+    public ResponseResult getDailyPrivileges() {
         ApUser user = AppThreadLocalUtil.getUser();
         Long userId = user != null ? user.getId().longValue() : 0L;
         return ResponseResult.okResult(levelService.getLevelPrivileges(userId));
+    }
+
+    @GetMapping("/privileges")
+    public ResponseResult getPrivileges() {
+        return ResponseResult.okResult(levelService.getCreatorLevelPrivileges());
+    }
+
+    @GetMapping("/growth-tasks")
+    public ResponseResult getGrowthTasks() {
+        return ResponseResult.okResult(levelService.getGrowthTasks());
+    }
+
+    @GetMapping("/user/{userId}/power-detail")
+    public ResponseResult getPowerDetail(@PathVariable Long userId) {
+        return ResponseResult.okResult(levelService.getPowerDetail(userId));
+    }
+
+    @GetMapping("/user/{userId}/benefits")
+    public ResponseResult getUserBenefits(@PathVariable Long userId) {
+        return ResponseResult.okResult(levelService.getUserBenefits(userId));
+    }
+
+    @PostMapping("/user/{userId}/assign-basic-permissions")
+    public ResponseResult assignBasicPermissions(@PathVariable Long userId) {
+        levelService.assignBasicPermissions(userId);
+        return ResponseResult.okResult();
     }
 }

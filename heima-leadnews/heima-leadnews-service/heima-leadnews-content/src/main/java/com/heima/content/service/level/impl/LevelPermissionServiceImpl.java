@@ -89,6 +89,31 @@ public class LevelPermissionServiceImpl implements LevelPermissionService {
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void assignBasicPermissions(Long userId) {
+        List<String> existingPermissions = getUserPermissions(userId);
+        if (!existingPermissions.isEmpty()) {
+            return;
+        }
+
+        String[] basicPermissions = {
+            "can_publish_article",
+            "can_publish_pins",
+            "can_comment",
+            "can_follow",
+            "can_like",
+            "can_collect",
+            "can_create_coloum"
+        };
+
+        for (String permissionCode : basicPermissions) {
+            grantPermission(userId, permissionCode);
+        }
+
+        log.info("为用户{}分配基础权限完成", userId);
+    }
+
     private void revokePermission(Long userId, String permissionCode) {
         LambdaQueryWrapper<ApUserPermission> query = new LambdaQueryWrapper<>();
         query.eq(ApUserPermission::getUserId, userId);

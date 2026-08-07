@@ -66,8 +66,17 @@
                         <span v-if="!isLoggedIn" class="header-btn write-btn" @click="showLogin">
                             <span class="btn-icon">&#xf040;</span>写文章
                         </span>
-                        <span v-if="isLoggedIn" class="header-btn creator-btn" @click="openCreatorCenter">
+                        <span v-if="isLoggedIn" class="header-btn creator-btn"
+                        @mouseenter="showCreatorDropdown"
+                        @mouseleave="hideCreatorDropdown"
+                        @click="openCreatorCenter">
                             <span class="btn-icon">&#xf040;</span>创作者中心
+                            <span class="creator-arrow">&#xf107;</span>
+                            <CreatorDropdown
+                                v-if="showCreatorDropdown"
+                                @close="hideCreatorDropdown"
+                                @navigate="handleCreatorNavigate"
+                            />
                         </span>
                         <span v-if="!isLoggedIn" class="header-btn login-btn" @click="showLogin">登录</span>
                         <NotificationBell v-if="isLoggedIn" :unreadCount="unreadCount" @go-to-notification="goToNotification" />
@@ -217,6 +226,7 @@
     import { getTodayStatus, doSignCheckin } from '@/apis/checkin'
     import UserDropdown from '@/components/bars/UserDropdown.vue'
     import NotificationBell from '@/components/bars/NotificationBell.vue'
+    import CreatorDropdown from './CreatorDropdown.vue'
     import conf from '@/common/conf'
     import request from '@/common/request'
 
@@ -272,10 +282,12 @@
 
     export default {
         name: "HeiMaLayoutMain",
-        components: { UserDropdown, NotificationBell },
+        components: { UserDropdown, NotificationBell, CreatorDropdown },
         data() {
             return {
                 showUserDropdown: false,
+                showCreatorDropdown: false,
+                _creatorHideTimer: null,
                 searchKeyword: '',
                 showSearchDropdown: false,
                 searchHistory: [],
@@ -374,6 +386,12 @@
                         this.showUserDropdown = false
                     }
                 }
+                if (this.showCreatorDropdown) {
+                    var creatorEl = this.$el.querySelector('.creator-btn')
+                    if (creatorEl && !creatorEl.contains(e.target)) {
+                        this.showCreatorDropdown = false
+                    }
+                }
                 if (this.showSearchDropdown) {
                     var searchEl = this.$refs.searchBox
                     if (searchEl && !searchEl.contains(e.target)) {
@@ -420,6 +438,10 @@
             if (this._blurTimer) {
                 clearTimeout(this._blurTimer)
                 this._blurTimer = null
+            }
+            if (this._creatorHideTimer) {
+                clearTimeout(this._creatorHideTimer)
+                this._creatorHideTimer = null
             }
         },
         methods: {
@@ -511,11 +533,40 @@
             },
             handleLogout() {
                 this.showUserDropdown = false
+                this.showCreatorDropdown = false
                 this.$store.dispatch('logout')
                 toast('已退出登录', 2)
+                this.$router.push('/home')
             },
             openCreatorCenter() {
-                this.$router.push('/creator')
+                this.$router.push('/creator/dashboard')
+            },
+            toggleCreatorDropdown() {
+                this.showCreatorDropdown = !this.showCreatorDropdown
+            },
+            showCreatorDropdown() {
+                if (this._creatorHideTimer) {
+                    clearTimeout(this._creatorHideTimer)
+                    this._creatorHideTimer = null
+                }
+                this.showCreatorDropdown = true
+            },
+            hideCreatorDropdown() {
+                if (this._creatorHideTimer) {
+                    clearTimeout(this._creatorHideTimer)
+                }
+                this._creatorHideTimer = setTimeout(() => {
+                    this.showCreatorDropdown = false
+                    this._creatorHideTimer = null
+                }, 100)
+            },
+            handleCreatorNavigate(path, isNewWindow) {
+                this.showCreatorDropdown = false
+                if (isNewWindow) {
+                    window.open(path, '_blank')
+                } else {
+                    this.$router.push(path)
+                }
             },
             goHome() {
                 if (this.$route.path !== '/home') {
@@ -1106,9 +1157,15 @@
         .creator-btn {
             color: #ffffff;
             background-color: @mian-color;
+            position: relative;
         }
         .creator-btn:hover {
             background-color: #1a7de8;
+        }
+        .creator-arrow {
+            font-family: fontawesome;
+            font-size: 10PX;
+            margin-left: 4PX;
         }
         .btn-icon {
             font-family: fontawesome;
