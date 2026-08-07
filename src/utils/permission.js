@@ -40,8 +40,21 @@ export const permission = {
     return this.hasPermission(PERMISSIONS.canSchedulePublish)
   },
 
-  canCreateCourse() {
-    return this.hasPermission(PERMISSIONS.canCreateCourse)
+  async canCreateCourse() {
+    try {
+      const courseApi = (await import('@/apis/course')).default
+      const res = await courseApi.checkAuthorPermission()
+      if (res && res.code === 200 && res.data) {
+        return {
+          hasPermission: res.data.hasPermission,
+          powerLevel: res.data.powerLevel,
+          requiredLevel: res.data.requiredLevel
+        }
+      }
+    } catch (e) {
+      console.error('检查课程权限失败', e)
+    }
+    return { hasPermission: false, powerLevel: 0, requiredLevel: 9 }
   },
 
   canSendPrivateMessage() {

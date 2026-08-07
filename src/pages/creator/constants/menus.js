@@ -7,12 +7,19 @@ export const MenuData = [
       { title: '文章管理', path: '/creator/article/list' },
       { title: '专栏管理', path: '/creator/column/list' },
       { title: '沸点管理', path: '/creator/pins/list' },
-      { title: '课程管理', path: '/creator/course/list' }
+      {
+        title: '课程管理',
+        path: '/creator/course/list',
+        requiredPermission: 'can_create_course',
+        permissionTip: '需要逐力值Lv9解锁'
+      }
     ]
   },
   {
     title: '课程运营',
     icon: 'el-icon-s-marketing',
+    requiredPermission: 'can_create_course',
+    permissionTip: '需要逐力值Lv9解锁',
     children: [
       { title: '折扣码管理', path: '/creator/course/discount' },
       { title: '收入结算', path: '/creator/course/settlement' }

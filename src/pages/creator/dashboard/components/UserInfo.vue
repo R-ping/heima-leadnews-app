@@ -9,7 +9,7 @@
           <span class="divider"></span>
           <span class="stat-item"><span class="stat-value">{{ follow }}</span> <span class="stat-label">关注</span></span>
           <span class="divider"></span>
-          <span class="stat-item"><span class="stat-value">{{ power }}</span> <span class="stat-label">掘力值</span></span>
+          <span class="stat-item power-link" @click="goToGrade"><span class="stat-value">{{ power }}</span> <span class="stat-label">掘力值</span></span>
         </div>
         <div class="days">在逐日Coding创作的第 {{ days }} 天</div>
       </div>
@@ -70,6 +70,9 @@ export default {
         console.error('获取用户统计数据失败', err)
       }
     },
+    goToGrade() {
+      this.$router.push('/creator/growth/grade')
+    },
   }
 }
 </script>
@@ -121,6 +124,15 @@ export default {
           color: @textMuted;
           font-weight: 400;
           margin-left: 4px;
+        }
+        &.power-link {
+          cursor: pointer;
+          transition: color 0.2s;
+          &:hover {
+            .stat-value {
+              color: @brandBlue;
+            }
+          }
         }
       }
 

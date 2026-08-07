@@ -21,4 +21,10 @@ public interface LevelPermissionService {
      * 根据等级变化更新用户权限
      */
     void updateUserPermissions(Long userId, int levelType, int oldLevel, int newLevel);
+
+    /**
+     * 为新用户分配基础权限
+     * 仅在用户无任何权限时分配（幂等设计）
+     */
+    void assignBasicPermissions(Long userId);
 }

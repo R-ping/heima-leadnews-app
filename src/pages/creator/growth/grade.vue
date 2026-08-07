@@ -1,320 +1,347 @@
 <template>
   <div class="grade-page">
-    <div class="grade-header">
-      <div class="header-content">
-        <div class="level-overview">
-          <div class="level-icon-wrap">
-            <div class="level-icon">💪</div>
-            <div class="level-badge">Lv.{{ levelInfo.powerLevel }}</div>
-          </div>
-          <div class="level-info">
-            <div class="level-title">{{ levelInfo.powerTitle }}</div>
-            <div class="level-value">{{ levelInfo.powerValue }} 逐力值</div>
-          </div>
-        </div>
-        <div class="level-progress-section">
-          <div class="progress-bar-wrap">
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: powerProgress + '%' }"></div>
-            </div>
-            <div class="progress-text">
-              <span>距离 Lv.{{ nextLevel }} 还需 {{ powerNextLevelScore }} 逐力值</span>
-            </div>
-          </div>
-          <div class="level-stats">
-            <div class="stat-item">
-              <span class="stat-value">{{ unlockedCount }}</span>
-              <span class="stat-label">已解锁权益</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <span class="stat-value">{{ nextLevelPermissionsCount }}</span>
-              <span class="stat-label">下一级解锁</span>
-            </div>
-          </div>
-        </div>
+    <div class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">创作等级权益</h1>
+        <span class="page-subtitle">提升等级解锁更多创作权限</span>
+      </div>
+      <div class="header-right">
+        <span class="rule-link" @click="showRules = true">
+          <i class="el-icon-info"></i> 规则
+        </span>
       </div>
     </div>
 
-    <div class="grade-content">
-      <div class="level-tabs-section">
-        <div class="section-header">
-          <div class="section-title">等级权益</div>
-          <div class="section-tip">提升等级解锁更多创作权限</div>
-        </div>
-        <div class="level-tabs">
-          <div
-            v-for="level in levelConfigs"
-            :key="level.level"
-            class="level-tab"
-            :class="{
-              'current': level.level === levelInfo.powerLevel,
-              'unlocked': level.level <= levelInfo.powerLevel,
-              'locked': level.level > levelInfo.powerLevel
-            }"
-            @click="selectLevel(level)"
-          >
-            <div class="level-num">Lv.{{ level.level }}</div>
-            <div class="level-icon-small">{{ getLevelIcon(level.level) }}</div>
-            <div v-if="level.level > levelInfo.powerLevel" class="level-lock">🔒</div>
-            <div v-if="level.level <= levelInfo.powerLevel && level.level === levelInfo.powerLevel" class="level-current-badge">当前</div>
-          </div>
-        </div>
-        <div class="level-details">
-          <div class="detail-header">
-            <div class="detail-title">{{ selectedLevelTitle }}</div>
-            <div class="detail-score" v-if="selectedLevel && selectedLevel.level > levelInfo.powerLevel">
-              需 {{ selectedLevel.minScore }} 逐力值
-            </div>
-          </div>
-          <div class="detail-permissions">
-            <div v-if="selectedLevelPermissions.length > 0" class="permissions-list">
-              <div
-                v-for="perm in selectedLevelPermissions"
-                :key="perm.code"
-                class="permission-tag"
-                :class="{ 'locked': !isPermissionUnlocked(perm.code) }"
-              >
-                <span class="tag-icon">{{ perm.icon }}</span>
-                <span class="tag-name">{{ perm.name }}</span>
-                <span v-if="!isPermissionUnlocked(perm.code)" class="tag-lock">🔒</span>
-              </div>
-            </div>
-            <div v-else class="empty-permissions">该等级暂无权益</div>
-          </div>
-        </div>
+    <div class="page-content">
+      <div class="section steps-section">
+        <GradeSteps
+          :current-power="currentPower"
+          :current-level="currentLevel"
+          :unlocked-count="unlockedBenefitsCount"
+          :next-level-need="nextLevelNeed"
+          :levels="levelConfigs"
+          @click-level="handleLevelClick"
+          @show-detail="openPowerDetail"
+        />
       </div>
 
-      <div class="unlocked-section">
-        <div class="section-header">
-          <div class="section-title">已解锁权益</div>
-          <div class="section-count">共 {{ unlockedPermissions.length }} 项</div>
-        </div>
-        <div class="unlocked-grid">
-          <div v-for="perm in unlockedPermissions" :key="perm.code" class="unlocked-card">
-            <div class="card-icon">{{ perm.icon }}</div>
-            <div class="card-name">{{ perm.name }}</div>
-            <div class="card-desc">{{ getPermissionDesc(perm.code) }}</div>
-          </div>
-        </div>
+      <div class="section benefits-section">
+        <BenefitCarousel
+          ref="benefitCarousel"
+          :title="currentLevelBenefitsTitle"
+          :cards="allBenefits"
+          :current-level="currentLevel"
+          :selected-level="selectedLevel"
+          :current-power="currentPower"
+          :card-width="240"
+          :visible-count="3"
+        />
       </div>
 
-      <div class="tasks-section">
+      <div class="section tasks-section">
         <div class="section-header">
-          <div class="section-title">升级任务</div>
-          <div class="section-tip">完成任务提升等级</div>
+          <span class="section-title">如何提升等级</span>
+          <span class="section-tip">完成以下任务获取掘力值</span>
         </div>
         <div class="tasks-list">
-          <div v-for="task in tasks" :key="task.code" class="task-item">
-            <div class="task-icon">{{ task.icon }}</div>
+          <div
+            v-for="task in growthTasks"
+            :key="task.taskId"
+            class="task-item"
+          >
+            <div class="task-icon">
+              <img v-if="task.icon" :src="task.icon" :alt="task.title">
+              <span v-else class="icon-fallback">{{ getTaskIcon(task.taskType) }}</span>
+            </div>
             <div class="task-info">
-              <div class="task-name">{{ task.name }}</div>
-              <div class="task-desc">{{ task.desc }}</div>
+              <div class="task-title">{{ task.title }}</div>
+              <div class="task-type">{{ task.taskType }}</div>
             </div>
-            <div class="task-right">
-              <div class="task-score">+{{ task.score }} 逐力值</div>
-              <div class="task-limit" v-if="task.limit">{{ task.limit }}</div>
+            <div class="task-reward">
+              <span class="reward-score">+{{ task.score }}</span>
+              <span class="reward-unit">掘力值</span>
             </div>
+            <div class="task-limit" v-if="task.limit">
+              <span v-if="task.limit > 0">每日上限{{ task.limit }}篇</span>
+              <span v-else>无上限</span>
+            </div>
+            <button
+              class="task-btn"
+              @click="goToTask(task)"
+            >
+              {{ task.btnName || '去完成' }}
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <PowerDetailModal
+      :visible.sync="showDetailModal"
+      :current-power="currentPower"
+      :detail="powerDetail"
+      :history-data="powerHistory"
+    />
+
+    <el-dialog
+      :visible.sync="showRules"
+      title="掘力值规则说明"
+      width="600px"
+      custom-class="rules-modal"
+    >
+      <div class="rules-content">
+        <div class="rule-block">
+          <div class="rule-title">什么是掘力值？</div>
+          <p>掘力值是衡量创作者贡献的唯一指标，由以下四个维度构成：</p>
+          <ul>
+            <li><strong>创作行为：</strong>每发1篇文章+10掘力值，每日最多2篇</li>
+            <li><strong>创作影响力：</strong>文章每获得1个赞/评论/收藏，每100阅读+1掘力值</li>
+            <li><strong>创作质量：</strong>高质量文章+15掘力值</li>
+            <li><strong>创作违规：</strong>违规行为会扣除掘力值</li>
+          </ul>
+        </div>
+        <div class="rule-block">
+          <div class="rule-title">掘力值如何更新？</div>
+          <p>每日凌晨5点更新前日数据。如遇文章被删除、互动取消等情况，对应掘力值会被扣减。</p>
+        </div>
+        <div class="rule-block">
+          <div class="rule-title">等级与权益</div>
+          <p>掘力值是决定创作等级的唯一因素，不同等级解锁不同权益。当前等级权益仅展示当前等级的权益卡片。</p>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { toast } from "@/utils/toast"
+import GradeSteps from './components/GradeSteps.vue'
+import BenefitCarousel from './components/BenefitCarousel.vue'
+import PowerDetailModal from './components/PowerDetailModal.vue'
 
 export default {
-  name: 'CreatorGrade',
+  name: 'CreatorGrowthGrade',
+  components: {
+    GradeSteps,
+    BenefitCarousel,
+    PowerDetailModal
+  },
   data() {
     return {
       userId: 1,
-      levelInfo: {
-        powerValue: 0,
-        powerLevel: 1,
-        powerTitle: '',
-        powerDescription: ''
+      currentPower: 0,
+      currentLevel: 1,
+
+      levelConfigs: [
+        { level: 1, minScore: 0, maxScore: 39 },
+        { level: 2, minScore: 40, maxScore: 279 },
+        { level: 3, minScore: 280, maxScore: 1799 },
+        { level: 4, minScore: 1800, maxScore: 5499 },
+        { level: 5, minScore: 5500, maxScore: 27999 },
+        { level: 6, minScore: 28000, maxScore: 74999 },
+        { level: 7, minScore: 75000, maxScore: 139999 },
+        { level: 8, minScore: 140000, maxScore: 99999999 }
+      ],
+
+      allBenefits: [],
+      selectedLevel: 1,
+
+      growthTasks: [],
+
+      showDetailModal: false,
+      showRules: false,
+
+      powerDetail: {
+        actionScore: 0,
+        influenceScore: 0,
+        qualityScore: 0,
+        violationScore: 0
       },
-      permissions: [],
-      selectedLevel: null,
-      powerNextLevelScore: 0,
-      tasks: [
-        { code: 'publish_article', name: '发布文章', icon: '✍️', desc: '发布原创技术文章', score: 10, limit: '每日上限2篇' },
-        { code: 'article_like', name: '文章获得赞', icon: '👍', desc: '文章被用户点赞', score: 2, limit: '无上限' },
-        { code: 'article_comment', name: '文章获得评论', icon: '💬', desc: '文章收到用户评论', score: 3, limit: '无上限' },
-        { code: 'article_collect', name: '文章获得收藏', icon: '⭐', desc: '文章被用户收藏', score: 5, limit: '无上限' }
-      ]
+      powerHistory: []
     }
   },
   computed: {
-    levelConfigs() {
-      return [
-        { level: 1, minScore: 0, maxScore: 99, title: '新手创作者' },
-        { level: 2, minScore: 100, maxScore: 499, title: '初级创作者' },
-        { level: 3, minScore: 500, maxScore: 1499, title: '中级创作者' },
-        { level: 4, minScore: 1500, maxScore: 2999, title: '高级创作者' },
-        { level: 5, minScore: 3000, maxScore: 4999, title: '资深创作者' },
-        { level: 6, minScore: 5000, maxScore: 7999, title: '优秀创作者' },
-        { level: 7, minScore: 8000, maxScore: 11999, title: '杰出创作者' },
-        { level: 8, minScore: 12000, maxScore: 19999, title: '卓越创作者' },
-        { level: 9, minScore: 20000, maxScore: 29999, title: '顶级创作者' },
-        { level: 10, minScore: 30000, maxScore: 999999, title: '传奇创作者' }
-      ]
+    unlockedBenefitsCount() {
+      return this.allBenefits.filter(b => b.level <= this.currentLevel).length
     },
-    nextLevel() {
-      const maxLevel = this.levelConfigs.length
-      return Math.min(this.levelInfo.powerLevel + 1, maxLevel)
+    nextLevelNeed() {
+      const nextLevel = this.currentLevel + 1
+      const nextConfig = this.levelConfigs.find(l => l.level === nextLevel)
+      if (nextConfig) {
+        return Math.max(0, nextConfig.minScore - this.currentPower)
+      }
+      return 0
     },
-    powerProgress() {
-      const levelConfig = this.getPowerLevelConfig()
-      if (!levelConfig) return 0
-      const min = levelConfig.minScore
-      const max = levelConfig.maxScore
-      const current = this.levelInfo.powerValue
-      this.powerNextLevelScore = Math.max(0, max - current + 1)
-      return Math.min(((current - min) / (max - min)) * 100, 100)
-    },
-    unlockedCount() {
-      return this.unlockedPermissions.length
-    },
-    nextLevelPermissionsCount() {
-      const nextConfig = this.levelConfigs.find(c => c.level === this.nextLevel)
-      if (!nextConfig) return 0
-      return this.getLevelPermissions(nextConfig.level).length
-    },
-    selectedLevelTitle() {
-      if (!this.selectedLevel) return ''
-      return this.selectedLevel.title
-    },
-    selectedLevelPermissions() {
-      if (!this.selectedLevel) return []
-      return this.getLevelPermissions(this.selectedLevel.level)
-    },
-    unlockedPermissions() {
-      return this.permissions.filter(p => this.isPermissionUnlocked(p.code))
+    currentLevelBenefitsTitle() {
+      return `LV.${this.selectedLevel} 享 ${this.getLevelBenefits(this.selectedLevel).length} 项权益`
     }
   },
-  mounted() {
+  created() {
     this.loadData()
-    this.selectedLevel = this.levelConfigs.find(c => c.level === this.levelInfo.powerLevel) || this.levelConfigs[0]
   },
   methods: {
     async loadData() {
-      await this.loadLevelInfo()
-      await this.loadPermissions()
+      await Promise.all([
+        this.loadUserLevel(),
+        this.loadBenefits(),
+        this.loadGrowthTasks()
+      ])
     },
-    async loadLevelInfo() {
+
+    async loadUserLevel() {
       try {
-        const response = await this.$http.get(`/api/v1/level/user/${this.userId}/info`)
-        if (response.data) {
-          this.levelInfo = {
-            powerValue: response.data.powerValue || 0,
-            powerLevel: response.data.powerLevel || 1,
-            powerTitle: response.data.powerTitle || '',
-            powerDescription: response.data.powerDescription || ''
+        const res = await this.$http.get(`/api/v1/level/user/${this.userId}/info`)
+        if (res.data) {
+          this.currentPower = res.data.powerValue || 0
+          this.currentLevel = res.data.powerLevel || 1
+          this.selectedLevel = this.currentLevel
+        }
+      } catch (e) {
+        this.loadMockLevel()
+      }
+    },
+
+    loadMockLevel() {
+      this.currentPower = 13
+      this.currentLevel = 1
+      this.selectedLevel = 1
+    },
+
+    async loadBenefits() {
+      try {
+        const res = await this.$http.get('/api/v1/level/privileges')
+        if (res.data) {
+          const benefits = []
+          Object.keys(res.data).forEach(level => {
+            const levelBenefits = res.data[level]
+            if (Array.isArray(levelBenefits)) {
+              levelBenefits.forEach(b => {
+                benefits.push({
+                  privId: b.privId,
+                  title: b.title,
+                  icon: this.getIconUrl(b),
+                  level: parseInt(level),
+                  desc: typeof b.desc === 'string' ? JSON.parse(b.desc) : b.desc,
+                  webJumpUrl: b.webJumpUrl || ''
+                })
+              })
+            }
+          })
+          this.allBenefits = benefits
+        }
+      } catch (e) {
+        this.loadMockBenefits()
+      }
+    },
+
+    loadMockBenefits() {
+      this.allBenefits = [
+        { privId: 14, title: '文章添加投票', level: 1, icon: '', desc: [{ desc_content: '在进行文章创作时，可以在编辑器中使用添加投票功能' }] },
+        { privId: 15, title: '文章添加视频', level: 2, icon: '', desc: [{ desc_content: '在编辑器中使用添加视频功能' }] },
+        { privId: 16, title: '文章加2个标签', level: 2, icon: '', desc: [{ desc_content: '发布文章时可添加多个标签' }] },
+        { privId: 17, title: '文章加3个标签', level: 3, icon: '', desc: [{ desc_content: '发布文章时可添加3个标签' }] },
+        { privId: 18, title: '文章定时发布', level: 3, icon: '', desc: [{ desc_content: '设置文章定时发布时间' }] },
+        { privId: 19, title: '自动推荐到首页', level: 4, icon: '', desc: [{ desc_content: '文章发布后自动推荐到首页' }] },
+        { privId: 20, title: '流量加油包基础版', level: 4, icon: '', desc: [{ desc_content: '使用流量加油包加持内容曝光' }] },
+        { privId: 21, title: '流量加油包升级版', level: 5, icon: '', desc: [{ desc_content: '升级版流量加油包' }] },
+        { privId: 22, title: '优秀创作者', level: 5, icon: '', desc: [{ desc_content: '社区重要创作者成就' }] },
+        { privId: 23, title: '流量加油包加强版', level: 6, icon: '', desc: [{ desc_content: '加强版流量加油包' }] },
+        { privId: 24, title: '自定义域名', level: 6, icon: '', desc: [{ desc_content: '设置个人主页域名' }] },
+        { privId: 25, title: '作者群发消息', level: 6, icon: '', desc: [{ desc_content: '给关注者群发消息' }] },
+        { privId: 26, title: '创作小册', level: 7, icon: '', desc: [{ desc_content: '创作体系化的小册内容' }] },
+        { privId: 27, title: '自定义推广', level: 7, icon: '', desc: [{ desc_content: '设置文章页推广模块' }] },
+        { privId: 28, title: '提交标签', level: 8, icon: '', desc: [{ desc_content: '对掘金标签提供建议' }] },
+        { privId: 29, title: '社区共建者', level: 8, icon: '', desc: [{ desc_content: '重磅社区成就' }] }
+      ]
+    },
+
+    async loadGrowthTasks() {
+      try {
+        const res = await this.$http.get('/api/v1/level/growth-tasks')
+        if (res.data && res.data.growth_tasks) {
+          this.growthTasks = res.data.growth_tasks['100'] || []
+        }
+      } catch (e) {
+        this.loadMockTasks()
+      }
+    },
+
+    loadMockTasks() {
+      this.growthTasks = [
+        { taskId: 28, taskType: '创作行为', title: '发布1篇文章', score: 10, limit: 2, btnName: '去完成', icon: '' },
+        { taskId: 29, taskType: '创作影响力', title: '文章获得1个赞', score: 1, limit: -1, btnName: '去分享', icon: '' },
+        { taskId: 30, taskType: '创作影响力', title: '文章获得1人评论', score: 1, limit: -1, btnName: '去分享', icon: '' },
+        { taskId: 31, taskType: '创作影响力', title: '文章获得1个收藏', score: 1, limit: -1, btnName: '去分享', icon: '' },
+        { taskId: 32, taskType: '创作影响力', title: '文章获得100个阅读', score: 1, limit: -1, btnName: '去分享', icon: '' }
+      ]
+    },
+
+    getIconUrl(benefit) {
+      if (benefit.webIcon && Array.isArray(benefit.webIcon)) {
+        return benefit.webIcon[0]
+      }
+      return ''
+    },
+
+    getLevelBenefits(level) {
+      return this.allBenefits.filter(b => b.level === level)
+    },
+
+    getTaskIcon(taskType) {
+      const icons = {
+        '创作行为': '✍️',
+        '创作影响力': '📈',
+        '创作质量': '⭐',
+        '创作违规': '⚠️'
+      }
+      return icons[taskType] || '📌'
+    },
+
+    handleLevelClick(level) {
+      this.selectedLevel = level.level
+      this.$nextTick(() => {
+        if (this.$refs.benefitCarousel) {
+          this.$refs.benefitCarousel.jumpToLevel(level.level)
+        }
+      })
+    },
+
+    goToTask(task) {
+      if (task.webJumpUrl) {
+        this.$router.push(task.webJumpUrl)
+      } else {
+        this.$router.push('/creator/publish')
+      }
+    },
+
+    async openPowerDetail() {
+      try {
+        const res = await this.$http.get(`/api/v1/level/user/${this.userId}/power-detail`)
+        if (res.data) {
+          this.powerDetail = {
+            actionScore: res.data.actionScore || 0,
+            influenceScore: res.data.influenceScore || 0,
+            qualityScore: res.data.qualityScore || 0,
+            violationScore: res.data.violationScore || 0
           }
+          this.powerHistory = res.data.history || []
         }
-      } catch (error) {
-        this.loadMockLevelInfo()
+      } catch (e) {
+        this.loadMockPowerDetail()
       }
+      this.showDetailModal = true
     },
-    async loadPermissions() {
-      try {
-        const response = await this.$http.get(`/api/v1/level/user/${this.userId}/permissions`)
-        if (response.data) {
-          this.permissions = this.mapPermissions(response.data)
-        }
-      } catch (error) {
-        this.permissions = this.getMockPermissions()
+
+    loadMockPowerDetail() {
+      this.powerDetail = {
+        actionScore: 10,
+        influenceScore: 3,
+        qualityScore: 0,
+        violationScore: 0
       }
-    },
-    loadMockLevelInfo() {
-      this.levelInfo = {
-        powerValue: 2300,
-        powerLevel: 4,
-        powerTitle: '高级创作者',
-        powerDescription: '创作经验丰富'
-      }
-    },
-    getMockPermissions() {
-      return [
-        { code: 'can_add_video', name: '添加视频', icon: '🎬', level: 2 },
-        { code: 'can_add_2_tags', name: '2个标签', icon: '🏷️', level: 1 },
-        { code: 'can_schedule_publish', name: '定时发布', icon: '⏰', level: 3 },
-        { code: 'can_add_3_tags', name: '3个标签', icon: '🏷️🏷️', level: 4 },
-        { code: 'can_send_private_message', name: '私信权限', icon: '💬', level: 2 },
-        { code: 'can_set_comment_permission', name: '评论区权限设置', icon: '🔒', level: 3 },
-        { code: 'can_create_poll', name: '发起投票', icon: '📊', level: 5 },
-        { code: 'can_become_contributor', name: '成为共建者', icon: '⭐', level: 6 },
-        { code: 'can_be_recommended', name: '文章自动推荐', icon: '🔥', level: 7 },
-        { code: 'can_add_4_tags', name: '4个标签', icon: '🏷️🏷️🏷️', level: 8 },
-        { code: 'can_create_course', name: '创作小册', icon: '📚', level: 9 }
+      this.powerHistory = [
+        { date: '2026-08-04', total: 1, actionScore: 0, influenceScore: 1, qualityScore: 0, violationScore: 0 },
+        { date: '2026-07-22', total: 12, actionScore: 10, influenceScore: 2, qualityScore: 0, violationScore: 0 }
       ]
-    },
-    mapPermissions(permissionCodes) {
-      const permissionMap = {
-        'can_add_video': { name: '添加视频', icon: '🎬', level: 2 },
-        'can_add_2_tags': { name: '2个标签', icon: '🏷️', level: 1 },
-        'can_schedule_publish': { name: '定时发布', icon: '⏰', level: 3 },
-        'can_add_3_tags': { name: '3个标签', icon: '🏷️🏷️', level: 4 },
-        'can_send_private_message': { name: '私信权限', icon: '💬', level: 2 },
-        'can_set_comment_permission': { name: '评论区权限设置', icon: '🔒', level: 3 },
-        'can_create_poll': { name: '发起投票', icon: '📊', level: 5 },
-        'can_become_contributor': { name: '成为共建者', icon: '⭐', level: 6 },
-        'can_be_recommended': { name: '文章自动推荐', icon: '🔥', level: 7 },
-        'can_add_4_tags': { name: '4个标签', icon: '🏷️🏷️🏷️', level: 8 },
-        'can_create_course': { name: '创作小册', icon: '📚', level: 9 }
-      }
-      return permissionCodes.map(code => ({
-        code,
-        ...permissionMap[code] || { name: code, icon: '✨', level: 1 }
-      }))
-    },
-    getPowerLevelConfig() {
-      return this.levelConfigs.find(c => c.level === this.levelInfo.powerLevel)
-    },
-    getLevelIcon(level) {
-      const icons = ['🌱', '🌿', '🌳', '🌲', '🏔️', '⭐', '💫', '🌟', '👑', '🏆']
-      return icons[level - 1] || '⭐'
-    },
-    selectLevel(level) {
-      this.selectedLevel = level
-    },
-    getLevelPermissions(level) {
-      const allPermissions = [
-        { code: 'can_add_2_tags', name: '2个标签', icon: '🏷️', level: 1 },
-        { code: 'can_add_video', name: '添加视频', icon: '🎬', level: 2 },
-        { code: 'can_send_private_message', name: '私信权限', icon: '💬', level: 2 },
-        { code: 'can_schedule_publish', name: '定时发布', icon: '⏰', level: 3 },
-        { code: 'can_set_comment_permission', name: '评论区权限设置', icon: '🔒', level: 3 },
-        { code: 'can_add_3_tags', name: '3个标签', icon: '🏷️🏷️', level: 4 },
-        { code: 'can_create_poll', name: '发起投票', icon: '📊', level: 5 },
-        { code: 'can_become_contributor', name: '成为共建者', icon: '⭐', level: 6 },
-        { code: 'can_be_recommended', name: '文章自动推荐', icon: '🔥', level: 7 },
-        { code: 'can_add_4_tags', name: '4个标签', icon: '🏷️🏷️🏷️', level: 8 },
-        { code: 'can_create_course', name: '创作小册', icon: '📚', level: 9 }
-      ]
-      return allPermissions.filter(p => p.level === level)
-    },
-    isPermissionUnlocked(code) {
-      return this.permissions.some(p => p.code === code)
-    },
-    getPermissionDesc(code) {
-      const descMap = {
-        'can_add_video': '在文章中插入视频内容',
-        'can_add_2_tags': '发布文章时可添加2个标签',
-        'can_schedule_publish': '设置文章定时发布时间',
-        'can_add_3_tags': '发布文章时可添加3个标签',
-        'can_send_private_message': '与粉丝私信交流',
-        'can_set_comment_permission': '管理评论区权限设置',
-        'can_create_poll': '在文章中发起投票互动',
-        'can_become_contributor': '成为社区内容共建者',
-        'can_be_recommended': '文章获得平台自动推荐',
-        'can_add_4_tags': '发布文章时可添加4个标签',
-        'can_create_course': '创建和发布付费小册'
-      }
-      return descMap[code] || ''
     }
   }
 }
@@ -326,486 +353,232 @@ export default {
 .grade-page {
   min-height: 100vh;
   background: @bgGray;
-}
 
-.grade-header {
-  background: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%);
-  padding: 32px 24px;
-}
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px;
+    background: #fff;
+    border-bottom: 1px solid @borderLight;
 
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-}
+    .page-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: @textPrimary;
+      margin: 0 0 4px;
+    }
 
-.level-overview {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
+    .page-subtitle {
+      font-size: 13px;
+      color: @textMuted;
+    }
 
-.level-icon-wrap {
-  position: relative;
-}
+    .rule-link {
+      font-size: 14px;
+      color: @brandBlue;
+      cursor: pointer;
 
-.level-icon {
-  width: 64px;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-}
-
-.level-badge {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
-  background: #fff;
-  color: #6C5CE7;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.level-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.level-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.level-value {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.level-progress-section {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 16px 20px;
-}
-
-.progress-bar-wrap {
-  margin-bottom: 16px;
-}
-
-.progress-bar {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #fff;
-  border-radius: 4px;
-  transition: width 0.5s ease;
-}
-
-.progress-text {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.level-stats {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.stat-divider {
-  width: 1px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.grade-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
-  margin-top: -20px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: @textPrimary;
-}
-
-.section-tip {
-  font-size: 13px;
-  color: @textMuted;
-}
-
-.section-count {
-  font-size: 13px;
-  color: @textMuted;
-}
-
-.level-tabs-section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: @cardShadow;
-}
-
-.level-tabs {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 16px;
-  border-bottom: 1px solid @borderLight;
-  margin-bottom: 20px;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.level-tab {
-  flex-shrink: 0;
-  position: relative;
-  width: 72px;
-  padding: 12px 8px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-
-  &:hover {
-    background: #f0f0f0;
-  }
-
-  &.current {
-    background: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%);
-
-    .level-num,
-    .level-icon-small {
-      color: #fff;
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 
-  &.unlocked:not(.current) {
+  .page-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .section {
     background: #fff;
-    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: @cardShadow;
   }
 
-  &.locked {
-    opacity: 0.6;
-    background: #fafafa;
-    border: 1px dashed #e8e8e8;
-  }
-}
+  .tasks-section {
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
 
-.level-num {
-  font-size: 14px;
-  font-weight: 600;
-  color: @textPrimary;
-}
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: @textPrimary;
+      }
 
-.level-icon-small {
-  font-size: 20px;
-}
+      .section-tip {
+        font-size: 13px;
+        color: @textMuted;
+      }
+    }
 
-.level-lock {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 12px;
-}
+    .tasks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-.level-current-badge {
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #FF6B35;
-  color: #fff;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 8px;
-}
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      transition: background 0.2s;
 
-.level-details {
-  padding: 16px;
-  background: #fafafa;
-  border-radius: 8px;
-}
+      &:hover {
+        background: #f0f0f0;
+      }
 
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
+      .task-icon {
+        width: 48px;
+        height: 48px;
+        margin-right: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
-.detail-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: @textPrimary;
-}
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
 
-.detail-score {
-  font-size: 13px;
-  color: #FF6B35;
-  font-weight: 500;
-}
+        .icon-fallback {
+          font-size: 28px;
+        }
+      }
 
-.detail-permissions {
-  min-height: 60px;
-}
+      .task-info {
+        flex: 1;
 
-.permissions-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
+        .task-title {
+          font-size: 15px;
+          font-weight: 500;
+          color: @textPrimary;
+          margin-bottom: 4px;
+        }
 
-.permission-tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: #fff;
-  border-radius: 20px;
-  font-size: 13px;
-  color: @textSecondary;
-  border: 1px solid #e8e8e8;
+        .task-type {
+          font-size: 12px;
+          color: @textMuted;
+        }
+      }
 
-  &.locked {
-    opacity: 0.5;
-    background: #f5f5f5;
-  }
-}
+      .task-reward {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        margin-right: 20px;
 
-.tag-icon {
-  font-size: 14px;
-}
+        .reward-score {
+          font-size: 18px;
+          font-weight: 600;
+          color: #ff6b35;
+        }
 
-.tag-name {
-  font-weight: 500;
-}
+        .reward-unit {
+          font-size: 12px;
+          color: @textMuted;
+        }
+      }
 
-.tag-lock {
-  font-size: 12px;
-}
+      .task-limit {
+        font-size: 12px;
+        color: @textMuted;
+        margin-right: 16px;
+      }
 
-.empty-permissions {
-  font-size: 14px;
-  color: @textMuted;
-  text-align: center;
-  padding: 20px;
-}
+      .task-btn {
+        padding: 6px 16px;
+        font-size: 13px;
+        color: @brandBlue;
+        border: 1px solid @brandBlue;
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s;
 
-.unlocked-section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: @cardShadow;
-}
-
-.unlocked-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.unlocked-card {
-  padding: 20px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-  border-radius: 10px;
-  border-left: 4px solid #6C5CE7;
-  transition: transform 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
+        &:hover {
+          background: @brandBlue;
+          color: #fff;
+        }
+      }
+    }
   }
 }
 
-.card-icon {
-  font-size: 28px;
-  margin-bottom: 10px;
-}
+.rules-modal {
+  .rules-content {
+    .rule-block {
+      margin-bottom: 20px;
 
-.card-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: @textPrimary;
-  margin-bottom: 6px;
-}
+      .rule-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: @textPrimary;
+        margin-bottom: 8px;
+      }
 
-.card-desc {
-  font-size: 12px;
-  color: @textMuted;
-  line-height: 1.5;
-}
+      p {
+        font-size: 13px;
+        color: @textSecondary;
+        line-height: 1.6;
+        margin: 0 0 8px;
+      }
 
-.tasks-section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: @cardShadow;
-}
+      ul {
+        margin: 0;
+        padding-left: 20px;
 
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.task-item {
-  display: flex;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid @borderLight;
-
-  &:last-child {
-    border-bottom: none;
+        li {
+          font-size: 13px;
+          color: @textSecondary;
+          line-height: 1.8;
+        }
+      }
+    }
   }
-}
-
-.task-icon {
-  font-size: 28px;
-  margin-right: 16px;
-  width: 48px;
-  text-align: center;
-}
-
-.task-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.task-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: @textPrimary;
-}
-
-.task-desc {
-  font-size: 13px;
-  color: @textMuted;
-}
-
-.task-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.task-score {
-  font-size: 14px;
-  font-weight: 600;
-  color: #6C5CE7;
-}
-
-.task-limit {
-  font-size: 12px;
-  color: @textMuted;
 }
 
 @media screen and (max-width: 768px) {
-  .grade-header {
-    padding: 24px 16px;
-  }
+  .grade-page {
+    .page-header {
+      padding: 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
 
-  .level-icon {
-    width: 52px;
-    height: 52px;
-    font-size: 26px;
-  }
+    .page-content {
+      padding: 16px;
+    }
 
-  .level-title {
-    font-size: 18px;
-  }
+    .section {
+      padding: 16px;
+    }
 
-  .grade-content {
-    padding: 16px;
-  }
+    .tasks-section {
+      .task-item {
+        flex-wrap: wrap;
+        padding: 12px;
 
-  .level-tabs-section,
-  .unlocked-section,
-  .tasks-section {
-    padding: 16px;
-  }
+        .task-reward {
+          margin-right: 12px;
+        }
 
-  .unlocked-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
-  }
-
-  .unlocked-card {
-    padding: 16px;
-  }
-
-  .card-icon {
-    font-size: 24px;
-  }
-
-  .task-item {
-    padding: 14px 0;
-  }
-
-  .task-icon {
-    font-size: 24px;
-    width: 40px;
-    margin-right: 12px;
-  }
-
-  .level-stats {
-    gap: 20px;
-  }
-
-  .stat-value {
-    font-size: 20px;
+        .task-btn {
+          width: 100%;
+          margin-top: 8px;
+        }
+      }
+    }
   }
 }
 </style>

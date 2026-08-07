@@ -1,15 +1,26 @@
 package com.heima.content.service.level.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.heima.content.mapper.level.ApBehaviorConfigMapper;
+import com.heima.content.mapper.level.ApLevelPrivilegeMapper;
+import com.heima.content.mapper.level.ApUserLevelMapper;
+import com.heima.content.mapper.level.ApUserPowerLogMapper;
 import com.heima.content.service.level.LevelPermissionService;
 import com.heima.content.service.level.LevelService;
+import com.heima.model.level.pojos.ApBehaviorConfig;
 import com.heima.model.level.pojos.ApLevelConfig;
+import com.heima.model.level.pojos.ApLevelPrivilege;
 import com.heima.model.level.pojos.ApUserLevel;
+import com.heima.model.level.pojos.ApUserPowerLog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 等级服务 Facade — 委派各子服务处理具体职责
@@ -40,6 +51,18 @@ public class LevelServiceImpl implements LevelService {
 
     @Autowired
     private LevelPrivilegeService levelPrivilegeService;
+
+    @Autowired
+    private ApLevelPrivilegeMapper privilegeMapper;
+
+    @Autowired
+    private ApBehaviorConfigMapper behaviorConfigMapper;
+
+    @Autowired
+    private ApUserLevelMapper userLevelMapper;
+
+    @Autowired
+    private ApUserPowerLogMapper powerLogMapper;
 
     // ==================== 等级查询 ====================
 
@@ -118,5 +141,103 @@ public class LevelServiceImpl implements LevelService {
     @Override
     public List<String> getUserPermissions(Long userId) {
         return permissionService.getUserPermissions(userId);
+    }
+
+    @Override
+    public void assignBasicPermissions(Long userId) {
+        permissionService.assignBasicPermissions(userId);
+    }
+
+    // ==================== 创作者等级权益 ====================
+
+    @Override
+    public Map<String, Object> getCreatorLevelPrivileges() {
+        LambdaQueryWrapper<ApLevelPrivilege> query = new LambdaQueryWrapper<>();
+        query.eq(ApLevelPrivilege::getLevelType, 2);
+        query.eq(ApLevelPrivilege::getIsActive, 1);
+        query.orderByAsc(ApLevelPrivilege::getLevelValue, ApLevelPrivilege::getSortOrder);
+        List<ApLevelPrivilege> privileges = privilegeMapper.selectList(query);
+
+        Map<Integer, List<ApLevelPrivilege>> grouped = privileges.stream()
+                .collect(Collectors.groupingBy(ApLevelPrivilege::getLevelValue));
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("privilegesByLevel", grouped);
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getGrowthTasks() {
+        LambdaQueryWrapper<ApBehaviorConfig> query = new LambdaQueryWrapper<>();
+        query.eq(ApBehaviorConfig::getIsActive, 1);
+        query.orderByAsc(ApBehaviorConfig::getGroupSort, ApBehaviorConfig::getSortOrder);
+        List<ApBehaviorConfig> tasks = behaviorConfigMapper.selectList(query);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("tasks", tasks);
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getPowerDetail(Long userId) {
+        Map<String, Object> result = new HashMap<>();
+
+        ApUserLevel userLevel = userLevelMapper.selectOne(
+                new LambdaQueryWrapper<ApUserLevel>()
+                        .eq(ApUserLevel::getUserId, userId)
+        );
+
+        if (userLevel != null) {
+            result.put("currentPower", userLevel.getPowerValue());
+            result.put("currentLevel", userLevel.getPowerLevel());
+            result.put("actionScore", userLevel.getActionScore());
+            result.put("influenceScore", userLevel.getInfluenceScore());
+            result.put("qualityScore", userLevel.getQualityScore());
+            result.put("violationScore", userLevel.getViolationScore());
+        } else {
+            result.put("currentPower", 0);
+            result.put("currentLevel", 1);
+            result.put("actionScore", 0);
+            result.put("influenceScore", 0);
+            result.put("qualityScore", 0);
+            result.put("violationScore", 0);
+        }
+
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30);
+
+        LambdaQueryWrapper<ApUserPowerLog> logQuery = new LambdaQueryWrapper<>();
+        logQuery.eq(ApUserPowerLog::getUserId, userId);
+        logQuery.ge(ApUserPowerLog::getRecordDate, startDate);
+        logQuery.le(ApUserPowerLog::getRecordDate, endDate);
+        logQuery.orderByDesc(ApUserPowerLog::getRecordDate);
+        List<ApUserPowerLog> logs = powerLogMapper.selectList(logQuery);
+
+        result.put("history", logs);
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getUserBenefits(Long userId) {
+        ApUserLevel userLevel = userLevelMapper.selectOne(
+                new LambdaQueryWrapper<ApUserLevel>()
+                        .eq(ApUserLevel::getUserId, userId)
+        );
+
+        int currentLevel = userLevel != null && userLevel.getPowerLevel() != null
+                ? userLevel.getPowerLevel() : 1;
+
+        LambdaQueryWrapper<ApLevelPrivilege> query = new LambdaQueryWrapper<>();
+        query.eq(ApLevelPrivilege::getLevelType, 2);
+        query.eq(ApLevelPrivilege::getIsActive, 1);
+        query.le(ApLevelPrivilege::getLevelValue, currentLevel);
+        query.orderByAsc(ApLevelPrivilege::getLevelValue, ApLevelPrivilege::getSortOrder);
+
+        List<ApLevelPrivilege> benefits = privilegeMapper.selectList(query);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("currentLevel", currentLevel);
+        result.put("benefits", benefits);
+        return result;
     }
 }
