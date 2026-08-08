@@ -32,6 +32,13 @@ export default {
         errorMsg: '',
         seed: null,
         page: 0
+      })),
+      // 每个标签页的子Tab状态（推荐/最新）
+      subTabStates: [...Array(Config.tabTitles.length).keys()].map(() => ({
+        current: 'recommend',
+        tags: [],
+        selectedTag: '__all__',
+        tagsLoaded: false
       }))
     }
   },
@@ -68,6 +75,7 @@ export default {
         loaddir: dir,
         index: idx,
         tag: Config.tabTitles[idx].id,
+        tagName: this.subTabStates[idx] ? this.subTabStates[idx].selectedTag : '__all__',
         size: this.params.size || 10,
         max_behot_time: this.params.max_behot_time,
         min_behot_time: this.params.min_behot_time
@@ -206,12 +214,25 @@ export default {
       newList[index] = []
       this.tabList = newList
 
+      // Reset sub-tab state
+      this.$set(this.subTabStates, index, {
+        current: 'recommend',
+        tags: [],
+        selectedTag: '__all__',
+        tagsLoaded: false
+      })
+
       // 所有频道标签页（推荐/综合/后端/前端/Android/iOS/人工智能等）统一使用推荐算法
       if (this.shouldUseRecommend(tabId)) {
         this.resetRecommendState(index)
         this.recommendLoad(index)
       } else {
         this.load(index, 1)
+      }
+
+      // Load category tags
+      if (this.shouldShowTagFilter(tabId)) {
+        this.loadCategoryTags(index)
       }
     },
 
@@ -233,11 +254,24 @@ export default {
       newList[index] = []
       this.tabList = newList
 
+      // Reset sub-tab state
+      this.$set(this.subTabStates, index, {
+        current: 'recommend',
+        tags: [],
+        selectedTag: '__all__',
+        tagsLoaded: false
+      })
+
       if (this.shouldUseRecommend(tabId)) {
         this.resetRecommendState(index)
         this.recommendLoad(index)
       } else {
         this.load(index, 1)
+      }
+
+      // Load category tags
+      if (this.shouldShowTagFilter(tabId)) {
+        this.loadCategoryTags(index)
       }
     },
 
@@ -273,7 +307,8 @@ export default {
       var channel = self.getRecommendChannel(tabId)
       var reqParams = {
         channel: channel,
-        size: self.params.size || 10
+        size: self.params.size || 10,
+        tagName: self.subTabStates[index] ? self.subTabStates[index].selectedTag : '__all__'
       }
       Api.recommendLoad(reqParams).then(function(d) {
         self.$set(state, 'loading', false)
@@ -415,6 +450,106 @@ export default {
       var newList = this.tabList.map(function (tab) { return tab.slice() })
       newList[index] = []
       this.tabList = newList
+    },
+
+    /**
+     * 判断是否显示子Tab（推荐/最新）
+     * 分类频道(数字ID + __latest__)显示，关注/推荐/综合/排行榜不显示
+     */
+    shouldShowSubTabs(tabId) {
+      if (tabId === '__follow__' || tabId === '__recommend__' || tabId === '__hot__') {
+        return false
+      }
+      return true
+    },
+
+    /**
+     * 判断是否显示标签筛选
+     * 仅分类频道(数字ID)显示
+     */
+    shouldShowTagFilter(tabId) {
+      if (typeof tabId === 'number') {
+        return true
+      }
+      return false
+    },
+
+    /**
+     * 切换子Tab
+     */
+    switchSubTab(index, subTab) {
+      if (this.subTabStates[index].current === subTab) return
+      this.$set(this.subTabStates[index], 'current', subTab)
+      this.$set(this.subTabStates[index], 'selectedTag', '__all__')
+      this.$set(this.subTabStates[index], 'tagsLoaded', false)
+
+      // Reset tab state and clear list
+      this.$set(this.tabStates, index, {
+        loaded: false, loading: false, loadingMore: false,
+        refreshing: false, noMore: false, error: false, errorMsg: ''
+      })
+      var newList = this.tabList.map(function(tab) { return tab.slice() })
+      newList[index] = []
+      this.tabList = newList
+
+      var tabId = Config.tabTitles[index].id
+
+      if (subTab === 'recommend') {
+        this.resetRecommendState(index)
+        this.recommendLoad(index)
+      } else {
+        this.load(index, 1)
+      }
+
+      // Load tags for this category
+      if (this.shouldShowTagFilter(tabId)) {
+        this.loadCategoryTags(index)
+      }
+    },
+
+    /**
+     * 选择标签
+     */
+    selectTag(index, tagName) {
+      this.$set(this.subTabStates[index], 'selectedTag', tagName)
+
+      // Reset tab state and clear list
+      this.$set(this.tabStates, index, {
+        loaded: false, loading: false, loadingMore: false,
+        refreshing: false, noMore: false, error: false, errorMsg: ''
+      })
+      var newList = this.tabList.map(function(tab) { return tab.slice() })
+      newList[index] = []
+      this.tabList = newList
+
+      var subTab = this.subTabStates[index].current
+      if (subTab === 'recommend') {
+        this.resetRecommendState(index)
+        this.recommendLoad(index)
+      } else {
+        this.load(index, 1)
+      }
+    },
+
+    /**
+     * 加载分类标签列表
+     */
+    loadCategoryTags(index) {
+      var tabId = Config.tabTitles[index].id
+      if (!this.shouldShowTagFilter(tabId)) return
+      if (this.subTabStates[index].tagsLoaded) return
+
+      var self = this
+      Api.getTagsByCategory(tabId).then(function(d) {
+        if (d && d.code === 200) {
+          var tags = d.data || []
+          self.$set(self.subTabStates[index], 'tags', tags)
+          self.$set(self.subTabStates[index], 'tagsLoaded', true)
+        }
+      }).catch(function() {
+        self.$set(self.subTabStates[index], 'tags', [])
+        self.$set(self.subTabStates[index], 'tagsLoaded', true)
+      })
     }
   }
 }

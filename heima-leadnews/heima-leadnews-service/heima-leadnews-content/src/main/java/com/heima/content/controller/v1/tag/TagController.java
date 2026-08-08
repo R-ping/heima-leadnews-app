@@ -20,4 +20,9 @@ public class TagController {
     public ResponseResult findList(@RequestParam(required = false) String keyword) {
         return ResponseResult.okResult(tagService.findList(keyword));
     }
+
+    @GetMapping("/by-category")
+    public ResponseResult findTagsByCategory(@RequestParam Integer categoryId) {
+        return ResponseResult.okResult(tagService.findTagsByCategory(categoryId));
+    }
 }

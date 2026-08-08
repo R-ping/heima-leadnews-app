@@ -44,8 +44,11 @@
             <if test="dto.tag != '__all__'">
                 and aa.channel_id = #{dto.tag}
             </if>
+            <if test="dto.tagName != null and dto.tagName != ''">
+                and JSON_CONTAINS(aa.tags, JSON_QUOTE(#{dto.tagName}))
+            </if>
         </where>
-        order by aa.publish_time desc
+        ORDER BY aa.publish_time DESC, (COALESCE(aa.views, 0) + COALESCE(aa.likes, 0) * 2 + COALESCE(aa.comment, 0) * 3) DESC, aa.id DESC
         limit #{dto.size}
     </select>
 
@@ -62,6 +65,9 @@
             and aa.status = 9
             <if test="channelId != null">
                 and aa.channel_id = #{channelId}
+            </if>
+            <if test="tagName != null and tagName != ''">
+                and JSON_CONTAINS(aa.tags, JSON_QUOTE(#{tagName}))
             </if>
         </where>
         ORDER BY aa.publish_time DESC, aa.id DESC
