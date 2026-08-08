@@ -1,20 +1,28 @@
 <template>
     <div class="creator-dropdown" @click.stop>
-        <div class="dropdown-menu-section">
+        <div class="dropdown-menu-grid">
             <div class="dropdown-item" @click="handleNavigate('/creator/publish', true)">
-                <span class="dropdown-icon">&#xf040;</span>
+                <div class="dropdown-icon-box">
+                    <span class="dropdown-icon">&#xf040;</span>
+                </div>
                 <span class="dropdown-label">写文章</span>
             </div>
             <div class="dropdown-item" @click="handleNavigate('/pins')">
-                <span class="dropdown-icon">&#xf142;</span>
+                <div class="dropdown-icon-box">
+                    <span class="dropdown-icon">&#xf142;</span>
+                </div>
                 <span class="dropdown-label">发沸点</span>
             </div>
             <div class="dropdown-item" @click="handleNavigate('/creator/content?tab=draft')">
-                <span class="dropdown-icon">&#xf0f6;</span>
+                <div class="dropdown-icon-box">
+                    <span class="dropdown-icon">&#xf0f6;</span>
+                </div>
                 <span class="dropdown-label">草稿箱</span>
             </div>
             <div class="dropdown-item" :class="{ disabled: !coursePermission.hasPermission }" @click="handleCourseClick">
-                <span class="dropdown-icon" v-html="coursePermission.hasPermission ? '&#xf02d;' : '&#xf023;'"></span>
+                <div class="dropdown-icon-box">
+                    <span class="dropdown-icon" v-html="coursePermission.hasPermission ? '&#xf02d;' : '&#xf023;'"></span>
+                </div>
                 <span class="dropdown-label">写小册</span>
             </div>
         </div>
@@ -27,17 +35,27 @@ import { toast } from '@/utils/toast'
 
 export default {
     name: 'CreatorDropdown',
+    props: {
+        refreshKey: {
+            type: Number,
+            default: 0
+        }
+    },
     data() {
         return {
             coursePermission: {
-                hasPermission: true,
+                hasPermission: false,
                 powerLevel: 0,
                 requiredLevel: 0
             }
         }
     },
-    created() {
-        this.loadCoursePermission()
+    watch: {
+        refreshKey(newVal) {
+            if (newVal > 0) {
+                this.loadCoursePermission()
+            }
+        }
     },
     methods: {
         async loadCoursePermission() {
@@ -72,12 +90,13 @@ export default {
     left: 0;
     margin-top: 8px;
     background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-    width: 160px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    width: 240px;
     z-index: 200;
     overflow: hidden;
     animation: fadeIn 0.2s ease;
+    padding: 16px 12px 12px;
 }
 
 @keyframes fadeIn {
@@ -91,59 +110,94 @@ export default {
     }
 }
 
-.dropdown-menu-section {
-    padding: 4px 0;
+.dropdown-menu-grid {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 4px;
 }
 
 .dropdown-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 10px 16px;
+    justify-content: center;
+    padding: 8px 4px;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-    gap: 10px;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 0;
+    border-radius: 8px;
 }
 
 .dropdown-item:hover {
     background-color: #f5f7fa;
-    color: @mian-color;
-}
-
-.dropdown-item:hover .dropdown-icon {
-    color: @mian-color;
 }
 
 .dropdown-item.disabled {
-    color: #c0c4cc;
     cursor: not-allowed;
+    .dropdown-icon-box {
+        background-color: #f2f3f5;
+    }
+    .dropdown-icon {
+        color: #c0c4cc;
+    }
+    .dropdown-label {
+        color: #c0c4cc;
+    }
 }
 
 .dropdown-item.disabled:hover {
     background-color: transparent;
-    color: #c0c4cc;
+}
+
+.dropdown-item.disabled:hover .dropdown-icon-box {
+    background-color: #f2f3f5;
 }
 
 .dropdown-item.disabled:hover .dropdown-icon {
     color: #c0c4cc;
 }
 
+.dropdown-item.disabled:hover .dropdown-label {
+    color: #c0c4cc;
+}
+
+.dropdown-icon-box {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f5ff;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover .dropdown-icon-box {
+    background-color: #e1ecff;
+}
+
 .dropdown-icon {
     font-family: fontawesome;
-    font-size: 14px;
-    width: 16px;
-    text-align: center;
-    color: #515767;
+    font-size: 18px;
+    color: @mian-color;
     transition: color 0.2s;
+}
+
+.dropdown-item:hover .dropdown-icon {
+    color: #1677ff;
 }
 
 .dropdown-label {
-    font-size: 14px;
+    font-size: 13px;
     color: #333;
-    flex: 1;
+    white-space: nowrap;
     transition: color 0.2s;
 }
 
-.dropdown-item.disabled .dropdown-label {
-    color: #c0c4cc;
+.dropdown-item:hover .dropdown-label {
+    color: #1677ff;
 }
 </style>

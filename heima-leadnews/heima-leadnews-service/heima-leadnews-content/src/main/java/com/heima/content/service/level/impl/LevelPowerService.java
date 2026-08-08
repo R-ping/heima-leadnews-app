@@ -4,10 +4,10 @@ import static com.heima.content.constants.LevelScoreConstants.POWER_ACTION_LIMIT
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.heima.content.mapper.level.ApUserLevelMapper;
-import com.heima.content.mapper.user.ApUserPowerLogMapper;
+import com.heima.content.mapper.user.ApUserDailyLogMapper;
 import com.heima.content.service.level.LevelPermissionService;
 import com.heima.model.level.pojos.ApUserLevel;
-import com.heima.model.user.pojos.ApUserPowerLog;
+import com.heima.model.user.pojos.ApUserDailyLog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ import java.util.Map;
 public class LevelPowerService {
 
     @Autowired
-    private ApUserPowerLogMapper powerLogMapper;
+    private ApUserDailyLogMapper dailyLogMapper;
 
     @Autowired
     private ApUserLevelMapper userLevelMapper;
@@ -57,13 +57,13 @@ public class LevelPowerService {
             return result;
         }
 
-        ApUserPowerLog powerLog = new ApUserPowerLog();
-        powerLog.setUserId(userId);
-        powerLog.setPowerChange(actualPower);
-        powerLog.setChangeType(changeType);
-        powerLog.setSourceId(articleId);
-        powerLog.setCalculatedAt(new java.sql.Date(System.currentTimeMillis()));
-        powerLogMapper.insert(powerLog);
+        ApUserDailyLog dailyLog = new ApUserDailyLog();
+        dailyLog.setUserId(userId);
+        dailyLog.setPowerChange(actualPower);
+        dailyLog.setChangeType(changeType);
+        dailyLog.setSourceId(articleId);
+        dailyLog.setCalculatedAt(new java.sql.Date(System.currentTimeMillis()));
+        dailyLogMapper.insert(dailyLog);
 
         userLevel.setPowerValue(userLevel.getPowerValue() + actualPower);
         userLevel.setPowerValueToday(userLevel.getPowerValueToday() + actualPower);
@@ -107,11 +107,11 @@ public class LevelPowerService {
 
         Integer dailyLimit = POWER_ACTION_LIMIT.get(changeType);
         if (dailyLimit != null) {
-            LambdaQueryWrapper<ApUserPowerLog> limitQuery = new LambdaQueryWrapper<>();
-            limitQuery.eq(ApUserPowerLog::getUserId, userId);
-            limitQuery.eq(ApUserPowerLog::getChangeType, changeType);
+            LambdaQueryWrapper<ApUserDailyLog> limitQuery = new LambdaQueryWrapper<>();
+            limitQuery.eq(ApUserDailyLog::getUserId, userId);
+            limitQuery.eq(ApUserDailyLog::getChangeType, changeType);
             limitQuery.apply("DATE(calculated_at) = {0}", today);
-            long todayCount = powerLogMapper.selectCount(limitQuery);
+            long todayCount = dailyLogMapper.selectCount(limitQuery);
             if (todayCount >= dailyLimit) {
                 return 0;
             }

@@ -517,6 +517,20 @@ export default {
             return result
         }
     },
+    watch: {
+        showCircleSelector(newVal, oldVal) {
+            if (newVal && !oldVal) {
+                this.fetchRecommendCircles()
+                this.fetchMyCircles()
+                this.fetchAllCircles()
+            }
+        },
+        showTopicSelector(newVal, oldVal) {
+            if (newVal && !oldVal) {
+                this.fetchTopics('')
+            }
+        }
+    },
     mounted() {
         this.init()
         window.addEventListener('scroll', this.handleScroll)

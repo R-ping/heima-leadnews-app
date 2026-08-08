@@ -66,18 +66,23 @@
                         <span v-if="!isLoggedIn" class="header-btn write-btn" @click="showLogin">
                             <span class="btn-icon">&#xf040;</span>写文章
                         </span>
-                        <span v-if="isLoggedIn" class="header-btn creator-btn"
+                        <div v-if="isLoggedIn" class="header-btn creator-btn"
                         @mouseenter="showCreatorDropdown"
-                        @mouseleave="hideCreatorDropdown"
-                        @click="openCreatorCenter">
-                            <span class="btn-icon">&#xf040;</span>创作者中心
-                            <span class="creator-arrow">&#xf107;</span>
+                        @mouseleave="hideCreatorDropdown">
+                            <span class="creator-main" @click="openCreatorCenter">
+                                <span class="btn-icon">&#xf040;</span>创作者中心
+                            </span>
+                            <span class="creator-divider"></span>
+                            <span class="creator-arrow" :class="{ 'is-reverse': creatorDropdownVisible }">
+                                <span class="arrow-icon">&#xf107;</span>
+                            </span>
                             <CreatorDropdown
-                                v-if="showCreatorDropdown"
+                                v-if="creatorDropdownVisible"
+                                :refreshKey="creatorDropdownRefreshKey"
                                 @close="hideCreatorDropdown"
                                 @navigate="handleCreatorNavigate"
                             />
-                        </span>
+                        </div>
                         <span v-if="!isLoggedIn" class="header-btn login-btn" @click="showLogin">登录</span>
                         <NotificationBell v-if="isLoggedIn" :unreadCount="unreadCount" @go-to-notification="goToNotification" />
                         <div v-if="isLoggedIn" class="header-user" @click="toggleUserDropdown">
@@ -286,7 +291,8 @@
         data() {
             return {
                 showUserDropdown: false,
-                showCreatorDropdown: false,
+                creatorDropdownVisible: false,
+                creatorDropdownRefreshKey: 0,
                 _creatorHideTimer: null,
                 searchKeyword: '',
                 showSearchDropdown: false,
@@ -386,10 +392,10 @@
                         this.showUserDropdown = false
                     }
                 }
-                if (this.showCreatorDropdown) {
+                if (this.creatorDropdownVisible) {
                     var creatorEl = this.$el.querySelector('.creator-btn')
                     if (creatorEl && !creatorEl.contains(e.target)) {
-                        this.showCreatorDropdown = false
+                        this.creatorDropdownVisible = false
                     }
                 }
                 if (this.showSearchDropdown) {
@@ -410,8 +416,10 @@
             '$route.path': function(newPath) {
                 this.syncCategoryFromRoute()
                 // 回到首页时刷新签到状态，确保"已签到/去签到"按钮与最新签到状态一致
-                if (newPath === '/') {
+                if (newPath === '/home' || newPath === '/') {
                     this.loadCheckinStatus()
+                    this.loadRecommendTopics()
+                    this.fetchUnreadCount()
                 }
             },
             isLoggedIn: function(newVal) {
@@ -533,7 +541,7 @@
             },
             handleLogout() {
                 this.showUserDropdown = false
-                this.showCreatorDropdown = false
+                this.creatorDropdownVisible = false
                 this.$store.dispatch('logout')
                 toast('已退出登录', 2)
                 this.$router.push('/home')
@@ -542,26 +550,27 @@
                 this.$router.push('/creator/dashboard')
             },
             toggleCreatorDropdown() {
-                this.showCreatorDropdown = !this.showCreatorDropdown
+                this.creatorDropdownVisible = !this.creatorDropdownVisible
             },
             showCreatorDropdown() {
                 if (this._creatorHideTimer) {
                     clearTimeout(this._creatorHideTimer)
                     this._creatorHideTimer = null
                 }
-                this.showCreatorDropdown = true
+                this.creatorDropdownRefreshKey++
+                this.creatorDropdownVisible = true
             },
             hideCreatorDropdown() {
                 if (this._creatorHideTimer) {
                     clearTimeout(this._creatorHideTimer)
                 }
                 this._creatorHideTimer = setTimeout(() => {
-                    this.showCreatorDropdown = false
+                    this.creatorDropdownVisible = false
                     this._creatorHideTimer = null
                 }, 100)
             },
             handleCreatorNavigate(path, isNewWindow) {
-                this.showCreatorDropdown = false
+                this.creatorDropdownVisible = false
                 if (isNewWindow) {
                     window.open(path, '_blank')
                 } else {
@@ -577,6 +586,11 @@
                 this.currentNav = 'home'
                 this.searchKeyword = ''
                 this.$router.push('/home')
+                this.$nextTick(() => {
+                    this.loadRecommendTopics()
+                    this.loadCheckinStatus()
+                    this.fetchUnreadCount()
+                })
             },
             goToPins() {
                 this.currentNav = 'pins'
@@ -856,12 +870,14 @@
             left: 0;
             right: 0;
             z-index: 100;
+            overflow: visible;
         }
 
         .header-inner {
             max-width: 1440PX;
             margin: 0 auto;
             height: 60PX;
+            overflow: visible;
             display: flex;
             align-items: center;
             padding: 0 24PX;
@@ -1158,14 +1174,50 @@
             color: #ffffff;
             background-color: @mian-color;
             position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 0;
+            border-radius: 4px;
+            overflow: visible;
+            transition: background-color 0.2s;
         }
         .creator-btn:hover {
             background-color: #1a7de8;
         }
+        .creator-main {
+            padding: 0 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .creator-divider {
+            width: 1px;
+            height: 16px;
+            background-color: rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
         .creator-arrow {
+            padding: 0 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            border-radius: 0 4px 4px 0;
+        }
+        .creator-arrow:hover,
+        .creator-arrow.is-reverse {
+            background-color: rgba(0, 0, 0, 0.15);
+        }
+        .arrow-icon {
             font-family: fontawesome;
-            font-size: 10PX;
-            margin-left: 4PX;
+            font-size: 10px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        .creator-arrow.is-reverse .arrow-icon {
+            transform: rotate(180deg);
         }
         .btn-icon {
             font-family: fontawesome;

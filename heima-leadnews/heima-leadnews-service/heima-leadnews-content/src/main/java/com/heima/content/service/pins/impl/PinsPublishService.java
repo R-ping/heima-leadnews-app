@@ -2,28 +2,25 @@ package com.heima.content.service.pins.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heima.apis.notification.INotificationClient;
-import com.heima.content.behavior.service.BehaviorEventBus;
 import com.heima.content.mapper.circle.ApCircleMapper;
 import com.heima.content.mapper.pins.ApPinsMapper;
 import com.heima.content.mapper.topic.TopicMapper;
-import com.heima.model.pins.dtos.PinsPublishDTO;
 import com.heima.model.circle.pojos.ApCircle;
-import com.heima.model.pins.pojos.ApPins;
-import com.heima.model.topic.pojos.ApTopic;
-import com.heima.model.behavior.BehaviorContext;
-import com.heima.model.behavior.BehaviorType;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
+import com.heima.model.pins.dtos.PinsPublishDTO;
+import com.heima.model.pins.pojos.ApPins;
+import com.heima.model.topic.pojos.ApTopic;
 import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Slf4j
@@ -39,13 +36,7 @@ public class PinsPublishService {
     private ApCircleMapper apCircleMapper;
 
     @Autowired
-    private PinsAuditService pinsAuditService;
-
-    @Autowired
     private PinsReviewService pinsReviewService;
-
-    @Autowired(required = false)
-    private BehaviorEventBus behaviorEventBus;
 
     @Autowired(required = false)
     private INotificationClient notificationClient;
@@ -62,27 +53,7 @@ public class PinsPublishService {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "内容不能为空");
         }
 
-        ApPins pins = new ApPins();
-        pins.setUserId(user.getId().longValue());
-        pins.setAuthorId(user.getId().longValue());
-        pins.setAuthorName(user.getNickname() != null ? user.getNickname() : "");
-        pins.setAuthorImage(user.getImage() != null ? user.getImage() : "");
-        pins.setUserName(user.getNickname() != null ? user.getNickname() : "");
-        pins.setUserAvatar(user.getImage() != null ? user.getImage() : "");
-        pins.setContent(dto.getContent());
-        pins.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : "");
-        pins.setTopicTags(dto.getTopicTags() != null ? dto.getTopicTags() : "");
-        pins.setTopicId(dto.getTopicId());
-        pins.setCircleId(dto.getCircleId());
-        pins.setLinkUrl(dto.getLinkUrl() != null ? dto.getLinkUrl() : "");
-        pins.setLinkTitle(dto.getLinkTitle() != null ? dto.getLinkTitle() : "");
-        pins.setStatus(ApPins.Status.SUBMIT.getCode());
-        pins.setLikes(0);
-        pins.setComment(0);
-        pins.setShare(0);
-        pins.setIsDeleted(false);
-        pins.setCreatedTime(new Date());
-        pins.setPublishTime(new Date());
+        ApPins pins = getApPins(dto, user);
         apPinsMapper.insert(pins);
 
         // 更新话题计数
@@ -110,6 +81,32 @@ public class PinsPublishService {
         pinsReviewService.asyncReviewPins(pins, user);
 
         return ResponseResult.okResult(pins);
+    }
+
+    @NotNull
+    private static ApPins getApPins(PinsPublishDTO dto, ApUser user) {
+        ApPins pins = new ApPins();
+        pins.setUserId(user.getId().longValue());
+        pins.setAuthorId(user.getId().longValue());
+        pins.setAuthorName(user.getNickname() != null ? user.getNickname() : "");
+        pins.setAuthorImage(user.getImage() != null ? user.getImage() : "");
+        pins.setUserName(user.getNickname() != null ? user.getNickname() : "");
+        pins.setUserAvatar(user.getImage() != null ? user.getImage() : "");
+        pins.setContent(dto.getContent());
+        pins.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : "");
+        pins.setTopicTags(dto.getTopicTags() != null ? dto.getTopicTags() : "");
+        pins.setTopicId(dto.getTopicId());
+        pins.setCircleId(dto.getCircleId());
+        pins.setLinkUrl(dto.getLinkUrl() != null ? dto.getLinkUrl() : "");
+        pins.setLinkTitle(dto.getLinkTitle() != null ? dto.getLinkTitle() : "");
+        pins.setStatus(ApPins.Status.SUBMIT.getCode());
+        pins.setLikes(0);
+        pins.setComment(0);
+        pins.setShare(0);
+        pins.setIsDeleted(false);
+        pins.setCreatedTime(new Date());
+        pins.setPublishTime(new Date());
+        return pins;
     }
 
     public void sendPinsCreatedNotification(ApPins pins) {

@@ -212,14 +212,15 @@ public class DashScopeClient {
         if (response == null || response.isEmpty()) {
             return false;
         }
+        String substring = response.substring(0, Math.min(100, response.length()));
         if (COMPLIANCE_PHRASE_CN.matcher(response).find()) {
             log.warn("Compliance phrase detected (CN) in response: {}",
-                response.substring(0, Math.min(100, response.length())));
+                substring);
             return true;
         }
         if (COMPLIANCE_PHRASE_EN.matcher(response).find()) {
             log.warn("Compliance phrase detected (EN) in response: {}",
-                response.substring(0, Math.min(100, response.length())));
+                substring);
             return true;
         }
         return false;
