@@ -51,8 +51,12 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
      */
     @Async
     @Override
-    public void buildHTMLAndSend(ApArticle apArticle, String content, long lastExecuteInterval) {
-        addLastDelayTask(apArticle.getId(), lastExecuteInterval);
+    public void buildHTMLAndSend(ApArticle apArticle, String content, Task task, long lastExecuteInterval) {
+        boolean isHasDelay = false;// 文章通常不做延迟发布
+        if (lastExecuteInterval > 0) {// 大于0，说明有延迟发布时间
+            isHasDelay = true;
+            addLastDelayTask(apArticle.getId(), lastExecuteInterval);
+        }
         //已知文章的id
         SearchArticleVo vo = new SearchArticleVo();
         BeanUtils.copyProperties(apArticle, vo);
@@ -61,6 +65,7 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
         buildHtmlContent(vo, markdown);
         buildFileNameAndPath(apArticle, vo);
         try {
+            // 同步文章到ES
             searchClient.syncArticle(vo);
             log.info("文章同步到ES成功, articleId={}", apArticle.getId());
             updateArticleEventStatus(apArticle.getId(), "es", (byte) 2);
@@ -72,13 +77,18 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
         try {
             String htmlContent = vo.getHtmlContent();
             if (StringUtils.isNotBlank(htmlContent)) {
-                minioUtil.uploadString(htmlContent,vo.getFileName(), "text/html");
+                minioUtil.uploadString(htmlContent, vo.getFileName(), "text/html");
                 log.info("文章HTML上传MinIO成功, articleId={}", apArticle.getId());
                 updateArticleEventStatus(apArticle.getId(), "minio", (byte) 2);
             }
         } catch (Exception e) {
             log.error("文章HTML上传MinIO失败, articleId={}", apArticle.getId(), e);
             updateArticleEventStatus(apArticle.getId(), "minio", (byte) 1);
+        }
+        if (!isHasDelay) {//
+            // 如果没有延迟发布时间，则立即更新文章状态，不用再redisson等待了，
+            // 当delay interval为0时是立即执行，从结果上看一样，但少经过一回redis，更稳定，逻辑上更清晰
+            redissonDelayQueue.lastDone(task, apArticle);
         }
     }
 
@@ -129,6 +139,7 @@ public class ArticleFreemarkerServiceImpl implements ArticleFreemarkerService {
 
     /**
      * 更新本地消息表中指定操作的状态
+     *
      * @param articleId 文章ID
      * @param type 操作类型：minio/es
      * @param status 状态值：0=初始化 1=待重试 2=成功

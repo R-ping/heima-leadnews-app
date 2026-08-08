@@ -25,6 +25,7 @@ import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.mess.ArticleVisitStreamMess;
 import com.heima.model.mess.UpdateArticleMess;
+import com.heima.model.schedule.dtos.Task;
 import com.heima.model.search.vos.SearchArticleVo;
 import java.util.Date;
 import java.util.List;
@@ -135,7 +136,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
             throw new RuntimeException(e);
         }
         // 异步操作移到事务提交后，避免事务边界问题
-        articleFreemarkerService.buildHTMLAndSend(apArticle, "", executeTimeInterval);
+//        articleFreemarkerService.buildHTMLAndSend(apArticle, "", executeTimeInterval);
         // 结果返回 文章的id
         return ResponseResult.okResult(apArticle.getId());
     }
@@ -145,7 +146,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
      * 根据文章id生成文章事件,后续进行mq异步处理
      */
     @Override
-    public boolean generateArticleEvent(ApArticle article, long lastExecuteInterval) {
+    public boolean generateArticleEvent(ApArticle article, Task task, long lastExecuteInterval) {
         //1.检查参数
         if (article == null) {
             log.error("文章保存失败，参数为空");
@@ -169,7 +170,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
             return false;
         }
         // 异步操作移到事务提交后，避免事务边界问题
-        articleFreemarkerService.buildHTMLAndSend(article, "", lastExecuteInterval);
+        articleFreemarkerService.buildHTMLAndSend(article, "", task,lastExecuteInterval);
         return true;
     }
 
