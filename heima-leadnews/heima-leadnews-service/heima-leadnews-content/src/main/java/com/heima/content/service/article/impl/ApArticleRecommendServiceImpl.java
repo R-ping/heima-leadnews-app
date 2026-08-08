@@ -43,7 +43,7 @@ public class ApArticleRecommendServiceImpl implements ApArticleRecommendService 
         if (!"__all__".equals(channel)) {
             try { channelId = Integer.parseInt(channel); } catch (NumberFormatException ignored) {}
         }
-        List<ApArticle> candidates = apArticleMapper.selectRecommendCandidates(channelId, maxCandidates);
+        List<ApArticle> candidates = apArticleMapper.selectRecommendCandidates(channelId, maxCandidates, dto.getTagName());
         if (candidates == null || candidates.isEmpty()) {
             log.info("Recommend: no candidates for channel={}", channel);
             return ResponseResult.okResult(buildEmptyResponse(seed, page, size));

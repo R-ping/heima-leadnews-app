@@ -97,7 +97,7 @@ public class ApArticleServiceImpl extends ServiceImpl<ApArticleMapper, ApArticle
     }
 
     /**
-     * 保存app端相关文章
+     *
      */
     @Override
     @Transactional(rollbackFor = Exception.class)

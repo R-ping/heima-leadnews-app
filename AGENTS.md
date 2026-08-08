@@ -146,7 +146,7 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
      DB_PORT=3306
      DB_USER=root
      DB_PASSWORD=123456（仅限开发环境）
-     DB_NAME=yourdb
+     DB_NAME=leadnews_article(内容库)、leadnews_reward、leadnews_notification（系统通知数据库）、leadnews_user（用户数据库）
      ```
 
      
@@ -158,7 +158,7 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
    - 编码过程中若发现缺少必要的表、字段或类型不匹配，AI 需：
      1. **生成正确的 DDL 语句**（`CREATE TABLE` / `ALTER TABLE`）。
      2. 同步修改实体类、Mapper/DAO 和 SQL 映射文件，确保代码与数据库结构一致。
-     3. 告诉你了数据库连接信息：*mysql -h localhost -u root -p* 123456，当需要插入表，或发生表结构变更时，由你直接操作完成，相应的.sql文件保留下来。
+     3. 告诉你了数据库连接信息：*mysql -h localhost -u root -p* 123456，当需要插入表，或发生表结构变更时，由你直接操作完成，相应的.sql文件保留下来；若对某个表、表字段、字段类型不确定，可以提前查看，使你的输出更精准。
    - **禁止** 因表结构缺失而使用临时数组或假数据阻塞开发。
 
    ------

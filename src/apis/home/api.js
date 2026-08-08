@@ -14,6 +14,9 @@ Api.prototype = {
             tag: params.tag,
             size: params.size || 10
         }
+        if (params.tagName && params.tagName !== '__all__') {
+            body.tagName = params.tagName
+        }
         // maxBehotTime/minBehotTime 为数字时间戳，发送给后端 Date 类型
         if (params.max_behot_time && params.max_behot_time > 0) {
             body.maxBehotTime = params.max_behot_time
@@ -41,6 +44,9 @@ Api.prototype = {
         var body = {
             channel: params.channel || '__all__',
             size: params.size || 10
+        }
+        if (params.tagName && params.tagName !== '__all__') {
+            body.tagName = params.tagName
         }
         if (params.seed) {
             body.seed = params.seed
@@ -71,6 +77,16 @@ Api.prototype = {
         else if (dir === 2)
             url = conf.urls.get('loadmore')
         return url
+    },
+    // 按分类获取标签列表
+    getTagsByCategory: function(categoryId) {
+        return new Promise((resolve, reject) => {
+            articleRequest.get('/api/v1/tag/by-category', { params: { categoryId } }).then((d) => {
+                resolve(d)
+            }).catch((e) => {
+                reject(e)
+            })
+        })
     }
 }
 

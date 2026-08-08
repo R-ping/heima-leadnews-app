@@ -15,4 +15,6 @@ public class ArticleHomeDto {
     Integer size;
     // 频道ID
     String tag;
+    // 标签名过滤
+    String tagName;
 }

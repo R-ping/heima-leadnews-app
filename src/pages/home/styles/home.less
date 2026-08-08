@@ -106,6 +106,201 @@
   color: #fff;
 }
 
+/* ========== 骨架屏样式 ========== */
+.loading-skeleton {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeleton-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #f5f5f5;
+}
+
+.skeleton-image {
+  width: 120px;
+  height: 90px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 18px;
+  width: 80%;
+}
+
+.skeleton-short {
+  width: 50%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 移动端骨架 */
+.mobile-skeleton {
+  padding: 12px;
+  gap: 12px;
+}
+
+.mobile-skeleton .skeleton-item {
+  padding: 12px;
+}
+
+.mobile-skeleton .skeleton-image {
+  display: none;
+}
+
+/* ========== 子Tab和标签筛选样式 ========== */
+.mobile-subheader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background-color: #fff;
+    border-bottom: 1px solid #f0f1f5;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.sub-tabs {
+    display: flex;
+    gap: 24px;
+}
+
+.sub-tab {
+    font-size: 16px;
+    color: #515767;
+    cursor: pointer;
+    padding: 6px 0;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.sub-tab.active {
+    color: #1E80FF;
+    font-weight: 500;
+}
+
+.sub-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 2px;
+    background-color: #1E80FF;
+    border-radius: 1px;
+}
+
+.tag-filter {
+    position: relative;
+}
+
+.tag-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background-color: #f5f6f7;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #515767;
+    transition: background-color 0.2s;
+}
+
+.tag-dropdown:hover {
+    background-color: #ebedf0;
+}
+
+.tag-arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.tag-arrow.up {
+    transform: rotate(180deg);
+}
+
+.tag-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background-color: #fff;
+    border: 1px solid #e4e6eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.tag-option {
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #515767;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.15s;
+}
+
+.tag-option:hover {
+    background-color: #f5f6f7;
+}
+
+.tag-option.active {
+    color: #1E80FF;
+    background-color: #e8f4ff;
+    font-weight: 500;
+}
+
+.tag-count {
+    font-size: 12px;
+    color: #999;
+    margin-left: 8px;
+}
+
+.tag-option.active .tag-count {
+    color: #1E80FF;
+}
+
 /* ========== Web端样式 ========== */
 @media screen and (min-width: 768px) {
   .is-desktop {
@@ -245,5 +440,37 @@
   .retry-btn {
     font-size: 14PX;
     padding: 8PX 24PX;
+  }
+
+  /* Desktop skeleton */
+  .loading-skeleton {
+    padding: 16PX 24PX;
+    gap: 12PX;
+  }
+  .skeleton-item {
+    padding: 16PX;
+  }
+  .skeleton-image {
+    width: 120PX;
+    height: 90PX;
+  }
+  .skeleton-line {
+    height: 14PX;
+  }
+  .skeleton-title {
+    height: 18PX;
+  }
+
+  /* Desktop subheader */
+  .desktop-subheader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background-color: #fff;
+      border-bottom: 1px solid #f0f1f5;
+      position: sticky;
+      top: 0;
+      z-index: 5;
   }
 }
