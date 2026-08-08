@@ -20,6 +20,7 @@ import com.heima.model.user.pojos.ApUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
 import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +85,34 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
         }
 
         // 从草稿直接创建 ap_article 记录
+        ApArticle article = getApArticle(draft, user);
+
+        apArticleMapper.insert(article);
+
+        // 保存文章配置
+        ApArticleConfig apArticleConfig = new ApArticleConfig(article.getId());
+        apArticleConfigMapper.insert(apArticleConfig);
+
+        // 保存文章内容
+        ApArticleContent apArticleContent = new ApArticleContent();
+        apArticleContent.setArticleId(article.getId());
+        apArticleContent.setContent(draft.getContent());
+        apArticleContentMapper.insert(apArticleContent);
+
+        log.info("从草稿发布文章成功, draftId: {}, articleId: {}", draftId, article.getId());
+
+        // 删除草稿
+        removeById(draftId);
+
+        // 异步提交审核
+        articleAutoScanService.autoScanArticle(article.getId());
+        log.info("文章已提交审核（异步）, articleId: {}", article.getId());
+
+        return ResponseResult.okResult(article);
+    }
+
+    @NotNull
+    private static ApArticle getApArticle(ApArticleDraft draft, ApUser user) {
         ApArticle article = new ApArticle();
         article.setTitle(draft.getTitle());
         article.setAuthorId(draft.getAuthorId() != null ? draft.getAuthorId() : user.getId().longValue());
@@ -109,29 +138,7 @@ public class ApArticleDraftServiceImpl extends ServiceImpl<ApArticleDraftMapper,
             article.setAuthorName(apUser.getNickname() != null ? apUser.getNickname() : "");
             article.setAuthorImage(apUser.getImage() != null ? apUser.getImage() : "");
         }
-
-        apArticleMapper.insert(article);
-
-        // 保存文章配置
-        ApArticleConfig apArticleConfig = new ApArticleConfig(article.getId());
-        apArticleConfigMapper.insert(apArticleConfig);
-
-        // 保存文章内容
-        ApArticleContent apArticleContent = new ApArticleContent();
-        apArticleContent.setArticleId(article.getId());
-        apArticleContent.setContent(draft.getContent());
-        apArticleContentMapper.insert(apArticleContent);
-
-        log.info("从草稿发布文章成功, draftId: {}, articleId: {}", draftId, article.getId());
-
-        // 删除草稿
-        removeById(draftId);
-
-        // 异步提交审核
-        articleAutoScanService.autoScanArticle(article.getId());
-        log.info("文章已提交审核（异步）, articleId: {}", article.getId());
-
-        return ResponseResult.okResult(article);
+        return article;
     }
 
     @Override

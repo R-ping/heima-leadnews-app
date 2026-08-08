@@ -10,24 +10,27 @@ import com.heima.content.mapper.course.ApCourseReadingProgressMapper;
 import com.heima.content.mapper.course.ApUserCourseMapper;
 import com.heima.content.service.course.ApCourseService;
 import com.heima.content.service.level.LevelService;
+import com.heima.model.common.dtos.ResponseResult;
+import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.course.dtos.CourseDto;
 import com.heima.model.course.pojos.ApCourse;
 import com.heima.model.course.pojos.ApCourseChapter;
 import com.heima.model.course.pojos.ApCourseReadingProgress;
-import com.heima.model.user.pojos.ApUserCourse;
 import com.heima.model.level.pojos.ApUserLevel;
-import com.heima.model.common.dtos.ResponseResult;
-import com.heima.model.common.enums.AppHttpCodeEnum;
+import com.heima.model.user.pojos.ApUserCourse;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -45,7 +48,7 @@ public class ApCourseServiceImpl extends ServiceImpl<ApCourseMapper, ApCourse> i
     @Autowired
     private LevelService levelService;
 
-    private static final int COURSE_AUTHOR_REQUIRED_POWER_LEVEL = 5;
+    private static final int COURSE_AUTHOR_REQUIRED_POWER_LEVEL = 7;
 
     @Override
     public ResponseResult findList(Integer page, Integer size, Byte status) {

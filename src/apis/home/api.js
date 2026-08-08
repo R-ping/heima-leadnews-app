@@ -51,7 +51,7 @@ Api.prototype = {
         return store.getEquipmentId().then(function(equipmentId) {
             body.equipmentId = equipmentId
             return new Promise(function(resolve, reject) {
-                articleRequest.post('/api/v1/content/recommend', body, {}).then(function(d) {
+                articleRequest.post('/api/v1/article/recommend', body, {}).then(function(d) {
                     resolve(d)
                 }).catch(function(e) {
                     reject(e)

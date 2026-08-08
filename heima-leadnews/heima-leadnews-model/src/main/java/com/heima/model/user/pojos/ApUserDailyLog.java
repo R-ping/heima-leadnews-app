@@ -10,8 +10,8 @@ import java.io.Serializable;
 import java.util.Date;
 
 @Data
-@TableName("ap_user_power_log")
-public class ApUserPowerLog implements Serializable {
+@TableName("ap_user_daily_log")
+public class ApUserDailyLog implements Serializable {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;

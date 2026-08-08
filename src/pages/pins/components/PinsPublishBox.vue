@@ -598,15 +598,15 @@ export default {
 /* 表情弹窗 */
 .emoji-picker {
     position: absolute;
-    bottom: 100%;
-    left: 16px;
+    top: 100%;
+    left: 0;
     background: #fff;
     border: 1px solid #e4e6eb;
     border-radius: 8px;
     padding: 10px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.12);
     z-index: 100;
-    margin-bottom: 8px;
+    margin-top: 4px;
     width: 320px;
 }
 

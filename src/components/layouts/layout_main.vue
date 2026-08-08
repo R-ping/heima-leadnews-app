@@ -73,11 +73,12 @@
                                 <span class="btn-icon">&#xf040;</span>创作者中心
                             </span>
                             <span class="creator-divider"></span>
-                            <span class="creator-arrow" :class="{ 'is-reverse': showCreatorDropdown }">
+                            <span class="creator-arrow" :class="{ 'is-reverse': creatorDropdownVisible }">
                                 <span class="arrow-icon">&#xf107;</span>
                             </span>
                             <CreatorDropdown
-                                v-if="showCreatorDropdown"
+                                v-if="creatorDropdownVisible"
+                                :refreshKey="creatorDropdownRefreshKey"
                                 @close="hideCreatorDropdown"
                                 @navigate="handleCreatorNavigate"
                             />
@@ -290,7 +291,8 @@
         data() {
             return {
                 showUserDropdown: false,
-                showCreatorDropdown: false,
+                creatorDropdownVisible: false,
+                creatorDropdownRefreshKey: 0,
                 _creatorHideTimer: null,
                 searchKeyword: '',
                 showSearchDropdown: false,
@@ -390,10 +392,10 @@
                         this.showUserDropdown = false
                     }
                 }
-                if (this.showCreatorDropdown) {
+                if (this.creatorDropdownVisible) {
                     var creatorEl = this.$el.querySelector('.creator-btn')
                     if (creatorEl && !creatorEl.contains(e.target)) {
-                        this.showCreatorDropdown = false
+                        this.creatorDropdownVisible = false
                     }
                 }
                 if (this.showSearchDropdown) {
@@ -414,8 +416,10 @@
             '$route.path': function(newPath) {
                 this.syncCategoryFromRoute()
                 // 回到首页时刷新签到状态，确保"已签到/去签到"按钮与最新签到状态一致
-                if (newPath === '/') {
+                if (newPath === '/home' || newPath === '/') {
                     this.loadCheckinStatus()
+                    this.loadRecommendTopics()
+                    this.fetchUnreadCount()
                 }
             },
             isLoggedIn: function(newVal) {
@@ -537,7 +541,7 @@
             },
             handleLogout() {
                 this.showUserDropdown = false
-                this.showCreatorDropdown = false
+                this.creatorDropdownVisible = false
                 this.$store.dispatch('logout')
                 toast('已退出登录', 2)
                 this.$router.push('/home')
@@ -546,26 +550,27 @@
                 this.$router.push('/creator/dashboard')
             },
             toggleCreatorDropdown() {
-                this.showCreatorDropdown = !this.showCreatorDropdown
+                this.creatorDropdownVisible = !this.creatorDropdownVisible
             },
             showCreatorDropdown() {
                 if (this._creatorHideTimer) {
                     clearTimeout(this._creatorHideTimer)
                     this._creatorHideTimer = null
                 }
-                this.showCreatorDropdown = true
+                this.creatorDropdownRefreshKey++
+                this.creatorDropdownVisible = true
             },
             hideCreatorDropdown() {
                 if (this._creatorHideTimer) {
                     clearTimeout(this._creatorHideTimer)
                 }
                 this._creatorHideTimer = setTimeout(() => {
-                    this.showCreatorDropdown = false
+                    this.creatorDropdownVisible = false
                     this._creatorHideTimer = null
                 }, 100)
             },
             handleCreatorNavigate(path, isNewWindow) {
-                this.showCreatorDropdown = false
+                this.creatorDropdownVisible = false
                 if (isNewWindow) {
                     window.open(path, '_blank')
                 } else {
@@ -581,6 +586,11 @@
                 this.currentNav = 'home'
                 this.searchKeyword = ''
                 this.$router.push('/home')
+                this.$nextTick(() => {
+                    this.loadRecommendTopics()
+                    this.loadCheckinStatus()
+                    this.fetchUnreadCount()
+                })
             },
             goToPins() {
                 this.currentNav = 'pins'
