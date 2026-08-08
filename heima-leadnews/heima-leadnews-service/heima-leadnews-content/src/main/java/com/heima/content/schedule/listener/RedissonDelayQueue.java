@@ -109,7 +109,7 @@ public class RedissonDelayQueue {
                     if (queueName.equals("TASK_FIRST_EXECUTE_DELAY_QUEUE")) {
                         log.info("消费延迟任务，taskId={}, articleId={}", task.getTaskId(), article.getId());
                         long lastExecInterval = task.getObjExecInterval() - task.getFirstExecInterval();
-                        boolean isArticleEventBuilt = apArticleService.generateArticleEvent(article, lastExecInterval);
+                        boolean isArticleEventBuilt = apArticleService.generateArticleEvent(article, task ,lastExecInterval);
                         if (isArticleEventBuilt) {
                             taskService.consumerTask(task.getTaskId());
                         } else {
@@ -117,19 +117,7 @@ public class RedissonDelayQueue {
                         }
                         log.info("延迟任务消费成功，taskId={}", task.getTaskId());
                     } else if (queueName.equals("TASK_LAST_EXECUTE_DELAY_QUEUE")) {
-                        log.info("延迟任务的最终消费，taskId={}, articleId={}", task.getTaskId(), article.getId());
-                        try {
-                            apArticleService.updateArticleStatus(article.getId());
-                            taskService.consumerTask(task.getTaskId());
-                            log.info("延迟任务最终消费成功，taskId={}, articleId={}", task.getTaskId(), article.getId());
-                        } catch (Exception e) {
-                            log.error("延迟任务最终消费异常，taskId={}, articleId={}", task.getTaskId(), article.getId(), e);
-                            try {
-                                taskService.failTask(task.getTaskId());
-                            } catch (Exception ex) {
-                                log.error("更新任务日志失败，taskId={}", task.getTaskId(), ex);
-                            }
-                        }
+                        lastDone(task, article);
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -140,6 +128,22 @@ public class RedissonDelayQueue {
             }
         });
         log.info("RedissonDelayQueue consumer started for: {}", queueName);
+    }
+
+    public void lastDone(Task task, ApArticle article) {
+        log.info("延迟任务的最终消费，taskId={}, articleId={}", task.getTaskId(), article.getId());
+        try {
+            apArticleService.updateArticleStatus(article.getId());
+            taskService.consumerTask(task.getTaskId());
+            log.info("延迟任务最终消费成功，taskId={}, articleId={}", task.getTaskId(), article.getId());
+        } catch (Exception e) {
+            log.error("延迟任务最终消费异常，taskId={}, articleId={}", task.getTaskId(), article.getId(), e);
+            try {
+                taskService.failTask(task.getTaskId());
+            } catch (Exception ex) {
+                log.error("更新任务日志失败，taskId={}", task.getTaskId(), ex);
+            }
+        }
     }
 
     /**
